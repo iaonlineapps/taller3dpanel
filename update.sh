@@ -16,9 +16,8 @@ REPO="https://github.com/pctecnikk/taller3dpanel.git"
 CONTAINER="taller3d-panel"
 PORT_DEFAULT="8095"
 URL_PATH=""
-# Archivos que se copian además de app/, y si se prueba antes con "git pull" en la carpeta
+# Archivos que se copian además de public/ (si la carpeta no es una copia de git)
 COPY_FILES="server.js VERSION Dockerfile entrypoint.sh update.sh uninstall.sh"
-USE_GIT=0
 export GIT_TERMINAL_PROMPT=0
 
 say() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
@@ -39,6 +38,9 @@ main() {
     CODE=$(root docker inspect "$CONTAINER" --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' 2>/dev/null || true)
   fi
   here=$(pwd)
+  if [ -z "$CODE" ] && [ -f /mnt/datos/apps/taller3d-panel/docker-compose.yaml ]; then
+    CODE=/mnt/datos/apps/taller3d-panel
+  fi
   if [ -z "$CODE" ] && grep -qs "container_name: $CONTAINER" "$here/docker-compose.yaml"; then
     CODE="$here"
   fi
@@ -57,10 +59,15 @@ main() {
     # 2. Código nuevo
     say "Bajando el código nuevo de GitHub"
     local UPDATED="" TMP f
-    if [ "$USE_GIT" = 1 ] && [ -d .git ] && as_owner "$(stat -c %U .)" git -c safe.directory="$CODE" pull --ff-only -q; then
-      UPDATED=1
-    elif [ "$USE_GIT" = 1 ] && [ -d .git ]; then
-      echo "git pull no ha podido (seguramente hay cambios hechos a mano). Copio el código nuevo encima."
+    # Si la carpeta es una copia de git (por ejemplo la versión privada, con su propio acceso), se actualiza
+    # desde su repositorio: git fetch + reset --hard origin/main (no toca .env ni los datos, que no están en git).
+    if [ -d .git ]; then
+      local OWN; OWN=$(stat -c %U .)
+      if as_owner "$OWN" git -c safe.directory="$CODE" fetch -q origin && as_owner "$OWN" git -c safe.directory="$CODE" reset -q --hard origin/main; then
+        UPDATED=1; echo "Actualizado desde $(as_owner "$OWN" git -c safe.directory="$CODE" remote get-url origin | sed -E 's#https://[^@]*@#https://#')"
+      else
+        echo "No he podido usar git en esta carpeta. Copio el código nuevo encima."
+      fi
     fi
     if [ -z "$UPDATED" ]; then
       TMP=$(mktemp -d)
