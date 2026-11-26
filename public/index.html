@@ -832,7 +832,7 @@ function vGranja(){
  return `<div class="ph"><div><h1>Granja de impresoras</h1><div class="sub">Cada impresora con su QR: escanéalo para ver qué está haciendo, cambiar su estado o controlarla</div></div>
  <div class="btns"><button class="btn gh" id="fmlab">${ico('qr')}Etiquetas QR</button><button class="btn gh" id="bulkfm">+ Varias</button><button class="btn" id="newfm">+ Añadir impresora</button></div></div>
  <div class="sum"><div class="sm"><div class="l">Impresoras</div><div class="v">${all.length}</div></div><div class="sm" style="border-left-color:var(--pri)"><div class="l">Trabajando</div><div class="v">${busy}</div></div><div class="sm" style="border-left-color:var(--inc)"><div class="l">Libres</div><div class="v">${free}</div></div><div class="sm" style="border-left-color:var(--exp)"><div class="l">Paradas o con aviso</div><div class="v ${bad?'dn':''}">${bad}</div></div></div>
- ${IN_ARTIFACT?`<p class="note" style="margin:0">Aquí llevas el estado de cada impresora a mano. El control en directo de las Bambu Lab por LAN (progreso, temperaturas, pausar, parar…) funciona en la versión instalada en tu red (Docker o servidor de casa).</p>`
+ ${DEMO?`<p class="note" style="margin:0;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--ink)"><b>Demo:</b> estas 10 impresoras son simuladas y van rápido (1 segundo = 1 minuto). Terminan, fallan y empiezan trabajos solas; puedes pausarlas, pararlas, cambiar la luz o la velocidad. Nada se conecta a impresoras reales.</p>`:IN_ARTIFACT?`<p class="note" style="margin:0">Aquí llevas el estado de cada impresora a mano. El control en directo de las Bambu Lab por LAN (progreso, temperaturas, pausar, parar…) funciona en la versión instalada en tu red (Docker o servidor de casa).</p>`
   :lan&&!S.farmEnabled?`<p class="note" style="margin:0">El control LAN está desactivado en este servidor (FARM_LAN=0).</p>`:''}
  ${all.length>6?`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><input id="fmq" placeholder="Buscar impresora, código, modelo o trabajo…" value="${esc(S.fmq||'')}" autocomplete="off" style="flex:1 1 240px"><div class="tabs">${FMF.map(([k,t])=>`<button data-fmf="${k}" class="${(S.fmf||'todas')===k?'on':''}">${t}</button>`).join('')}</div></div>`:''}
  <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">${l.length?l.map((f,i)=>{const s=st[i],lv=s.l,pct=lv&&lv.online&&lv.percent!=null?Math.max(0,Math.min(100,lv.percent)):null;
@@ -841,7 +841,7 @@ function vGranja(){
   ${pct!=null&&/Imprimiendo|pausa|Preparando/.test(s.t)?`<div class="bar"><div class="h"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(lv.file||'Imprimiendo')}</span><span>${pct}%</span></div><div class="trk"><i style="width:${pct}%"></i></div></div><div class="note">Quedan ${fmtMin(lv.remaining)}${lv.layers?' · capa '+lv.layer+'/'+lv.layers:''}</div>`
    :f.job&&f.status==='imprimiendo'?`<div class="note">${ico('clock')} ${esc(f.job)}${f.since?' · desde '+fdt(f.since):''}</div>`:''}
   ${lv&&lv.online?`<div class="note">Boquilla ${num(lv.nozzle||0)}°${lv.nozzleT?'/'+num(lv.nozzleT)+'°':''} · Cama ${num(lv.bed||0)}°${lv.chamber?' · Cámara '+num(lv.chamber)+'°':''}</div>${lv.trays&&lv.trays.length?`<div style="display:flex;gap:8px;flex-wrap:wrap">${farmTrays(lv)}</div>`:''}`
-   :f.lan&&!IN_ARTIFACT?`<div class="note" style="color:var(--exp)">${esc(lv&&lv.error||(S.farmLive[f.id]&&S.farmLive[f.id].hasAccess?'Conectando…':'Falta el código de acceso LAN'))}</div>`:''}
+   :f.lan&&(!IN_ARTIFACT||DEMO)?`<div class="note" style="color:var(--exp)">${esc(lv&&lv.error||(S.farmLive[f.id]&&S.farmLive[f.id].hasAccess?'Conectando…':'Falta el código de acceso LAN'))}</div>`:''}
   </button>`}).join(''):`<div class="card empty" style="grid-column:1/-1">${all.length?'Ninguna impresora coincide.':'Añade tus impresoras. A cada una se le da un código (IMP-0001, IMP-0002…) con su QR para pegarlo en la máquina.'}</div>`}</div>
  ${all.length?(()=>{const {from}=period(S.range),rl=RANGES.find(x=>x[0]===S.range)[1],tot=farmStats('',from||0);
   return `<div class="g21"><div class="card"><div class="ch"><h2>Estadísticas</h2><div class="tabs">${RANGES.map(([v,t])=>`<button data-range="${v}" class="${v===S.range?'on':''}">${t}</button>`).join('')}</div></div>
@@ -871,7 +871,7 @@ function farmDetail(id){const f=S.farm.find(x=>x.id===id);if(!f)return;S.fmOpen=
 }
 function paintFarmModal(){const box=$('#fmlive');if(!box||!$('#ov').classList.contains('show'))return;const f=S.farm.find(x=>x.id===S.fmOpen);if(!f)return;
  if(!f.lan){box.innerHTML='';return}
- if(IN_ARTIFACT){box.innerHTML='<div class="note">Control LAN disponible en la versión instalada en tu red.</div>';return}
+ if(IN_ARTIFACT&&!DEMO){box.innerHTML='<div class="note">Control LAN disponible en la versión instalada en tu red.</div>';return}
  const st=S.farmLive[f.id]||{},l=st.live,adm=ME&&ME.role==='admin',ro=ME&&ME.role==='lector';
  if(!l||!l.online){box.innerHTML=`<div class="card" style="padding:12px;display:grid;gap:6px"><b>Sin conexión en directo</b><div class="note">${esc(l&&l.error||(st.hasAccess?'Conectando con la impresora…':'Falta guardar el código de acceso LAN (Editar).'))}</div></div>`;return}
  l.percent=l.percent==null?null:Math.max(0,Math.min(100,l.percent));const s=LIVEST[l.state]||[l.state,'var(--pri)'],run=l.state==='RUNNING'||l.state==='PREPARE',pau=l.state==='PAUSE';
@@ -886,6 +886,7 @@ function paintFarmModal(){const box=$('#fmlive');if(!box||!$('#ov').classList.co
   ${run||pau?`<select id="fmspd" style="width:auto">${[1,2,3,4].map(v=>`<option value="${v}" ${+l.speed===v?'selected':''}>${SPEEDS[v]}</option>`).join('')}</select>`:''}</div>`}</div>`;
  const sp=$('#fmspd');if(sp)sp.onchange=()=>farmCmd(f.id,'speed',+sp.value);void adm}
 async function farmCmd(id,cmd,value){
+ if(DEMO){const run=()=>demoCmd(id,cmd,value);if(cmd==='stop')confirmBox('¿Parar la impresión? (simulada)',run);else run();return}
  const run=async()=>{try{await api('POST','api/farm/'+encodeURIComponent(id)+'/cmd',{cmd,value});toast('Orden enviada')}catch(e){toast(e.message||'No se pudo')}};
  if(cmd==='stop')confirmBox('¿Parar la impresión? No se puede reanudar después.',async()=>{await run();setTimeout(()=>farmDetail(id),300)});else run()}
 function editFarm(id){const f=Object.assign({name:'',model:'',k:'enc',fleetId:'',lan:false,ip:'',serial:'',port:8883,notes:'',status:'libre'},S.farm.find(x=>x.id===id)||{});
@@ -918,7 +919,7 @@ const flog=()=>S.farmlog.slice().sort((a,b)=>b.date-a.date);
 const agoTxt=t=>{const m=Math.round((Date.now()-t)/60000);return m<1?'ahora':m<60?'hace '+m+' min':m<1440?'hace '+Math.floor(m/60)+' h':fdt(t)};
 function fevRow(e,showName){const [t,c]=e.ev==='finish'&&e.test?['Prueba terminada','var(--warn)']:FEV[e.ev]||[e.ev,'var(--mut)'];
  const extra=[e.file,e.ev==='finish'||e.ev==='fail'?(e.mins!=null?fmtMin(e.mins):''):'',e.ev==='status'?(FST[e.status]||[e.status])[0]:'',e.error||''].filter(Boolean).join(' · ');
- return `<div class="li" style="grid-template-columns:12px minmax(0,1fr) auto;align-items:center"><i style="width:10px;height:10px;border-radius:50%;background:${c}"></i><div><b>${showName?esc(e.name||'Impresora')+' · ':''}${esc(t)}</b>${extra?`<small>${esc(extra)}</small>`:''}</div><small class="note" title="${esc(fdt(e.date))}">${esc(agoTxt(e.date))}</small></div>`}
+ return `<div class="li" style="grid-template-columns:12px minmax(0,1fr) auto;align-items:center;column-gap:12px"><i style="width:10px;height:10px;border-radius:50%;background:${c}"></i><div><b>${showName?esc(e.name||'Impresora')+' · ':''}${esc(t)}</b>${extra?`<small>${esc(extra)}</small>`:''}</div><small class="note" style="white-space:nowrap" title="${esc(fdt(e.date))}">${esc(agoTxt(e.date))}</small></div>`}
 /* Coste por hora de una impresora de la granja: luz + desgaste + filamento estimado (perfil de la impresora) */
 function farmHourCost(f){const p=(f&&fleet().find(x=>x.id===f.fleetId))||{...PDEF,w:150,gh:20};const kwh=+S.cfg.kwh||0.18;
  const sp=S.spools.filter(x=>+x.priceKg>0),pk=sp.length?sp.reduce((t,x)=>t+(+x.priceKg),0)/sp.length:20;
@@ -953,6 +954,85 @@ function bulkFarm(){const fl=fleet();
   let k=Math.max(0,...S.farm.map(x=>+x.n||0));const c0=S.farm.length,w=Math.max(2,String(n+c0).length);
   for(let i=1;i<=n;i++){k++;await put('farm','',{name:fm.base.value.trim()+' '+String(c0+i).padStart(w,'0'),fleetId:fm.fleetId.value,model:fm.model.value.trim()||(p?[p.brand,p.model].filter(Boolean).join(' '):''),k:p?p.k:'enc',lan:false,ip:'',serial:'',port:8883,notes:'',status:'libre',n:k,code:'IMP-'+String(k).padStart(4,'0')})}
   closeModal();toast(n+' impresoras añadidas')}}
+
+/* ======================= MODO DEMO (granja simulada) =======================
+   Se activa con window.T3D_DEMO=1 (solo en la página de demo). Crea datos de ejemplo y simula
+   10 impresoras Bambu Lab que imprimen de verdad en el tiempo (1 s = 1 min), terminan, fallan y
+   empiezan trabajos nuevos, con historial, costes y avisos. No se conecta a ninguna impresora. */
+const DEMO=!!window.T3D_DEMO;
+const DEMO_FLEET=[['X1 Carbon','hs'],['P1S','ss'],['P2S','hs'],['A1','ss'],['A1 mini','ss'],['H2D','hs']];
+const DEMO_FARM=[['X1C-01','X1 Carbon'],['X1C-02','X1 Carbon'],['P1S-01','P1S'],['P1S-02','P1S'],['P2S-01','P2S'],['A1-01','A1'],['A1-02','A1'],['A1-03','A1'],['A1 mini-01','A1 mini'],['H2D-01','H2D']];
+const DEMO_PRODS=[['Llavero personalizado','Llaveros 3D',4,1.1,0.4,12],['Soporte de móvil','Diseño 3D',8,2.4,1.6,38],['Maceta geométrica','Diseño 3D',12,3.5,3.2,85],['Figura dragón articulado','Diseño 3D',25,6,5.5,140],['Organizador de escritorio','Diseño 3D',15,4.2,4.1,120],['Bola de Navidad','Navidad',5,1.4,0.9,22],['Estrella árbol de Navidad','Navidad',9,2.1,1.8,48]];
+const DEMO_TRAYS=[['PLA','#FF3B30'],['PLA','#FFFFFF'],['PETG','#0A84FF'],['PLA','#111111'],['PLA','#34C759'],['PLA-CF','#3A3A3C'],['PETG','#FF9500'],['PLA','#AF52DE']];
+const rnd=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
+const demoSim={};let demoTimer=null,demoSeeding=false;
+
+async function demoLogin(){
+ const u=S.appusers.find(x=>x.username==='demo');
+ if(u){localStartSession(u);return}
+ const n=await localCreate({username:'demo',name:'Demo',password:'demo'},'admin');localStartSession(n)}
+
+async function demoSeed(){
+ if(demoSeeding||S.cfg.demoSeeded||!ME)return;demoSeeding=true;
+ try{
+  const fleetL=DEMO_FLEET.map(([m,nt],i)=>{const p=PCAT.find(x=>x[0]==='Bambu Lab'&&x[1]===m)||PCAT[0];return {...PDEF,id:'df'+i,alias:m,brand:'Bambu Lab',model:m,k:p[2],v:p[3],w:p[4],gh:p[5],gh04:p[5],ntype:nt,buy:{'X1 Carbon':1300,P1S:700,P2S:800,A1:330,'A1 mini':230,H2D:2000}[m]||500,life:5000,maint:0.05}});
+  await saveCfg({name:'Granja Demo 3D',owner:'Demo',farmOn:true,fleet:fleetL,printers:fleetL.map(f=>f.alias),demoSeeded:true});
+  const pids=[];for(const [name,cat,price,cost,hours,grams] of DEMO_PRODS){pids.push(await put('products','',{name,cat,price,cost,hours,grams,stock:Math.round(rnd(3,30)),min:5,photo:'',code:'',notes:''}))}
+  // impresoras de la granja
+  const fids=[];let n=0;for(const [name,model] of DEMO_FARM){n++;const fl=fleetL.find(f=>f.model===model);
+   fids.push({id:await put('farm','',{name,model:'Bambu Lab '+model,fleetId:fl.id,k:fl.k,lan:true,ip:'192.168.1.'+(100+n),serial:'01DEMO'+String(n).padStart(4,'0'),port:8883,notes:'',status:'libre',n,code:'IMP-'+String(n).padStart(4,'0')}),name,alias:fl.alias})}
+  // 10 días de historial: impresiones terminadas, pruebas y fallos, con sus piezas registradas
+  const W=[];const now=Date.now();
+  for(const f of fids){let t=now-10*864e5;
+   while(t<now-3*3600e3){const pi=Math.floor(Math.random()*DEMO_PRODS.length),pr=DEMO_PRODS[pi],qty=Math.ceil(rnd(1,4)),mins=Math.round(pr[4]*60*qty*rnd(.8,1.2));
+    const r=Math.random(),ev=r<0.08?'fail':'finish',test=ev==='finish'&&r>0.93,end=t+mins*6e4;if(end>now-15*6e4)break;const file=pr[0].toLowerCase().replace(/\s+/g,'_')+(qty>1?'_x'+qty:'')+'.3mf';
+    W.push(['farmlog',{pid:f.id,name:f.name,ev,file,mins:ev==='fail'?Math.round(mins*rnd(.1,.7)):mins,test,date:end,auto:true}]);
+    if(ev==='finish'&&!test)W.push(['prints',{pid:pids[pi],name:pr[0],qty,printer:f.alias,grams:pr[5]*qty,hours:pr[4]*qty,date:end,spool:''}]);
+    t=end+rnd(0.3,10)*3600e3}}
+  // ventas de los últimos días
+  let num=0;for(let d=12;d>=0;d--)for(let k=0;k<Math.round(rnd(1,4));k++){const items=[];for(let j=0;j<Math.ceil(rnd(1,3));j++){const pi=Math.floor(Math.random()*DEMO_PRODS.length),pr=DEMO_PRODS[pi];items.push({pid:pids[pi],name:pr[0],cat:pr[1],qty:Math.ceil(rnd(1,3)),price:pr[2],cost:pr[3]})}
+   const total=items.reduce((t,i)=>t+i.qty*i.price,0);W.push(['sales',{num:++num,date:now-d*864e5-rnd(0,8)*3600e3,items,total,units:items.reduce((t,i)=>t+i.qty,0),method:pick(['Efectivo','Tarjeta','Bizum']),cash:0,change:0,customerId:'',customerName:pick(['','Laura','Marcos','Ana','Tienda Ruiz']),sellerId:'',sellerName:'',status:'pagado'}])}
+  // gastos
+  for(const [concept,cat,amount,d] of [['Bobinas PLA Bambu x6','Filamento',119.9,9],['Luz del taller (mes)','Luz',64.3,6],['Boquillas endurecidas 0,4 x2','Recambios',33.98,4],['Bobinas PETG x4','Filamento',79.6,2]])W.push(['expenses',{date:now-d*864e5,concept,cat,amount,paidBy:'',settled:true,note:'',area:'3d'}]);
+  for(let i=0;i<W.length;i+=25)await Promise.all(W.slice(i,i+25).map(([c,d])=>put(c,'',d).catch(()=>{})));
+  toast('Demo lista: granja de 10 impresoras simuladas');
+ }catch(e){console.error(e)}finally{demoSeeding=false}}
+
+function demoNewJob(s){const pr=pick(DEMO_PRODS),qty=Math.ceil(rnd(1,5));s.file=pr[0].toLowerCase().replace(/\s+/g,'_')+(qty>1?'_x'+qty:'')+'.3mf';s.total=Math.max(20,Math.round(pr[4]*60*qty));s.pct=0;s.layers=Math.round(rnd(80,600));s.state='PREPARE';s.prep=4;s.prod=pr[0];s.qty=qty}
+function demoInit(){
+ if(demoTimer||!S.farm.length||demoSeeding)return;
+ const states=['RUNNING','RUNNING','RUNNING','RUNNING','PAUSE','RUNNING','IDLE','OFF','FINISH','RUNNING'];
+ S.farm.slice().sort((a,b)=>(a.n||0)-(b.n||0)).forEach((f,i)=>{const fl=fleet().find(x=>x.id===f.fleetId)||{};const big=/H2D|X1/.test(f.model||'');
+  const s=demoSim[f.id]={online:states[i]!=='OFF',error:states[i]==='OFF'?'No se encuentra la impresora en la red':'',state:states[i]==='OFF'?'':states[i],speed:2,light:true,nozzleDia:+fl.nozzle||0.4,nozzleType:{hs:'hardened_steel',ss:'stainless_steel',hf:'hardened_steel_high_flow'}[fl.ntype]||'stainless_steel',
+   trays:Array.from({length:/A1/.test(f.model||'')?4:big?8:4},(_,k)=>{const t=DEMO_TRAYS[(i+k)%DEMO_TRAYS.length];return {type:t[0],color:t[1],remain:Math.round(rnd(10,100))}}).slice(0,4),
+   nozzle:25,bed:25,chamber:big?28:0,wifi:'-'+Math.round(rnd(38,70))+'dBm',errors:0,idle:0};
+  demoNewJob(s);if(states[i]==='RUNNING'||states[i]==='PAUSE'){s.state=states[i];s.pct=Math.round(rnd(8,85));s.nozzle=220;s.bed=55}
+  if(states[i]==='FINISH'){s.state='FINISH';s.pct=100;s.idle=5}if(states[i]==='OFF'){s.state=''}if(states[i]==='IDLE'){s.state='IDLE';s.file=''}});
+ demoTimer=setInterval(demoTick,1000);demoTick()}
+function demoSummary(s){const run=s.state==='RUNNING'||s.state==='PAUSE'||s.state==='PREPARE';
+ return {online:s.online,error:s.error,state:s.online?s.state:'',percent:run||s.state==='FINISH'?Math.floor(s.pct):null,remaining:run?Math.max(0,Math.round(s.total*(100-s.pct)/100/[0,1.6,1,0.8,0.6][s.speed])):null,layer:run?Math.max(1,Math.round(s.layers*s.pct/100)):null,layers:run?s.layers:null,file:s.file,
+  nozzle:Math.round(s.nozzle),nozzleT:run&&s.state!=='PAUSE'?220:0,bed:Math.round(s.bed),bedT:run?55:0,chamber:s.chamber?Math.round(s.chamber):null,speed:s.speed,light:s.light,trays:s.trays,wifi:s.wifi,errors:s.errors,printError:0,nozzleDia:s.nozzleDia,nozzleType:s.nozzleType,updated:Date.now()}}
+async function demoTick(){
+ for(const f of S.farm){const s=demoSim[f.id];if(!s)continue;
+  const heat=(cur,tg)=>cur+(tg-cur)*0.25+rnd(-.4,.4);
+  if(s.online){
+   if(s.state==='PREPARE'){s.nozzle=heat(s.nozzle,220);s.bed=heat(s.bed,55);if(--s.prep<=0){s.state='RUNNING'}}
+   else if(s.state==='RUNNING'){s.nozzle=heat(s.nozzle,220);s.bed=heat(s.bed,55);if(s.chamber)s.chamber=heat(s.chamber,34);
+    s.pct=Math.min(100,s.pct+100/s.total*[0,0.6,1,1.25,1.65][s.speed]*1);s.trays.forEach(t=>{if(Math.random()<0.02&&t.remain>3)t.remain--});
+    if(Math.random()<0.0008){s.state='FAILED';s.errors=1;farmLog(f.id,'fail',{file:s.file,mins:Math.round(s.total*s.pct/100),percent:Math.floor(s.pct)})}
+    else if(s.pct>=100){s.state='FINISH';s.idle=0;await farmLog(f.id,'finish',{file:s.file,mins:s.total});
+     const p=S.products.find(x=>x.name===s.prod);if(p){put('prints','',{pid:p.id,name:p.name,qty:s.qty,printer:(fleet().find(x=>x.id===f.fleetId)||{}).alias||'',grams:(+p.grams||0)*s.qty,hours:(+p.hours||0)*s.qty,date:Date.now(),spool:''}).catch(()=>{});patch('products',p.id,{stock:(+p.stock||0)+s.qty}).catch(()=>{})}}}
+   else{s.nozzle=heat(s.nozzle,26);s.bed=heat(s.bed,26);if(s.chamber)s.chamber=heat(s.chamber,27);
+    if((s.state==='FINISH'||s.state==='FAILED'||s.state==='IDLE')&&++s.idle>(s.state==='IDLE'?40:25)){s.idle=0;s.errors=0;demoNewJob(s);farmLog(f.id,'start',{file:s.file})}}}
+  S.farmLive[f.id]={hasAccess:true,live:demoSummary(s)}}
+ if(S.view==='granja'&&!$('#ov').classList.contains('show'))render();paintFarmModal()}
+function demoCmd(id,cmd,value){const s=demoSim[id];if(!s||!s.online){toast('La impresora no está conectada');return}
+ const f=S.farm.find(x=>x.id===id);
+ if(cmd==='pause'&&s.state==='RUNNING'){s.state='PAUSE';farmLog(id,'pause',{file:s.file,percent:Math.floor(s.pct)})}
+ else if(cmd==='resume'&&s.state==='PAUSE'){s.state='RUNNING';farmLog(id,'resume',{file:s.file})}
+ else if(cmd==='stop'&&(s.state==='RUNNING'||s.state==='PAUSE')){s.state='FAILED';s.idle=0;farmLog(id,'fail',{file:s.file,mins:Math.round(s.total*s.pct/100),percent:Math.floor(s.pct)})}
+ else if(cmd==='light')s.light=!!value;else if(cmd==='speed')s.speed=Math.max(1,Math.min(4,+value||2));
+ toast('Orden enviada a '+(f?f.name:'la impresora')+' (simulada)');S.farmLive[id]={hasAccess:true,live:demoSummary(s)};paintFarmModal();if(S.view==='granja')render()}
 
 /* ======================= MOVIMIENTOS ======================= */
 const MVT={venta:'Venta',impresion:'Impresión',ajuste:'Ajuste',anulacion:'Anulación',compra:'Compra'};
@@ -1566,6 +1646,7 @@ async function localCreate(b,role){
 function localStartSession(u){SRV.needSetup=false;sessSet({uid:u.id,h:u.hash.slice(0,16)});accsSet([{uid:u.id,h:u.hash.slice(0,16)},...accsGet().filter(a=>a.uid!==u.id)]);window.__adding=false;ME=pubLocal(u);$('#login').hidden=true;$('#login').innerHTML='';render()}
 function checkLocalAuth(){
  if(!IN_ARTIFACT)return;authReady=true;if($('#login').dataset.mode==='busy')return;
+ if(DEMO&&!$('#login').dataset.demo){const s0=sessGet(),ok=s0&&S.appusers.some(x=>x.id===s0.uid&&x.hash.slice(0,16)===s0.h);if(!ok){$('#login').dataset.demo='1';$('#login').dataset.mode='busy';demoLogin().catch(e=>console.error(e)).finally(()=>{$('#login').dataset.mode='login'});return}}
  if(!S.appusers.length){ME=null;SRV.needSetup=true;showLogin();return}
  SRV.needSetup=false;const s=sessGet(),u=s&&S.appusers.find(x=>x.id===s.uid&&x.hash.slice(0,16)===s.h&&x.active!==false);
  if(u){if(!accsGet().some(a=>a.uid===u.id))accsSet([{uid:u.id,h:s.h},...accsGet()]);ME=pubLocal(u);$('#login').hidden=true;$('#login').innerHTML='';render()}else{ME=null;if(['setup','loading'].includes($('#login').dataset.mode)||$('#login').hidden)$('#login').dataset.mode='login';showLogin()}}
@@ -1731,7 +1812,8 @@ let rq=0;const render=()=>{if(rq)return;rq=requestAnimationFrame(()=>{rq=0;doRen
 function doRender(){
  const a=document.activeElement,fid=a&&a.id,pos=a&&a.selectionStart,keep=['q','tkq','scan','cash','fmq'].includes(fid)?fid:'';if(S.view==='presupuestos'&&a&&a.closest&&a.closest('#calcf'))return;
  const scanVal=$('#scan')?.value||'';
- $('#main').innerHTML=backBtn()+V[S.view]()+footHTML();{const bb=$('#backb');if(bb)bb.onclick=()=>history.back()}{const fn=$('#footnews');if(fn)fn.onclick=()=>showNews()}$('#vchip').textContent='v'+webVer();if(ME&&!window.__newsChk){window.__newsChk=1;newsIfUpdated()}
+ $('#main').innerHTML=backBtn()+V[S.view]()+footHTML();{const bb=$('#backb');if(bb)bb.onclick=()=>history.back()}{const fn=$('#footnews');if(fn)fn.onclick=()=>showNews()}$('#vchip').textContent='v'+webVer();if(ME&&!window.__newsChk){window.__newsChk=1;if(!DEMO)newsIfUpdated()}
+ if(DEMO&&ME&&window.__cfgLoaded){if(!S.cfg.demoSeeded&&!S.farm.length)demoSeed();else if(S.farm.length&&!demoSeeding)demoInit()}
  document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
  const low=lowList().length,lc=$('#lowc');lc.hidden=!low;lc.textContent=low;$('#pip').hidden=!low;
  $('#bname').innerHTML=esc(S.cfg.name);const who=ME?(ME.name||ME.username):(S.cfg.owner||'Yo');$('#mename').textContent=who;{const a=$('#avt');if(ME&&myAvatar(ME.id)){a.innerHTML=avatarHTML(ME,38);a.style.overflow='hidden'}else a.textContent=(who||'Y')[0].toUpperCase()}
@@ -1855,7 +1937,7 @@ function subscribeAll(){
  if(IN_ARTIFACT)db.collection('appusers').onSnapshot(snap=>{if(snap.metadata.fromCache&&snap.empty&&!authReady)return;S.appusers=snap.docs.map(d=>({id:d.id,...d.data()}));checkLocalAuth()},()=>{authReady=true;$('#login').hidden=true});
  ['products','customers','collabs','spools','quotes','profiles','farm'].forEach(c=>sub(c,db.collection(c)));
  ['sales','expenses','prints','moves','jobs','farmlog'].forEach(c=>sub(c,db.collection(c).orderBy('date','desc').limit(1000)));
- db.doc('config/main').onSnapshot(s=>{if(s.exists){const d=s.data()||{};S.cfg={...S.cfg,...d,printers:Array.isArray(d.printers)&&d.printers.length?d.printers.map(String):S.cfg.printers};_fmt=null;render()}},()=>{});
+ db.doc('config/main').onSnapshot(s=>{window.__cfgLoaded=true;if(s.exists){const d=s.data()||{};S.cfg={...S.cfg,...d,printers:Array.isArray(d.printers)&&d.printers.length?d.printers.map(String):S.cfg.printers};_fmt=null;render()}},()=>{});
 }
 (async()=>{
  if(!IN_ARTIFACT){initServer();return}
