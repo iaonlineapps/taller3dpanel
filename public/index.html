@@ -189,6 +189,10 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
 .pay button.on{background:var(--ink);color:var(--card);border-color:var(--ink)}
 .tot{display:flex;justify-content:space-between;align-items:baseline}.tot b{font-size:32px;font-weight:800;white-space:nowrap;letter-spacing:-.02em}
 .mcart{display:none}
+.matbox{display:grid;gap:10px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}.mathd{display:grid;gap:2px}
+.mrow{display:grid;grid-template-columns:auto minmax(0,1fr) 110px auto;gap:10px;align-items:end}.msw{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);margin-bottom:12px}.mdel{min-height:46px;padding:0 14px}
+.mother{grid-column:2/-1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.costbox{display:grid;gap:8px}
+@media(max-width:600px){.mrow{grid-template-columns:auto minmax(0,1fr) auto;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}.mrow:last-child{border-bottom:0}.mfil{grid-column:2/-1}.mg{grid-column:2}.mdel{grid-column:3}.mother{grid-column:1/-1;grid-template-columns:1fr 1fr}}
 /* Diseños */
 .board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
 .col{background:var(--soft);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px}
@@ -703,7 +707,7 @@ function showProduct(id){
   <div style="display:flex;flex-direction:column;gap:12px"><div><span class="tag">${esc(p.cat||'Otros')}</span><h2 style="font-size:24px;margin-top:8px">${esc(p.name)}</h2></div>
   <div class="big">${money(p.price)}</div>
   <dl class="specs"><dt>Stock</dt><dd>${num(p.stock)} ud · aviso en ${num(p.min)}</dd><dt>Coste</dt><dd>${money(p.cost)} · margen ${money((+p.price||0)-(+p.cost||0))}</dd>
-  ${p.material||p.color?`<dt>Material</dt><dd>${esc([p.material,p.color].filter(Boolean).join(' · '))}</dd>`:''}${p.grams?`<dt>Filamento</dt><dd>${num(p.grams)} g / pieza</dd>`:''}${p.hours?`<dt>Impresión</dt><dd>${num(p.hours,1)} h / pieza</dd>`:''}
+  ${p.material||p.color?`<dt>Material</dt><dd>${esc(matsText(p))}</dd>`:''}${p.grams?`<dt>Filamento</dt><dd>${num(p.grams)} g / pieza</dd>`:''}${p.hours?`<dt>Impresión</dt><dd>${num(p.hours,1)} h / pieza</dd>`:''}
   ${p.printer?`<dt>Impresora</dt><dd>${esc(p.printer)}</dd>`:''}<dt>Histórico</dt><dd>${num(sold)} vendidas · ${num(printed)} impresas</dd>${p.file?`<dt>Archivo</dt><dd>${esc(p.file)}</dd>`:''}</dl>
   ${p.notes?`<div class="note">${esc(p.notes)}</div>`:''}
   ${mv.length?`<div><h3 style="margin-bottom:4px">Últimos movimientos</h3>${mv.map(m=>`<div class="note" style="display:flex;justify-content:space-between;gap:8px"><span>${fdate(m.date)} · ${esc(MVT[m.type]||m.type)}</span><b class="${m.qty>=0?'up':'dn'}">${m.qty>0?'+':''}${m.qty}</b></div>`).join('')}</div>`:''}
@@ -711,8 +715,21 @@ function showProduct(id){
  <div class="acts"><button class="btn gh" data-edit="${esc(id)}" style="margin-right:auto">Editar</button><button class="btn gh" data-adj="${esc(id)}">Ajustar stock</button><button class="btn gh" data-ig="${esc(id)}">${ico('ig')}Post Instagram</button><button class="btn sf" data-print="${esc(id)}">Registrar impresión</button><button class="btn" data-sell="${esc(id)}" ${(+p.stock||0)>0?'':'disabled'}>Vender</button></div>`,true);
  paintBarcodes($('#dlg'));
 }
+/* Coste de una pieza: filamentos (uno o varios colores) + desperdicio + luz + desgaste + fallos, como la calculadora (sin tu mano de obra) */
+const spoolName=s=>s?[s.color,s.line||s.material,s.brand].filter(Boolean).join(' · '):'';
+function spoolPk(material){const all=S.spools.filter(x=>+x.priceKg>0),same=all.filter(x=>String(x.material).toLowerCase()===String(material||'').toLowerCase()),l=same.length?same:all;return l.length?+(l.reduce((t,x)=>t+(+x.priceKg),0)/l.length).toFixed(2):20}
+function matsOf(p){if(Array.isArray(p.mats)&&p.mats.length)return p.mats.map(m=>({...m}));
+ if(!p.material&&!p.color&&!p.grams)return [{spool:'',material:'PLA',color:'',grams:'',priceKg:''}];
+ const lc=v=>String(v||'').trim().toLowerCase(),sp=S.spools.find(s=>lc(s.material)===lc(p.material)&&lc(s.color)===lc(p.color));
+ return [{spool:sp?sp.id:'',material:p.material||'',color:p.color||'',grams:p.grams||'',priceKg:''}]}
+function matPk(m){const sp=m.spool&&S.spools.find(s=>s.id===m.spool);return sp&&+sp.priceKg>0?+sp.priceKg:(+m.priceKg>0?+m.priceKg:spoolPk(m.material))}
+function pieceCost(mats,hours,printer){const pr=fleet().find(f=>f.alias===printer)||fleet()[0]||PDEF,h=+hours||0,kwh=+S.cfg.kwh||0.18,wp=S.calc&&S.calc.waste!=null?+S.calc.waste:5;
+ const mat=mats.reduce((t,m)=>t+(+m.grams||0)/1000*matPk(m),0),waste=mat*wp/100,energy=(+pr.w||0)/1000*h*kwh,wear=h*(((+pr.buy||0)/(+pr.life||5000))+(+pr.maint||0)),base=mat+waste+energy+wear,fail=base*(+S.cfg.fail||0)/100,total=base+fail;
+ let price=total*(1+(+S.cfg.margin||0)/100);price=price>0?Math.ceil(price-0.9)+0.9:0;if(price<total*(1+(+S.cfg.margin||0)/100)-1e-9)price+=1;
+ return {mat:mat+waste,energy,wear,fail,total,price,pr}}
 function editProduct(id,pre={}){
- const p=Object.assign({name:'',cat:'',price:'',cost:'',stock:0,min:2,code:nextCode(),material:'PLA',color:'',grams:'',hours:'',printer:'',notes:'',estado:'listo',file:'',photo:''},S.products.find(x=>x.id===id)||{},pre);let ph=p.photo||'';
+ const p=Object.assign({name:'',cat:'',price:'',cost:'',stock:0,min:2,code:nextCode(),material:'PLA',color:'',grams:'',hours:'',printer:fleet().length===1?fleet()[0].alias:'',notes:'',estado:'listo',file:'',photo:''},S.products.find(x=>x.id===id)||{},pre);let ph=p.photo||'';
+ let mats=matsOf(p),manual=p.costManual!=null?!!p.costManual:!!(id&&+p.cost>0&&!Array.isArray(p.mats));
  modal(`<h2>${id?'Editar pieza':p.estado==='listo'?'Nueva pieza':'Nueva idea de diseño'}</h2><form id="fp" style="display:grid;gap:12px">
  <div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:center"><div class="ph2" id="fph" style="border-radius:14px">${photo(p)}</div>
   <div class="btns"><span class="btn sf filebtn">${p.photo?'Cambiar foto':'Añadir foto'}<input type="file" accept="image/*" id="pfile"></span>${p.photo?'<button type="button" class="btn rd" id="nophoto">Quitar</button>':''}</div></div>
@@ -720,34 +737,56 @@ function editProduct(id,pre={}){
  <div class="f2"><label>Categoría<input name="cat" list="cats" value="${esc(p.cat)}" placeholder="Llaveros 3D, Navidad…"><datalist id="cats">${allCats().map(c=>`<option value="${esc(c)}">`).join('')}</datalist></label><label>Estado<select name="estado">${sel(p.estado||'listo',Object.entries(ESTADOS))}</select></label></div>
  <div class="f3"><label>Precio (${esc(S.cfg.currency)})<input name="price" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(p.price)}"></label><label>Coste<input name="cost" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(p.cost)}"></label><label>Código QR / barras<input name="code" value="${esc(p.code)}"></label></div>
  <div class="f3"><label>Stock${id?' (usa «Ajustar»)':''}<input name="stock" type="number" step="1" min="0" value="${esc(p.stock)}" ${id?'readonly':''}></label><label>Aviso si baja de<input name="min" type="number" step="1" min="0" value="${esc(p.min)}"></label><label>Impresora<select name="printer"><option value="">—</option>${sel(p.printer,fleet().map(f=>[f.alias,f.alias]))}</select></label></div>
- <div class="f3"><label>Material<input name="material" list="mats" value="${esc(p.material)}"><datalist id="mats">${['PLA','PETG','TPU','ABS','ASA','Resina'].map(m=>`<option value="${m}">`).join('')}</datalist></label><label>Color<input name="color" value="${esc(p.color)}"></label><label>Gramos / pieza<input name="grams" type="number" step="1" min="0" value="${esc(p.grams)}"></label></div>
+ <div class="matbox"><div class="mathd"><b>Filamentos de la pieza</b><span class="note">Un color por fila. Si es a dos colores (AMS), añade otro.</span></div>
+  <div id="matl"></div><datalist id="mats">${['PLA','PETG','TPU','ABS','ASA','PC','PA','Resina'].map(m=>`<option value="${m}">`).join('')}</datalist>
+  <button type="button" class="btn sf" id="matadd" style="justify-self:start">+ Añadir otro color o material</button></div>
  <div class="f2"><label>Horas / pieza<input name="hours" type="number" step="any" min="0" value="${esc(p.hours)}"></label><label>Archivo (STL, enlace…)<input name="file" value="${esc(p.file)}"></label></div>
+ <div class="costbox" id="costbox"></div>
  <label>Notas<textarea name="notes" rows="2">${esc(p.notes)}</textarea></label>
  <div class="acts">${id?'<button type="button" class="btn rd" id="delp" style="margin-right:auto">Borrar</button>':''}<button type="button" class="btn gh" data-close>Cancelar</button><button class="btn" id="savep">Guardar</button></div></form>`);
  const f=$('#fp');
+ const spOpts=v=>`<option value="">Otro (lo escribo yo)</option>${S.spools.map(s=>`<option value="${esc(s.id)}" ${s.id===v?'selected':''}>${esc(spoolName(s))}${+s.priceKg?' · '+money(s.priceKg)+'/kg':''}</option>`).join('')}`;
+ const sw=m=>{const sp=m.spool&&S.spools.find(s=>s.id===m.spool);return `<span class="msw" style="background:${esc(sp&&/^#[0-9a-f]{6}$/i.test(sp.hex||'')?sp.hex:'transparent')}"></span>`};
+ const paintMats=()=>{$('#matl').innerHTML=mats.map((m,i)=>`<div class="mrow">${sw(m)}<label class="mfil">${mats.length>1?'Color '+(i+1):'Filamento'}<select data-mi="${i}" data-mk="spool">${spOpts(m.spool)}</select></label><label class="mg">Gramos<input data-mi="${i}" data-mk="grams" type="number" step="any" min="0" inputmode="decimal" value="${esc(m.grams)}" placeholder="0"></label>${mats.length>1?`<button type="button" class="btn rd mdel" data-mdel="${i}" aria-label="Quitar este color">✕</button>`:''}
+   ${m.spool?'':`<div class="mother"><label>Material<input data-mi="${i}" data-mk="material" list="mats" value="${esc(m.material)}"></label><label>Color<input data-mi="${i}" data-mk="color" value="${esc(m.color)}"></label><label>Precio /kg<input data-mi="${i}" data-mk="priceKg" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(m.priceKg)}" placeholder="${esc(num(spoolPk(m.material),2))}"></label></div>`}</div>`).join('');
+  $('#matl').querySelectorAll('[data-mi]').forEach(el=>{const ev=el.tagName==='SELECT'?'onchange':'oninput';el[ev]=()=>{const m=mats[+el.dataset.mi];m[el.dataset.mk]=el.value;
+   if(el.dataset.mk==='spool'){const sp=S.spools.find(s=>s.id===el.value);if(sp){m.material=sp.material||'';m.color=sp.color||'';m.priceKg=''}paintMats()}paintCost()}});
+  $('#matl').querySelectorAll('[data-mdel]').forEach(b=>b.onclick=()=>{mats.splice(+b.dataset.mdel,1);paintMats();paintCost()})};
+ const paintCost=()=>{const r=pieceCost(mats,f.hours.value,f.printer.value),g=mats.reduce((t,m)=>t+(+m.grams||0),0);
+  if(!manual)f.cost.value=g||+f.hours.value?r.total.toFixed(2):'';
+    $('#costbox').innerHTML=!g&&!+f.hours.value?`<span class="note">Pon los gramos (y las horas) y te calculo el coste solo.</span>`
+   :`<div class="note"><b>Coste ${money(r.total)}</b> ${manual?'(has escrito otro a mano)':'(calculado solo)'}${g?' · '+num(g,1)+' g en total':''}: filamento ${money(r.mat)} · luz ${money(r.energy)} · máquina ${money(r.wear)} · fallos ${money(r.fail)}</div>
+   <div class="btns">${manual?'<button type="button" class="btn sf" id="costauto">Calcular el coste solo</button>':''}${r.price>0&&Math.abs(r.price-(+f.price.value||0))>0.004?`<button type="button" class="btn gh" id="useprice">Usar precio sugerido: ${money(r.price)}</button>`:''}</div>`;
+  const ca=$('#costauto');if(ca)ca.onclick=()=>{manual=false;paintCost()};const up=$('#useprice');if(up)up.onclick=()=>{f.price.value=r.price.toFixed(2);paintCost()}};
+ $('#matadd').onclick=()=>{const last=mats[mats.length-1]||{};mats.push({spool:'',material:last.material||'PLA',color:'',grams:'',priceKg:''});paintMats();paintCost();const s=$('#matl').lastElementChild.querySelector('select');if(s)s.focus()};
+ f.cost.oninput=()=>{manual=f.cost.value!=='';paintCost()};f.hours.oninput=paintCost;f.printer.onchange=paintCost;f.price.oninput=paintCost;
+ paintMats();paintCost();
  $('#pfile').onchange=async e=>{const fl=e.target.files[0];if(!fl)return;try{ph=await shrink(fl);$('#fph').innerHTML=`<img src="${ph}" alt="">`}catch(_){toast('No se pudo leer la foto')}};
  const np=$('#nophoto');if(np)np.onclick=()=>{ph='';$('#fph').innerHTML=photo({cat:f.cat.value})};
  f.onsubmit=async e=>{e.preventDefault();$('#savep').disabled=true;
   const code=f.code.value.trim();if(code&&S.products.some(x=>x.id!==id&&String(x.code).toLowerCase()===code.toLowerCase())){toast('Ese código ya lo usa otra pieza');$('#savep').disabled=false;return}
-  const d={name:f.name.value.trim(),cat:f.cat.value.trim()||'Otros',estado:f.estado.value,price:+f.price.value||0,cost:+f.cost.value||0,code,stock:Math.round(+f.stock.value||0),min:Math.round(+f.min.value||0),printer:f.printer.value,material:f.material.value.trim(),color:f.color.value.trim(),grams:+f.grams.value||0,hours:+f.hours.value||0,file:f.file.value.trim(),notes:f.notes.value.trim(),photo:ph,created:p.created||Date.now(),fav:!!p.fav};
+  const d={name:f.name.value.trim(),cat:f.cat.value.trim()||'Otros',estado:f.estado.value,price:+f.price.value||0,cost:+f.cost.value||0,code,stock:Math.round(+f.stock.value||0),min:Math.round(+f.min.value||0),printer:f.printer.value,...matsSave(mats),costManual:manual,hours:+f.hours.value||0,file:f.file.value.trim(),notes:f.notes.value.trim(),photo:ph,created:p.created||Date.now(),fav:!!p.fav};
   try{const nid=await put('products',id,d);if(!id&&d.stock&&nid){const np={...d,id:nid,stock:0};await stockMove(np,d.stock,'ajuste','Stock inicial')}closeModal();toast('Pieza guardada')}catch(_){$('#savep').disabled=false}};
  const dp=$('#delp');if(dp)dp.onclick=()=>confirmBox('¿Borrar «'+p.name+'»? Los tickets y movimientos pasados se conservan.',async()=>{await del('products',id);toast('Pieza borrada')});
 }
+function matsSave(mats){const l=mats.map(m=>{const sp=m.spool&&S.spools.find(s=>s.id===m.spool);return {spool:sp?sp.id:'',material:String(sp?sp.material:m.material||'').trim(),color:String(sp?sp.color:m.color||'').trim(),grams:+m.grams||0,priceKg:sp?0:(+m.priceKg||0)}}).filter(m=>m.grams||m.material||m.color||m.spool);
+ const u=a=>[...new Set(a.filter(Boolean))].join(' + ');return {mats:l,material:u(l.map(m=>m.material)),color:u(l.map(m=>m.color)),grams:+l.reduce((t,m)=>t+m.grams,0).toFixed(1)}}
+const matsText=p=>Array.isArray(p.mats)&&p.mats.length>1?p.mats.map(m=>[m.material,m.color].filter(Boolean).join(' ')+(m.grams?` (${num(m.grams)} g)`:'')).join(' + '):[p.material,p.color].filter(Boolean).join(' · ');
 function shrink(file){return new Promise((ok,ko)=>{const img=new Image(),u=URL.createObjectURL(file);img.onerror=ko;img.onload=()=>{const k=Math.min(1,640/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.74))};img.src=u})}
 function adjustStock(id){const p=S.products.find(x=>x.id===id);if(!p)return;
  modal(`<h2>Ajustar stock</h2><div class="sub">${esc(p.name)} · ahora ${num(p.stock)} ud</div><form id="fa" style="display:grid;gap:12px">
  <div class="f2"><label>Cambio (+ suma, − resta)<input name="d" type="number" step="1" value="1" required></label><label>Motivo<select name="r">${sel('Recuento',[['Recuento','Recuento'],['Rotura / defecto','Rotura / defecto'],['Regalo / muestra','Regalo / muestra'],['Uso propio','Uso propio'],['Otro','Otro']])}</select></label></div>
  <div class="acts"><button type="button" class="btn gh" data-close>Cancelar</button><button class="btn">Aplicar</button></div></form>`);
  const f=$('#fa');f.onsubmit=async e=>{e.preventDefault();const d=Math.round(+f.d.value||0);if(!d)return;await stockMove(p,d,'ajuste',f.r.value);closeModal();render();toast('Stock de '+p.name+': '+p.stock)}}
-function registerPrint(id){const p=S.products.find(x=>x.id===id);if(!p)return;
+function registerPrint(id){const p=S.products.find(x=>x.id===id);if(!p)return;const pm=(p.mats||[]).filter(m=>m.spool&&+m.grams>0&&S.spools.some(s=>s.id===m.spool));
  modal(`<h2>Registrar impresión</h2><div class="sub">${esc(p.name)} · ahora ${num(p.stock)} en stock</div><form id="fr" style="display:grid;gap:12px">
  <div class="f2"><label>Piezas impresas<input name="qty" type="number" min="1" step="1" value="1" required></label><label>Impresora<select name="printer">${sel(p.printer,fleet().map(f=>[f.alias,f.alias]))}</select></label></div>
  <div class="f2"><label>Gramos por pieza<input name="grams" type="number" min="0" step="1" value="${esc(p.grams||'')}"></label><label>Horas por pieza<input name="hours" type="number" min="0" step="any" value="${esc(p.hours||'')}"></label></div>
- <label>Bobina usada (descuenta el filamento)<select name="spool"><option value="">— No descontar —</option>${sel('',S.spools.map(s=>[s.id,`${s.material} ${s.color} · quedan ${num(s.left)} g`]))}</select></label>
+ <label>Bobina usada (descuenta el filamento)<select name="spool"><option value="">— No descontar —</option>${pm.length?`<option value="__mats" selected>Las de la pieza (${esc(pm.map(m=>spoolName(S.spools.find(s=>s.id===m.spool))).join(' + '))})</option>`:''}${sel('',S.spools.map(s=>[s.id,`${s.material} ${s.color} · quedan ${num(s.left)} g`]))}</select></label>
  <div class="acts"><button type="button" class="btn gh" data-close>Cancelar</button><button class="btn" id="okr">Sumar al stock</button></div></form>`);
  const f=$('#fr');f.onsubmit=async e=>{e.preventDefault();$('#okr').disabled=true;const q=Math.max(1,Math.round(+f.qty.value||1)),g=(+f.grams.value||0)*q;
   const rec={pid:p.id,name:p.name,qty:q,printer:f.printer.value,grams:g,hours:(+f.hours.value||0)*q,date:Date.now(),spool:f.spool.value};
-  try{await put('prints','',rec);await stockMove(p,q,'impresion',f.printer.value);const sp=S.spools.find(s=>s.id===f.spool.value);if(sp&&g)await spoolMove(sp,-g);closeModal();render();toast('+'+q+' '+p.name+' en stock')}catch(_){$('#okr').disabled=false}}}
+  try{await put('prints','',rec);await stockMove(p,q,'impresion',f.printer.value);if(f.spool.value==='__mats'){const tot=pm.reduce((t,m)=>t+(+m.grams),0)||1;for(const m of pm){const sp=S.spools.find(s=>s.id===m.spool);if(sp&&g)await spoolMove(sp,-g*(+m.grams)/tot)}}else{const sp=S.spools.find(s=>s.id===f.spool.value);if(sp&&g)await spoolMove(sp,-g)}closeModal();render();toast('+'+q+' '+p.name+' en stock')}catch(_){$('#okr').disabled=false}}}
 function labelsSheet(){const ps=catalog().sort((a,b)=>a.name.localeCompare(b.name));if(!ps.length){toast('No hay piezas');return}
  const el=document.createElement('div');el.innerHTML=ps.map(p=>`<div class="lab"><img src="${qrURL(p.code||p.id)}" alt=""><b>${esc(p.name)}</b><span>${esc(p.code)} · ${esc(money(p.price))}</span><svg class="bc" data-code="${esc(p.code||p.id)}"></svg></div>`).join('');paintBarcodes(el);
  modal(`<div class="ch" style="margin:0"><h2>Etiquetas QR y de barras</h2><button class="btn gh" data-close>Cerrar</button></div><p class="note" style="margin:0">Descarga la hoja, ábrela en el ordenador y pulsa «Imprimir». Tu lector leerá cualquiera de los dos códigos.</p>
@@ -795,7 +834,7 @@ function vDisenos(){
 function designCard(id){const p=S.products.find(x=>x.id===id);if(!p)return;if((p.estado||'listo')==='listo')return showProduct(id);
  const nx=p.estado==='idea'?['diseno','Empezar a diseñar']:['listo','Terminado: pasar a stock'];
  modal(`<div class="det"><div class="ph2" style="border-radius:16px">${photo(p)}</div><div style="display:flex;flex-direction:column;gap:10px"><span class="tag ${p.estado==='diseno'?'y':''}" style="align-self:start">${ESTADOS[p.estado]}</span><h2 style="font-size:22px">${esc(p.name)}</h2>
- <dl class="specs"><dt>Categoría</dt><dd>${esc(p.cat||'—')}</dd>${p.file?`<dt>Archivo</dt><dd>${esc(p.file)}</dd>`:''}${p.price?`<dt>Precio previsto</dt><dd>${money(p.price)}</dd>`:''}${p.material?`<dt>Material</dt><dd>${esc(p.material)}</dd>`:''}</dl>${p.notes?`<div class="note">${esc(p.notes)}</div>`:''}</div></div>
+ <dl class="specs"><dt>Categoría</dt><dd>${esc(p.cat||'—')}</dd>${p.file?`<dt>Archivo</dt><dd>${esc(p.file)}</dd>`:''}${p.price?`<dt>Precio previsto</dt><dd>${money(p.price)}</dd>`:''}${p.material?`<dt>Material</dt><dd>${esc(matsText(p))}</dd>`:''}</dl>${p.notes?`<div class="note">${esc(p.notes)}</div>`:''}</div></div>
  <div class="acts"><button class="btn gh" data-edit="${esc(id)}" style="margin-right:auto">Editar</button><button class="btn" id="nx">${nx[1]}</button></div>`,true);
  $('#nx').onclick=async()=>{await patch('products',id,{estado:nx[0]});closeModal();render();toast(nx[0]==='listo'?'¡Ya está en tu stock!':'Movido a «Diseñando»')}}
 
@@ -1664,7 +1703,10 @@ async function loadModel(file){
 function applyToPiece(){const c=S.calc,r=calcCompute(c);
  modal(`<h2>Aplicar a una pieza</h2><p class="note" style="margin:0">Se guardarán el coste (${money(r.unit)}), el precio (${money(r.price)}), los gramos y las horas.</p><label>Pieza<select id="apid">${S.products.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label>
  <div class="acts"><button class="btn gh" id="apnew">Crear pieza nueva</button><button class="btn gh" data-close>Cancelar</button><button class="btn" id="apok" ${S.products.length?'':'disabled'}>Aplicar</button></div>`);
- const pr=fleet().find(x=>x.id===c.printer);const data={cost:+r.unit.toFixed(2),price:+r.price.toFixed(2),grams:+(+c.grams||0).toFixed(1),hours:+(+c.hours||0).toFixed(2),material:c.material,printer:pr?pr.alias:''};
+ const pr=fleet().find(x=>x.id===c.printer);const fil=lastModel&&lastModel.sliced&&lastModel.fil&&lastModel.fil.filter(x=>x.g>0),lc=v=>String(v||'').toLowerCase().slice(0,7);
+ const mats=fil&&fil.length>1?fil.map(x=>{const sp=S.spools.find(s=>lc(s.hex)===lc(x.color)&&(!x.type||String(s.material).toLowerCase()===x.type.toLowerCase()));return {spool:sp?sp.id:'',material:sp?sp.material:x.type,color:sp?sp.color:'',grams:+x.g.toFixed(1),priceKg:sp?0:c.priceKg}})
+  :[(sp=>({spool:sp?sp.id:'',material:c.material,color:sp?sp.color||'':'',grams:+(+c.grams||0).toFixed(1),priceKg:sp?0:c.priceKg}))(S.spools.find(s=>s.id===c.spool))];
+ const data={cost:+r.unit.toFixed(2),costManual:true,price:+r.price.toFixed(2),...matsSave(mats),hours:+(+c.hours||0).toFixed(2),printer:pr?pr.alias:''};
  $('#apok').onclick=async()=>{await patch('products',$('#apid').value,data);closeModal();toast('Pieza actualizada')};
  $('#apnew').onclick=()=>editProduct('',{...data,name:c.name||'',estado:'listo'})}
 
@@ -1876,12 +1918,15 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.1';
+const WEB_VERSION='1.0.2';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/pctecnikk/taller3dpanel',APK_URL=REPO_URL+'/releases?q=android&expanded=true';
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.2',['Al añadir o editar una pieza, el **coste se calcula solo** con los gramos y el precio por kg de tu filamento, más la luz, el desgaste de la impresora y los fallos. Si lo prefieres, puedes escribirlo a mano.',
+  'Una pieza puede tener **varios colores o materiales** (por ejemplo a dos colores con el AMS), cada uno con sus gramos. El coste los suma todos.',
+  'Te propone un **precio de venta** con tu margen, y al registrar una impresión descuenta cada color de su bobina.']],
  ['1.0.1',['La **calculadora lee archivos STEP** (Fusion 360, SolidWorks, Onshape…): medidas, volumen y estimación de gramos y horas.',
   'Las **X1 y P1 con AMS** ya muestran los colores de cada hueco en la granja.']],
  ['1.0.0',['Primera versión: panel, ventas con lector QR, tickets, piezas y stock con foto, diseños, filamentos, movimientos, calculadora con STL/3MF y presupuestos.',

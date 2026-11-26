@@ -40,10 +40,13 @@ jobs:
             echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
             export KEYSTORE="$RUNNER_TEMP/release.jks" KS_PASS="$KS_PASS_S" KEY_ALIAS="$KEY_ALIAS_S"
           else
-            echo "::warning::Sin clave de firma en los secretos: se usa una clave de prueba y las actualizaciones no se instalarán encima"
+            echo "::notice::Sin clave de firma en los secretos: no se compila ni se publica nada. La APK firmada la hace Claude a mano con la clave fija (ver docs/ESTADO.md)."
+            echo "SIN_CLAVE=1" >> "$GITHUB_ENV"
+            exit 0
           fi
           bash android/build.sh
       - name: Crear la Release con la APK
+        if: env.SIN_CLAVE != '1'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

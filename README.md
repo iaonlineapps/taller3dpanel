@@ -182,7 +182,7 @@ conecta: **[docs/GRANJA.md](docs/GRANJA.md)**.
 
 Descarga **Taller3DPanel.apk** desde [Releases](https://github.com/pctecnikk/taller3dpanel/releases)
 (las versiones `android-vX.Y.Z`), ábrela en el móvil y toca **Instalar**. La primera vez pide la
-dirección de tu servidor (en casa, por ejemplo `192.168.1.50:8095`). Desde la app puedes leer códigos
+dirección de tu servidor (en casa, por ejemplo `192.168.1.x:8095`). Desde la app puedes leer códigos
 con la **cámara**, subir fotos de tus piezas y archivos STL, 3MF o STEP, y guardar tickets y presupuestos en
 Descargas. Avisa cuando hay una versión nueva.
 
