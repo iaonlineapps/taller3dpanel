@@ -1418,6 +1418,22 @@ function serverDB(){
 let LOCAL_SESS=null,authReady=false;
 const sessGet=()=>{try{const v=localStorage.getItem('t3d-sess');if(v)return JSON.parse(v)}catch(e){}return LOCAL_SESS};
 const sessSet=v=>{LOCAL_SESS=v;try{v?localStorage.setItem('t3d-sess',JSON.stringify(v)):localStorage.removeItem('t3d-sess')}catch(e){}};
+/* ---- cambiar de usuario: cuentas recordadas en este dispositivo ---- */
+let LOCAL_ACCS=[];
+const accsGet=()=>{try{const v=localStorage.getItem('t3d-accs');if(v)return JSON.parse(v)||[]}catch(e){}return LOCAL_ACCS};
+const accsSet=v=>{LOCAL_ACCS=v.slice(0,8);try{localStorage.setItem('t3d-accs',JSON.stringify(LOCAL_ACCS))}catch(e){}};
+async function deviceAccounts(){
+ if(IN_ARTIFACT){const cur=sessGet();return accsGet().map(a=>{const u=S.appusers.find(x=>x.id===a.uid&&x.hash.slice(0,16)===a.h&&x.active!==false);return u?{...pubLocal(u),avatar:myAvatar(u.id),current:!!(cur&&cur.uid===u.id)}:null}).filter(Boolean)}
+ try{return (await api('GET','api/accounts')).accounts||[]}catch(e){return []}}
+const accAv=(a,size)=>okImg(a.avatar)?`<img src="${a.avatar}" alt="" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;display:block">`:esc((a.name||a.username||'?')[0].toUpperCase());
+const ROLE_TXT={admin:'Administrador',editor:'Puede editar',lector:'Solo ver'};
+function accRow(a){return `<button type="button" class="li" data-swu="${esc(a.id)}" style="grid-template-columns:42px minmax(0,1fr) auto;width:100%;text-align:left;${a.current?'cursor:default':''}"><span class="av" style="width:42px;height:42px;overflow:hidden">${accAv(a,42)}</span><div><b>${esc(a.name||a.username)}</b><small>@${esc(a.username)} · ${esc(ROLE_TXT[a.role]||a.role)}</small></div>${a.current?'<span class="tag">Ahora</span>':'<span class="note">Entrar →</span>'}</button>`}
+async function switchUser(id){
+ if(ME&&ME.id===id){closeModal();return}
+ if(IN_ARTIFACT){const u=S.appusers.find(x=>x.id===id);const a=accsGet().find(x=>x.uid===id);if(!u||!a||u.hash.slice(0,16)!==a.h||u.active===false){toast('Esa cuenta tiene que volver a entrar con su contraseña');accsSet(accsGet().filter(x=>x.uid!==id));return}
+  closeModal();sessSet({uid:u.id,h:a.h});ME=pubLocal(u);$('#login').hidden=true;$('#login').innerHTML='';S.view=V[S.view]?S.view:'panel';render();toast('Hola, '+(ME.name||ME.username));return}
+ try{await api('POST','api/switch',{id});location.reload()}catch(e){toast(e.message||'No se pudo cambiar')}}
+function addAccount(){closeModal();window.__adding=true;$('#login').dataset.mode='login';showLogin()}
 async function pbk(pw,salt){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);const b=await crypto.subtle.deriveBits({name:'PBKDF2',salt:new TextEncoder().encode(salt),iterations:150000,hash:'SHA-256'},k,256);return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 const rhex=n=>[...crypto.getRandomValues(new Uint8Array(n))].map(x=>x.toString(16).padStart(2,'0')).join('');
 const pubLocal=u=>({id:u.id,username:u.username,name:u.name||u.username,email:u.email||'',role:u.role||'editor',active:u.active!==false});
@@ -1430,23 +1446,24 @@ async function localCreate(b,role){
  const salt=rhex(16),hash=await pbk(password,salt);
  const d={username,name:String(b.name||username).trim().slice(0,80),email,salt,hash,role:role||'editor',active:true,created:Date.now()};
  const id=await put('appusers','',d);const u={...d,id};if(!S.appusers.some(x=>x.id===id))S.appusers.push(u);return u}
-function localStartSession(u){SRV.needSetup=false;sessSet({uid:u.id,h:u.hash.slice(0,16)});ME=pubLocal(u);$('#login').hidden=true;$('#login').innerHTML='';render()}
+function localStartSession(u){SRV.needSetup=false;sessSet({uid:u.id,h:u.hash.slice(0,16)});accsSet([{uid:u.id,h:u.hash.slice(0,16)},...accsGet().filter(a=>a.uid!==u.id)]);window.__adding=false;ME=pubLocal(u);$('#login').hidden=true;$('#login').innerHTML='';render()}
 function checkLocalAuth(){
  if(!IN_ARTIFACT)return;authReady=true;if($('#login').dataset.mode==='busy')return;
  if(!S.appusers.length){ME=null;SRV.needSetup=true;showLogin();return}
  SRV.needSetup=false;const s=sessGet(),u=s&&S.appusers.find(x=>x.id===s.uid&&x.hash.slice(0,16)===s.h&&x.active!==false);
- if(u){ME=pubLocal(u);$('#login').hidden=true;$('#login').innerHTML='';render()}else{ME=null;if(['setup','loading'].includes($('#login').dataset.mode)||$('#login').hidden)$('#login').dataset.mode='login';showLogin()}}
+ if(u){if(!accsGet().some(a=>a.uid===u.id))accsSet([{uid:u.id,h:s.h},...accsGet()]);ME=pubLocal(u);$('#login').hidden=true;$('#login').innerHTML='';render()}else{ME=null;if(['setup','loading'].includes($('#login').dataset.mode)||$('#login').hidden)$('#login').dataset.mode='login';showLogin()}}
 function showLogin(){
  const box=$('#login');box.hidden=false;
  const m=SRV.needSetup?'setup':(box.dataset.mode||'login');box.dataset.mode=m;
  box.innerHTML=`<div class="card" style="width:min(420px,100%);display:grid;gap:14px;padding:28px">
   <div style="display:flex;gap:12px;align-items:center">${DEF_MARK}<b style="font-size:20px">Taller3D Panel</b></div>
   <div><h1 style="font-size:24px">${m==='setup'?'Regístrate':m==='register'?'Crear una cuenta':'Entrar'}</h1><div class="sub">${m==='setup'?'Es la primera vez que se abre: el primer usuario que se registra es el <b>administrador</b>.':m==='register'?'Un administrador tendrá que activarla.':'Gestión de tu taller de impresión 3D'}</div></div>
+  ${m==='login'?'<div id="accq" style="display:grid;gap:8px"></div>':''}
   <form id="flog" style="display:grid;gap:12px">${m!=='login'?'<label>Tu nombre (opcional)<input name="name" autocomplete="name"></label>':''}
   <label>${m==='login'?'Usuario o email':'Usuario (nick)'}<input name="username" required autocomplete="username" autocapitalize="none"></label>${m!=='login'&&SRV.requireEmail?'<label>Email<input name="email" type="email" required autocomplete="email"></label>':m!=='login'?'<label>Email (opcional)<input name="email" type="email" autocomplete="email"></label>':''}
   <label>${m==='login'?'Contraseña':'Contraseña (mínimo 4, números o letras)'}<input name="password" type="password" required minlength="${m==='login'?1:4}" autocomplete="${m==='login'?'current-password':'new-password'}"></label>
   <div class="note dn" id="lerr"></div><button class="btn big">${m==='setup'?'Registrarme y entrar':m==='register'?'Registrarme':'Entrar'}</button></form>
-  ${m==='login'&&(SRV.allowRegister||IN_ARTIFACT)?'<button class="btn gh" id="toreg">¿No tienes cuenta? Regístrate</button>':''}${m==='register'?'<button class="btn gh" id="tolog">Ya tengo cuenta</button>':''}
+  ${m==='login'&&(SRV.allowRegister||IN_ARTIFACT)?'<button class="btn gh" id="toreg">¿No tienes cuenta? Regístrate</button>':''}${m==='register'?'<button class="btn gh" id="tolog">Ya tengo cuenta</button>':''}${window.__adding&&ME?'<button class="btn gh" id="cancadd">Volver a la cuenta de '+esc(ME.name||ME.username)+'</button>':''}
   <div class="note" style="text-align:center">${IN_ARTIFACT&&m==='setup'?'Protege tu app con un usuario y contraseña. El email es opcional.<br>':''}v${esc(SRV.version||WEB_VERSION)}</div></div>`;
  const f=$('#flog');setTimeout(()=>f.querySelector('input').focus(),30);
  f.onsubmit=async e=>{e.preventDefault();$('#lerr').textContent='';const b=Object.fromEntries(new FormData(f));
@@ -1456,8 +1473,12 @@ function showLogin(){
     const login=String(b.username||'').trim().toLowerCase(),u=S.appusers.find(x=>x.username.toLowerCase()===login||(x.email||'').toLowerCase()===login);
     if(!u||u.active===false||await pbk(String(b.password||''),u.salt)!==u.hash){$('#lerr').textContent='Usuario o contraseña incorrectos';return}
     localStartSession(u)}catch(err){box.dataset.mode=m;$('#lerr').textContent=err.message||'No se pudo'}finally{bt.disabled=false}return}
-  try{const r=await api('POST',m==='setup'?'api/setup':m==='register'?'api/register':'api/login',b);if(m==='register'){$('#lerr').className='note up';$('#lerr').textContent='Cuenta pedida. Avisa al administrador para que la active.';return}ME=r.user;SRV.needSetup=false;box.hidden=true;box.innerHTML='';startServer()}
+  try{const r=await api('POST',m==='setup'?'api/setup':m==='register'?'api/register':'api/login',b);if(m==='register'){$('#lerr').className='note up';$('#lerr').textContent='Cuenta pedida. Avisa al administrador para que la active.';return}if(window.__adding||live){location.reload();return}ME=r.user;SRV.needSetup=false;box.hidden=true;box.innerHTML='';startServer()}
   catch(err){$('#lerr').textContent=err.message||'No se pudo entrar'}};
+ const ca=$('#cancadd');if(ca)ca.onclick=()=>{window.__adding=false;box.hidden=true;box.innerHTML=''};
+ if(m==='login'&&!SRV.needSetup)deviceAccounts().then(l=>{const q=$('#accq');l=l.filter(a=>!(window.__adding&&a.current));if(!q||!l.length)return;
+  q.innerHTML=`<div class="note"><b>Cuentas en este dispositivo</b> · toca para entrar</div>${l.map(accRow).join('')}<div class="note" style="text-align:center;margin-top:4px">o entra con otra cuenta</div>`;
+  if(ME&&!window.__adding){}});
  const tr=$('#toreg');if(tr)tr.onclick=()=>{box.dataset.mode='register';showLogin()};const tl=$('#tolog');if(tl)tl.onclick=()=>{box.dataset.mode='login';showLogin()};
 }
 async function startServer(){db=serverDB();window.__db=db;try{await db._load()}catch(e){status(false,'No se pudo cargar');return}live=true;status(true,'Guardado en tu servidor');db._stream();subscribeAll();render()}
@@ -1592,9 +1613,14 @@ async function setAvatar(file){if(!ME)return;try{const d=file?await shrinkSquare
 function accountModal(){
  if(!ME){showLogin();return}
  modal(`<div style="display:flex;gap:14px;align-items:center"><span class="av" style="width:72px;height:72px;font-size:28px;overflow:hidden">${avatarHTML(ME,72)}</span><div style="display:grid;gap:6px"><div><h2>${esc(ME.name||ME.username)}</h2><div class="note">@${esc(ME.username)} · ${esc({admin:'Administrador',editor:'Puede editar',lector:'Solo ver'}[ME.role]||ME.role)}</div></div><div class="btns"><span class="btn sf filebtn" style="min-height:36px;padding:6px 12px">${ico('cam')}${myAvatar(ME.id)?'Cambiar foto':'Poner foto o avatar'}<input type="file" accept="image/*" id="avf"></span>${myAvatar(ME.id)?'<button type="button" class="btn rd" id="noav" style="min-height:36px;padding:6px 12px">Quitar</button>':''}</div></div></div>
+  <div style="display:grid;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Cambiar de usuario</h3><button type="button" class="btn gh" id="addacc">+ Añadir cuenta</button></div><div id="accl" style="display:grid;gap:8px"><div class="note">Cargando…</div></div></div>
   <p class="note" style="margin:0">Tu foto es solo tuya. El logo de la empresa (tickets y presupuestos) se cambia en Ajustes → Datos de la empresa.</p>
   <form id="fme3" style="display:grid;gap:12px"><div class="f2"><label>Nombre<input name="name" value="${esc(ME.name||'')}"></label><label>Email${SRV.requireEmail&&!IN_ARTIFACT?'':' (opcional)'}<input name="email" type="email" value="${esc(ME.email||'')}" ${SRV.requireEmail&&!IN_ARTIFACT?'required':''}></label></div>
   <div class="acts" style="justify-content:space-between"><div class="btns"><button type="button" class="btn gh" id="chpw">Cambiar contraseña</button>${ME.role==='admin'?'<button type="button" class="btn gh" data-go="usuarios">Usuarios</button>':''}<button type="button" class="btn rd" id="logout">${ico('out')}Salir</button></div><button class="btn">Guardar</button></div></form>`);
+ $('#addacc').onclick=addAccount;
+ deviceAccounts().then(l=>{const b=$('#accl');if(!b)return;const o=l.filter(a=>!a.current);
+  b.innerHTML=o.length?o.map(accRow).join('')+(l.length>1?'<button type="button" class="btn gh" id="logoutall" style="justify-self:start">Salir de todas las cuentas de este dispositivo</button>':''):'<div class="note">Solo tienes esta cuenta abierta aquí. Con «+ Añadir cuenta» entras con otra y luego cambias entre ellas con un toque, sin volver a poner la contraseña.</div>';
+  const la=$('#logoutall');if(la)la.onclick=()=>confirmBox('¿Cerrar la sesión de todas las cuentas en este dispositivo?',async()=>{if(IN_ARTIFACT){accsSet([]);sessSet(null);ME=null;closeModal();$('#login').dataset.mode='login';showLogin();return}await api('POST','api/logout',{all:true}).catch(()=>{});location.reload()})});
  $('#avf').onchange=e=>{const f=e.target.files[0];if(f)setAvatar(f)};{const n=$('#noav');if(n)n.onclick=()=>setAvatar(null)}
  $('#fme3').onsubmit=async e=>{e.preventDefault();const f=e.target;try{if(IN_ARTIFACT){const em=f.email.value.trim();if(em&&!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(em))throw {message:'El email no es válido'};await patch('appusers',ME.id,{name:f.name.value.trim()||ME.username,email:em});ME={...ME,name:f.name.value.trim()||ME.username,email:em};closeModal();toast('Cuenta guardada');render();return}const r=await api('PATCH','api/me',{name:f.name.value.trim(),email:f.email.value.trim()});ME=r.user;closeModal();toast('Cuenta guardada');render()}catch(err){toast(err.message||'No se pudo guardar')}}}
 $('#meBtn').onclick=accountModal;$('#qscan').onclick=quickScan;
@@ -1644,6 +1670,7 @@ document.addEventListener('click',async e=>{
  else if(d.pr)editPrinter(d.pr);else if(d.ej){closeModal();editJob(d.ej)}else if(d.jr)jobReceiptModal(d.jr);else if(d.jobf){S.jobf=d.jobf;render()}
  else if(d.qtab){S.qtab=d.qtab;render()}else if(d.vq)viewQuote(d.vq);else if(d.garea){S.garea=d.garea;render()}
  else if(d.farmon!=null){saveCfg({farmOn:d.farmon==='1'}).then(()=>toast(d.farmon==='1'?'Granja activada: la tienes en el menú «Taller»':'Granja desactivada')).catch(()=>{})}
+ else if(d.swu)switchUser(d.swu);
  else if(d.fm)farmDetail(d.fm);else if(d.efm)editFarm(d.efm);else if(d.fmf){S.fmf=d.fmf;render()}
  else if(d.fms){const id=S.fmOpen;patch('farm',id,{status:d.fms,...(d.fms!=='imprimiendo'?{}:{since:Date.now()})}).then(()=>farmDetail(id)).catch(()=>{})}
  else if(d.fmc)farmCmd(S.fmOpen,d.fmc,d.fmv!=null?+d.fmv:undefined);
@@ -1658,7 +1685,7 @@ document.addEventListener('click',async e=>{
   case 'newj':editJob('');break;case 'newq':editQuote('');break;case 'scansp':scanSpool();break;case 'addpr':pickPrinter();break;case 'nologo':saveCfg({logo:''});break;
   case 'c2q':{const c=calcRead(),r=calcCompute(c);editQuote('',{title:c.name||'',lines:[{d:(c.name||'Pieza impresa en 3D'),q:c.qty,u:+r.price.toFixed(2)}]});break}
   case 'c2p':calcRead();applyToPiece();break;case 'c2s':{const c=calcRead();saveCfg({kwh:c.kwh,labor:c.laborRate,margin:c.margin,fail:c.fail}).then(()=>toast('Valores guardados por defecto'));break}
-  case 'newu':editUser(null);break;case 'logout':if(IN_ARTIFACT){sessSet(null);ME=null;closeModal();$('#login').dataset.mode='login';showLogin();break}api('POST','api/logout').catch(()=>{}).then(()=>location.reload());break;
+  case 'newu':editUser(null);break;case 'logout':if(IN_ARTIFACT){const cu=sessGet();if(cu)accsSet(accsGet().filter(a=>a.uid!==cu.uid));sessSet(null);ME=null;closeModal();$('#login').dataset.mode='login';showLogin();break}api('POST','api/logout').catch(()=>{}).then(()=>location.reload());break;
   case 'chpw':modal(`<h2>Cambiar contraseña</h2><form id="fpw" style="display:grid;gap:12px"><label>Contraseña actual<input name="old" type="password" required autocomplete="current-password"></label><label>Nueva contraseña<input name="pw" type="password" minlength="4" required autocomplete="new-password"></label><div class="acts"><button type="button" class="btn gh" data-close>Cancelar</button><button class="btn">Cambiar</button></div></form>`);$('#fpw').onsubmit=async ev=>{ev.preventDefault();const f=ev.target;try{if(IN_ARTIFACT){const u=S.appusers.find(x=>x.id===ME.id);if(!u||await pbk(f.old.value,u.salt)!==u.hash)throw {message:'La contraseña actual no es correcta'};if(f.pw.value.length<4)throw {message:'Mínimo 4 caracteres'};const salt=rhex(16),hash=await pbk(f.pw.value,salt);await patch('appusers',u.id,{salt,hash});sessSet({uid:u.id,h:hash.slice(0,16)});closeModal();toast('Contraseña cambiada');return}await api('POST','api/password',{old:f.old.value,password:f.pw.value});closeModal();toast('Contraseña cambiada')}catch(err){toast(err.message||'No se pudo cambiar')}};break;case 'mth':closeModal();toggleTheme();break;
   case 'delej':confirmBox('Se borrarán solo los registros de ejemplo. Lo que hayas creado tú se queda.',async()=>{for(const k of ['sales','moves','prints','expenses','jobs','quotes','products','customers','collabs','spools'])for(const x of S[k].filter(x=>/^ej/.test(x.id)))await del(k,x.id);toast('Datos de ejemplo borrados')});break;
  }

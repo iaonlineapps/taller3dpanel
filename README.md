@@ -51,6 +51,8 @@ una base de datos SQLite propia, dentro de tu instalación.
   [guía de la granja](docs/GRANJA.md).
 - **Movimientos** de stock (kardex): cada entrada y salida con el stock antes y después.
 - **Usuarios** con nick, email y contraseña, y permisos (administrador, puede editar, solo ver).
+  **Cambiar de usuario rápido**: las cuentas con las que entras en un dispositivo quedan guardadas y
+  pasas de una a otra con un toque, sin volver a poner la contraseña.
 - **Exporta** ventas, gastos, piezas, movimientos, servicios y presupuestos a CSV (Excel), y haz o
   restaura una **copia de seguridad** completa.
 

@@ -124,10 +124,23 @@ function auth(req) {
   const s = q.getSess.get(sha(t)); if (!s || s.expires < Date.now() || !s.active) return null;
   return s;
 }
+// Cuentas recordadas en este dispositivo (para cambiar de usuario rápido): cookie t3dk con las
+// sesiones abiertas en este navegador. t3d es la sesión activa.
+const MAX_ACCOUNTS = 8;
+const ck = (req, name, val) => `${name}=${val}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${val ? SESSION_DAYS * 86400 : 0}${isHttps(req) ? '; Secure' : ''}`;
+function deviceTokens(req) { const c = cookies(req); return [...new Set([c.t3d || '', ...String(c.t3dk || '').split('.')])].filter(t => /^[A-Za-z0-9_-]{20,64}$/.test(t)).slice(0, MAX_ACCOUNTS + 1); }
+function deviceAccounts(req) {
+  const out = [], seen = new Set();
+  for (const t of deviceTokens(req)) { const s = q.getSess.get(sha(t)); if (!s || s.expires < Date.now() || !s.active || seen.has(s.user_id)) continue; seen.add(s.user_id); out.push({ t, s }); }
+  return out;
+}
+function setSessionCookies(req, res, active, tokens) { res.setHeader('Set-Cookie', [ck(req, 't3d', active || ''), ck(req, 't3dk', tokens.join('.'))]); }
 function startSession(req, res, user) {
   const t = crypto.randomBytes(32).toString('base64url');
   q.addSess.run(sha(t), user.id, Date.now() + SESSION_DAYS * 864e5);
-  res.setHeader('Set-Cookie', `t3d=${t}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}${isHttps(req) ? '; Secure' : ''}`);
+  // si esta cuenta ya estaba abierta en este dispositivo, se cambia su sesión vieja por la nueva
+  const keep = deviceAccounts(req).filter(a => { if (a.s.user_id === user.id) { q.delSess.run(sha(a.t)); return false; } return true; }).map(a => a.t);
+  setSessionCookies(req, res, t, [t, ...keep].slice(0, MAX_ACCOUNTS));
 }
 setInterval(() => q.gcSess.run(Date.now()), 36e5).unref();
 
@@ -235,8 +248,24 @@ const server = http.createServer(async (req, res) => {
       const ip = clientIp(req); if (tooMany(ip)) return send(res, 429, { error: 'Demasiados intentos' }); failed(ip);
       const b = await readBody(req); createUser({ username: b.username, name: b.name, email: b.email, password: b.password, role: 'editor', active: false, needEmail: REQUIRE_EMAIL }); return send(res, 200, { ok: true });
     }
+    // ----- cambiar de usuario -----
+    if (p === '/api/accounts' && M === 'GET') {
+      const cur = me && me.user_id;
+      return send(res, 200, { accounts: deviceAccounts(req).map(({ s }) => { let av = ''; try { av = JSON.parse((q.getDoc.get('profiles', s.user_id) || {}).data || '{}').avatar || ''; } catch { } return { ...pubUser(s), avatar: av, current: s.user_id === cur }; }) });
+    }
+    if (p === '/api/switch' && M === 'POST') {
+      const b = await readBody(req); const acc = deviceAccounts(req); const a = acc.find(x => x.s.user_id === String(b.id || ''));
+      if (!a) return send(res, 404, { error: 'Esa cuenta ya no tiene la sesión abierta en este dispositivo. Entra con su contraseña.' });
+      setSessionCookies(req, res, a.t, acc.map(x => x.t)); return send(res, 200, { user: pubUser(a.s) });
+    }
+    if (p === '/api/logout' && M === 'POST') {
+      const b = await readBody(req).catch(() => ({})); const cur = cookies(req).t3d || ''; const acc = deviceAccounts(req);
+      // all = salir de todas las cuentas de este dispositivo; si no, solo de la activa
+      const gone = b && b.all ? acc.map(x => x.t).concat(cur) : [cur];
+      for (const t of gone) if (t) q.delSess.run(sha(t));
+      setSessionCookies(req, res, '', acc.map(x => x.t).filter(t => !gone.includes(t))); return send(res, 200, { ok: true });
+    }
     if (!me) return send(res, 401, { error: 'Inicia sesión' });
-    if (p === '/api/logout' && M === 'POST') { q.delSess.run(sha(cookies(req).t3d || '')); res.setHeader('Set-Cookie', 't3d=; Path=/; Max-Age=0'); return send(res, 200, { ok: true }); }
     if (p === '/api/password' && M === 'POST') {
       const b = await readBody(req); if (!checkPass(String(b.old || ''), me.pass)) return send(res, 400, { error: 'La contraseña actual no es correcta' });
       if (String(b.password || '').length < 4) return send(res, 400, { error: 'Mínimo 4 caracteres' });
