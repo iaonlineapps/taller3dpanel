@@ -91,7 +91,7 @@ const validName = s => /^[a-zA-Z0-9._-]{3,32}$/.test(s || '');
 
 function createUser({ username, name, password, email, role = 'editor', active = true, needEmail = false }) {
   if (!validName(username)) throw httpErr(400, 'El usuario debe tener de 3 a 32 letras, números, punto, guion o guion bajo');
-  if (!password || String(password).length < 8) throw httpErr(400, 'La contraseña debe tener al menos 8 caracteres');
+  if (!password || String(password).length < 4) throw httpErr(400, 'La contraseña debe tener al menos 4 caracteres');
   if (q.userByName.get(username)) throw httpErr(409, 'Ese usuario ya existe');
   const em = checkEmail(email, needEmail);
   if (!['admin', 'editor', 'lector'].includes(role)) role = 'editor';
@@ -210,7 +210,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/logout' && M === 'POST') { q.delSess.run(sha(cookies(req).t3d || '')); res.setHeader('Set-Cookie', 't3d=; Path=/; Max-Age=0'); return send(res, 200, { ok: true }); }
     if (p === '/api/password' && M === 'POST') {
       const b = await readBody(req); if (!checkPass(String(b.old || ''), me.pass)) return send(res, 400, { error: 'La contraseña actual no es correcta' });
-      if (String(b.password || '').length < 8) return send(res, 400, { error: 'Mínimo 8 caracteres' });
+      if (String(b.password || '').length < 4) return send(res, 400, { error: 'Mínimo 4 caracteres' });
       q.setPass.run(hashPass(String(b.password)), me.id); return send(res, 200, { ok: true });
     }
     if (p === '/api/me' && M === 'PATCH') {
@@ -272,7 +272,7 @@ const server = http.createServer(async (req, res) => {
         if (u.role === 'admin' && (role !== 'admin' || !active) && q.countAdmins.get().n <= 1) return send(res, 400, { error: 'Tiene que quedar al menos un administrador activo' });
         q.setUser.run(String(b.name || u.name).slice(0, 80), role, active ? 1 : 0, u.id);
         if (b.email !== undefined) q.setEmail.run(checkEmail(b.email, false, u.id), u.id);
-        if (b.password) { if (String(b.password).length < 8) return send(res, 400, { error: 'Mínimo 8 caracteres' }); q.setPass.run(hashPass(String(b.password)), u.id); q.delUserSess.run(u.id); }
+        if (b.password) { if (String(b.password).length < 4) return send(res, 400, { error: 'Mínimo 4 caracteres' }); q.setPass.run(hashPass(String(b.password)), u.id); q.delUserSess.run(u.id); }
         if (!active) q.delUserSess.run(u.id);
         return send(res, 200, pubUser(q.userById.get(u.id)));
       }
