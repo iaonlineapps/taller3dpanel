@@ -116,14 +116,14 @@ public class MainActivity extends Activity {
         box.addView(logo);
 
         TextView sub = new TextView(this);
-        sub.setText("Escribe la dirección de tu servidor Taller3D Panel.\nEn casa, por ejemplo 192.168.1.50:8095. Fuera de casa, tu dirección pública (https://…).");
+        sub.setText("Escribe la dirección de tu servidor Taller3D Panel.\nEn casa, por ejemplo 192.168.1.x:8095. Fuera de casa, tu dirección pública (https://…).");
         sub.setTextSize(15);
         sub.setTextColor(Color.parseColor("#646b80"));
         sub.setPadding(0, dp(12), 0, dp(20));
         box.addView(sub);
 
         final EditText input = new EditText(this);
-        input.setHint("192.168.1.50:8095");
+        input.setHint("192.168.1.x:8095");
         input.setSingleLine(true);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         input.setImeOptions(EditorInfo.IME_ACTION_GO);

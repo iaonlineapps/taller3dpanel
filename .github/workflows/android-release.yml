@@ -60,7 +60,7 @@ jobs:
             echo "## Novedades de la $V"
             awk -v v="## $V" '$0==v{f=1;next} /^## /{f=0} f' android/NOVEDADES.md
             echo
-            echo "Necesita Android 7 o más nuevo. La primera vez pide la dirección de tu servidor (en casa, por ejemplo \`192.168.1.50:8095\`)."
+            echo "Necesita Android 7 o más nuevo. La primera vez pide la dirección de tu servidor (en casa, por ejemplo \`192.168.1.x:8095\`)."
           } > notas.md
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" android/dist/Taller3DPanel.apk --clobber
