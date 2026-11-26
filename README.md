@@ -1,6 +1,6 @@
 # Taller3D Panel
 
-![Taller3D Panel: tu taller de impresión 3D, bajo control](docs/promo/taller3dpanel-1200x630.png)
+![Taller3D Panel: tu taller de impresión 3D, bajo control](docs/promo/taller3dpanel-github-1280x640.png)
 
 Gestión completa para tu **taller de impresión 3D** (y tu **servicio informático**), en tu propio
 servidor: una Raspberry Pi o cualquier ordenador con Docker. Controla el **stock de tus piezas con
@@ -98,6 +98,11 @@ Hecho con Node.js (un solo archivo, sin dependencias, SQLite integrado) y JavaSc
 
 </details>
 
+## Imágenes para compartir
+
+En [`docs/promo`](docs/promo) están las imágenes para GitHub, WhatsApp, redes (cuadradas y de historia),
+el icono y los avatares claro y oscuro.
+
 ## Instalar
 
 Necesitas un ordenador con **Docker** (una Raspberry Pi 4/5 va perfecta). Si no lo tienes:
@@ -106,9 +111,7 @@ Necesitas un ordenador con **Docker** (una Raspberry Pi 4/5 va perfecta). Si no 
 ```bash
 git clone https://github.com/pctecnikk/taller3dpanel.git
 cd taller3dpanel
-./install.sh       # la primera vez solo crea el archivo .env
-nano .env          # elige dónde guardar los datos (DATA_DIR) y el puerto
-./install.sh       # ahora sí: instala y arranca
+./install.sh       # crea el .env, instala y arranca
 ```
 
 Abre **http://IP-DE-TU-PI:8095**. La primera vez te pide **crear el usuario administrador** (nick,
@@ -232,7 +235,7 @@ with roles, CSV export and full backups. Light and dark mode, Android app, and a
 SQLite database inside your installation. The interface is in Spanish.
 
 **Install:** `git clone https://github.com/pctecnikk/taller3dpanel.git && cd taller3dpanel && ./install.sh`
-(the first run creates `.env`; edit it and run `./install.sh` again). Open `http://YOUR-IP:8095` and
+(it creates `.env`, builds and starts). Open `http://YOUR-IP:8095` and
 create the admin account. Docker image: `ghcr.io/pctecnikk/taller3dpanel` (amd64, arm64, armv7).
 Android APK in Releases.
 

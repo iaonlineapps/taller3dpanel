@@ -12,9 +12,7 @@ fi
 if [ ! -f .env ]; then
   cp .env.example .env
   sed -i "s/^PUID=.*/PUID=$(id -u)/; s/^PGID=.*/PGID=$(id -g)/" .env
-  echo "He creado el archivo .env con tu usuario (PUID=$(id -u), PGID=$(id -g))."
-  echo "Ábrelo (nano .env), elige dónde guardar los datos en DATA_DIR y vuelve a ejecutar ./install.sh"
-  exit 0
+  echo "He creado el archivo .env con tu usuario (PUID=$(id -u), PGID=$(id -g)). Si quieres cambiar algo: nano .env y ./install.sh"
 fi
 set -a; . ./.env; set +a
 DATA_DIR="${DATA_DIR:-./data}"
