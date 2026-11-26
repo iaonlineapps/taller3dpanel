@@ -27,6 +27,9 @@ function summarize(state, online, error) {
     const amsUnits = (p.ams && Array.isArray(p.ams.ams)) ? p.ams.ams : [];
     const trays = [];
     for (const u of amsUnits) for (const t of (u.tray || [])) if (t && (t.tray_type || t.tray_color)) trays.push({ type: t.tray_type || '', color: t.tray_color ? '#' + String(t.tray_color).slice(0, 6) : '', remain: t.remain != null ? +t.remain : null });
+    // cada AMS por separado: humedad (% si la da, si no nivel 1-5), temperatura y sus 4 huecos
+    const ams = amsUnits.map((u, i) => ({ id: u.id != null ? +u.id : i, humidity: u.humidity_raw != null ? +u.humidity_raw : null, level: u.humidity != null ? +u.humidity : null, temp: u.temp != null ? +u.temp : null,
+      trays: (u.tray || []).map(t => t && (t.tray_type || t.tray_color) ? { type: t.tray_type || '', color: t.tray_color ? '#' + String(t.tray_color).slice(0, 6) : '', remain: t.remain != null ? +t.remain : null } : null) }));
     if (p.vt_tray && (p.vt_tray.tray_type || p.vt_tray.tray_color)) trays.push({ type: p.vt_tray.tray_type || '', color: p.vt_tray.tray_color ? '#' + String(p.vt_tray.tray_color).slice(0, 6) : '', remain: null, ext: true });
     const light = (p.lights_report || []).find(l => l.node === 'chamber_light');
     const num = v => v == null || v === '' ? null : +v;
@@ -35,7 +38,7 @@ function summarize(state, online, error) {
       state: p.gcode_state || (online ? 'IDLE' : ''), percent: num(p.mc_percent), remaining: num(p.mc_remaining_time),
       layer: num(p.layer_num), layers: num(p.total_layer_num), file: p.subtask_name || p.gcode_file || '',
       nozzle: num(p.nozzle_temper), nozzleT: num(p.nozzle_target_temper), bed: num(p.bed_temper), bedT: num(p.bed_target_temper), chamber: num(p.chamber_temper),
-      speed: num(p.spd_lvl), light: light ? light.mode === 'on' : null, trays, wifi: p.wifi_signal || '', errors: Array.isArray(p.hms) ? p.hms.length : 0,
+      speed: num(p.spd_lvl), light: light ? light.mode === 'on' : null, trays, ams, wifi: p.wifi_signal || '', errors: Array.isArray(p.hms) ? p.hms.length : 0,
       nozzleDia: num(p.nozzle_diameter), nozzleType: p.nozzle_type || '',
       printError: num(p.print_error) || 0, updated: Date.now(),
     };
