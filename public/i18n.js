@@ -17,6 +17,22 @@ window.setLang=function(l){if(l!=='es'&&l!=='en')return;try{localStorage.setItem
  try{window.T3DApp&&T3DApp.setLang&&T3DApp.setLang(l)}catch(e){}
  if(l!==LANG){var u=location.href.replace(/([?&])lang=(es|en)&?/,'$1').replace(/[?&]$/,'');location.replace(u)}};
 var EN={
+"Editar ticket {}":"Edit ticket {}",
+"Corrige lo que te equivocaste. Si cambias las piezas o las cantidades, el stock se ajusta solo.":"Fix any mistake. If you change the parts or the quantities, the stock is adjusted by itself.",
+"Este ticket está a deber: cóbralo con «Cobrar ahora».":"This ticket is on credit: charge it with «Charge now».",
+"Precio c/u":"Price each",
+"+ Añadir pieza…":"+ Add part…",
+"Guardar cambios":"Save changes",
+"El ticket tiene que tener al menos una pieza. Si no vale, anúlalo.":"The ticket must have at least one part. If it is not valid, cancel it.",
+"No has cambiado nada":"You have not changed anything",
+"Ticket corregido":"Ticket corrected",
+"No se pudo guardar el ticket":"The ticket could not be saved",
+"Corregido el {} por {}":"Corrected on {} by {}",
+"vendedor":"seller",
+"forma de pago":"payment method",
+"piezas":"parts",
+"**Editar un ticket ya hecho**: en Tickets, abre el ticket y pulsa «Editar». Puedes poner el cliente si se te olvidó, cambiar quién lo vendió, la forma de pago, las cantidades y los precios, quitar piezas o añadir otras.":"**Edit a ticket that is already made**: in Tickets, open the ticket and tap «Edit». You can add the customer if you forgot it, change who sold it, the payment method, the quantities and the prices, remove parts or add others.",
+"El **stock se ajusta solo** con los cambios, y también el margen del colaborador y tus cuentas. En el ticket queda apuntado cuándo se corrigió y quién lo hizo.":"The **stock is adjusted by itself** with the changes, and so are the collaborator's margin and your figures. The ticket keeps a note of when it was corrected and who did it.",
 "Gastos por devolverle":"Expenses to pay back",
 "Lo que gasta cada uno, lo que vende, su margen por venta y lo que tienes pendiente de pagarle":"What each one spends, what they sell, their margin per sale and what you still have to pay them",
 "Ya descontado el margen de tus colaboradores:":"Your collaborators' margin already deducted:",
