@@ -273,6 +273,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
  <button class="nv" data-v="piezas"><svg class="i"><use href="#i-box"/></svg>Piezas y stock<span class="cnt" id="lowc" hidden></span></button>
  <button class="nv" data-v="disenos"><svg class="i"><use href="#i-pen"/></svg>Diseños 3D</button>
  <button class="nv" data-v="filamentos"><svg class="i"><use href="#i-spool"/></svg>Filamentos</button>
+ <button class="nv" data-v="impresoras"><svg class="i"><use href="#i-farm"/></svg>Impresoras 3D</button>
  <button class="nv" data-v="granja" id="navfarm" hidden><svg class="i"><use href="#i-farm"/></svg>Granja</button>
  <button class="nv" data-v="movimientos"><svg class="i"><use href="#i-swap"/></svg>Movimientos</button>
  <div class="grp">Servicios</div>
@@ -779,6 +780,24 @@ function designCard(id){const p=S.products.find(x=>x.id===id);if(!p)return;if((p
  $('#nx').onclick=async()=>{await patch('products',id,{estado:nx[0]});closeModal();render();toast(nx[0]==='listo'?'¡Ya está en tu stock!':'Movido a «Diseñando»')}}
 
 /* ======================= FILAMENTOS ======================= */
+/* ======================= IMPRESORAS 3D ======================= */
+function vImpresoras(){const fl=fleet(),{from}=period(S.range),rl=RANGES.find(x=>x[0]===S.range)[1];
+ const st=f=>{const ps=S.prints.filter(x=>x.printer===f.alias),pr=ps.filter(x=>x.date>=(from||0));return {n:pr.length,u:pr.reduce((t,x)=>t+(+x.qty||0),0),h:pr.reduce((t,x)=>t+(+x.hours||0),0),g:pr.reduce((t,x)=>t+(+x.grams||0),0),last:ps.reduce((m,x)=>Math.max(m,x.date||0),0)}};
+ const tot=fl.map(st).reduce((a,x)=>({h:a.h+x.h,u:a.u+x.u,g:a.g+x.g}),{h:0,u:0,g:0});
+ const farmOf=f=>S.cfg.farmOn?S.farm.filter(x=>x.fleetId===f.id):[];
+ return `<div class="ph"><div><h1>Impresoras 3D</h1><div class="sub">Tus impresoras con su foto, perfil, boquilla y lo que han impreso</div></div>
+ <div class="btns"><div class="tabs">${RANGES.map(([v,t])=>`<button data-range="${v}" class="${v===S.range?'on':''}">${t}</button>`).join('')}</div><button class="btn" id="addpr2">+ Añadir impresora</button></div></div>
+ <div class="sum"><div class="sm"><div class="l">Impresoras</div><div class="v">${fl.length}</div></div><div class="sm" style="border-left-color:var(--pri)"><div class="l">Horas imprimiendo (${esc(rl)})</div><div class="v">${num(tot.h,1)} h</div></div><div class="sm" style="border-left-color:var(--inc)"><div class="l">Piezas impresas</div><div class="v">${num(tot.u)}</div></div><div class="sm" style="border-left-color:var(--warn)"><div class="l">Filamento usado</div><div class="v">${tot.g>=1000?num(tot.g/1000,2)+' kg':num(tot.g)+' g'}</div></div></div>
+ <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">${fl.length?fl.map(f=>{const x=st(f),fm=farmOf(f);
+  return `<div class="card" style="display:flex;flex-direction:column;gap:12px;padding:0;overflow:hidden">
+  <button data-pr="${esc(f.id)}" style="display:block;position:relative;width:100%;aspect-ratio:16/10;background:var(--soft);border:0;padding:0;cursor:pointer;overflow:hidden" aria-label="Editar ${esc(f.alias)}">${prPhoto(f)?`<img src="${prPhoto(f)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block">`:`<div style="width:55%;height:100%;margin:auto">${printerArt(f.k||'enc')}</div>`}</button>
+  <div style="padding:0 16px 16px;display:grid;gap:10px">
+   <div><b style="font-size:17px">${esc(f.alias)}</b><div class="note">${esc([f.brand,f.model].filter(Boolean).join(' ')||'Sin modelo')}${f.v?' · '+esc(f.v)+' mm':''}</div></div>
+   <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="tag">Boquilla ${esc(nozzleTxt(f))}</span><span class="tag">Capa ${num(f.layer,2)}</span><span class="tag">${num(f.w)} W</span>${fm.length?`<span class="tag" style="color:var(--pri)">En la granja${fm.length>1?' ×'+fm.length:''}</span>`:''}</div>
+   <div class="note">${x.n?`${num(x.u)} piezas · ${num(x.h,1)} h · ${x.g>=1000?num(x.g/1000,2)+' kg':num(x.g)+' g'} en ${esc(rl)}`:'Sin impresiones en '+esc(rl)}${x.last?` · última ${esc(fdt(x.last))}`:''}</div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn gh" data-pr="${esc(f.id)}">Editar</button><button class="btn gh" data-prcalc="${esc(f.id)}">Calcular coste</button></div></div></div>`}).join('')
+  :`<div class="card empty" style="grid-column:1/-1">Aún no tienes impresoras. Pulsa «+ Añadir impresora» y elige tu modelo del catálogo (Bambu Lab, Prusa, Creality, Elegoo, Anycubic…). Luego puedes ponerle foto, boquilla y su consumo.</div>`}</div>
+ <p class="note" style="margin:0">Cada impresora tiene su perfil (consumo, velocidad, boquilla, relleno, precio y vida útil) que usa la calculadora para estimar costes${S.cfg.farmOn?' y la granja para sus estadísticas':''}.</p>`}
 function vFilamentos(){
  const tot=S.spools.reduce((t,s)=>t+(+s.left||0),0),val=S.spools.reduce((t,s)=>t+(+s.left||0)/1000*(+s.priceKg||0),0);
  const used=S.prints.filter(p=>p.date>=Date.now()-30*D).reduce((t,p)=>t+(+p.grams||0),0);
@@ -1803,11 +1822,11 @@ addEventListener('popstate',e=>{if(skipPop){skipPop--;return}
  if($('#side').classList.contains('open')){closeSide()}
  const v=(e.state&&e.state.v)||location.hash.slice(1)||'panel';if(V[v]&&v!==S.view){S.view=v;S.q='';render();scrollTo(0,0)}});
 function confirmBox(msg,fn){modal(`<h2>¿Seguro?</h2><p style="margin:0">${esc(msg)}</p><div class="acts"><button class="btn gh" data-close>Cancelar</button><button class="btn" id="yes" style="background:var(--exp)">Sí, continuar</button></div>`);$('#yes').onclick=async()=>{$('#yes').disabled=true;try{await fn()}finally{closeModal();render()}}}
-function moreSheet(){modal(`<div class="ch" style="margin:0"><h2>Más secciones</h2><button class="btn gh" data-close>Cerrar</button></div><div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${[['presupuestos','calc','Calculadora'],['presu','rcpt','Presupuestos'],['servicios','pc','Informática'],['tickets','rcpt','Tickets'],['disenos','pen','Diseños 3D'],['filamentos','spool','Filamentos'],...(S.cfg.farmOn?[['granja','farm','Granja']]:[]),['movimientos','swap','Movimientos'],['clientes','user','Clientes'],['colaboradores','team','Colaboradores'],['usuarios','user','Usuarios'],['ajustes','cog','Ajustes']].map(([v,i,l])=>`<button class="card" data-go="${v}" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(i)}${l}</button>`).join('')}<button class="card" id="mth" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(isDark()?'sun':'moon')}${isDark()?'Modo claro':'Modo oscuro'}</button></div>`)}
+function moreSheet(){modal(`<div class="ch" style="margin:0"><h2>Más secciones</h2><button class="btn gh" data-close>Cerrar</button></div><div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${[['presupuestos','calc','Calculadora'],['presu','rcpt','Presupuestos'],['servicios','pc','Informática'],['tickets','rcpt','Tickets'],['disenos','pen','Diseños 3D'],['filamentos','spool','Filamentos'],['impresoras','farm','Impresoras 3D'],...(S.cfg.farmOn?[['granja','farm','Granja']]:[]),['movimientos','swap','Movimientos'],['clientes','user','Clientes'],['colaboradores','team','Colaboradores'],['usuarios','user','Usuarios'],['ajustes','cog','Ajustes']].map(([v,i,l])=>`<button class="card" data-go="${v}" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(i)}${l}</button>`).join('')}<button class="card" id="mth" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(isDark()?'sun':'moon')}${isDark()?'Modo claro':'Modo oscuro'}</button></div>`)}
 const closeSide=()=>{$('#side').classList.remove('open');$('#scrim').classList.remove('show')};
 
 /* ======================= RENDER ======================= */
-const V={panel:vPanel,vender:vVender,tickets:vTickets,piezas:vPiezas,disenos:vDisenos,filamentos:vFilamentos,movimientos:vMovimientos,clientes:vClientes,colaboradores:vColaboradores,gastos:vGastos,ajustes:vAjustes,usuarios:vUsuariosPage,servicios:vServicios,presupuestos:vPresupuestos,presu:vPresupuestos,granja:vGranja};
+const V={panel:vPanel,vender:vVender,tickets:vTickets,piezas:vPiezas,disenos:vDisenos,filamentos:vFilamentos,movimientos:vMovimientos,clientes:vClientes,colaboradores:vColaboradores,gastos:vGastos,ajustes:vAjustes,usuarios:vUsuariosPage,servicios:vServicios,presupuestos:vPresupuestos,presu:vPresupuestos,impresoras:vImpresoras,granja:vGranja};
 let rq=0;const render=()=>{if(rq)return;rq=requestAnimationFrame(()=>{rq=0;doRender()})};
 function doRender(){
  const a=document.activeElement,fid=a&&a.id,pos=a&&a.selectionStart,keep=['q','tkq','scan','cash','fmq'].includes(fid)?fid:'';if(S.view==='presupuestos'&&a&&a.closest&&a.closest('#calcf'))return;
@@ -1901,7 +1920,7 @@ document.addEventListener('click',async e=>{
  else if(d.ec)editCustomer(d.ec);else if(d.eb)editCollab(d.eb);else if(d.eg)editExpense(d.eg);
  else if(d.th){if(d.th!==(isDark()?'dark':'light'))toggleTheme()}
  else if(d.payt)payTicket(d.payt);else if(d.tkf){S.tkf=d.tkf;render()}else if(d.ig)igPost(d.ig);
- else if(d.pr)editPrinter(d.pr);else if(d.ej){closeModal();editJob(d.ej)}else if(d.jr)jobReceiptModal(d.jr);else if(d.jobf){S.jobf=d.jobf;render()}else if(d.jcat){S.jcat=d.jcat;render()}
+ else if(d.pr)editPrinter(d.pr);else if(d.prcalc){S.calc={...(S.calc||calcDefaults()),printer:d.prcalc};go('presupuestos')}else if(d.ej){closeModal();editJob(d.ej)}else if(d.jr)jobReceiptModal(d.jr);else if(d.jobf){S.jobf=d.jobf;render()}else if(d.jcat){S.jcat=d.jcat;render()}
  else if(d.qtab){S.qtab=d.qtab;render()}else if(d.vq)viewQuote(d.vq);else if(d.garea){S.garea=d.garea;render()}
  else if(d.farmon!=null){saveCfg({farmOn:d.farmon==='1'}).then(()=>toast(d.farmon==='1'?'Granja activada: la tienes en el menú «Taller»':'Granja desactivada')).catch(()=>{})}
  else if(d.swu)switchUser(d.swu);
@@ -1916,7 +1935,7 @@ document.addEventListener('click',async e=>{
   case 'newsp':editSpool('');break;case 'newc':editCustomer('');break;case 'newb':editCollab('');break;case 'newg':editExpense('');break;
   case 'bmore':moreSheet();break;case 'newfm':editFarm('');break;case 'fmnot':Notification.requestPermission().then(p=>{toast(p==='granted'?'Te avisaré cuando una impresora termine o falle (con la web abierta)':'El navegador no ha dado permiso para avisos');render()});break;case 'bulkfm':bulkFarm();break;case 'fmlab':farmLabels();break;
   case 'quickp':quickPiece();break;case 'quickc':case 'quickc2':quickClient();break;case 'camscan':cameraScan(v=>handleScan(v));break;
-  case 'newj':editJob('');break;case 'newq':editQuote('');break;case 'scansp':scanSpool();break;case 'addpr':pickPrinter();break;case 'nologo':saveCfg({logo:''});break;
+  case 'newj':editJob('');break;case 'newq':editQuote('');break;case 'scansp':scanSpool();break;case 'addpr':case 'addpr2':pickPrinter();break;case 'nologo':saveCfg({logo:''});break;
   case 'c2q':{const c=calcRead(),r=calcCompute(c);editQuote('',{title:c.name||'',lines:[{d:(c.name||'Pieza impresa en 3D'),q:c.qty,u:+r.price.toFixed(2)}]});break}
   case 'c2p':calcRead();applyToPiece();break;case 'c2s':{const c=calcRead();saveCfg({kwh:c.kwh,labor:c.laborRate,margin:c.margin,fail:c.fail}).then(()=>toast('Valores guardados por defecto'));break}
   case 'newu':editUser(null);break;case 'logout':if(IN_ARTIFACT){const cu=sessGet();if(cu)accsSet(accsGet().filter(a=>a.uid!==cu.uid));sessSet(null);ME=null;closeModal();$('#login').dataset.mode='login';showLogin();break}api('POST','api/logout').catch(()=>{}).then(()=>location.reload());break;
