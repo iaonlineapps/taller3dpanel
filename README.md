@@ -85,6 +85,10 @@ Hecho con Node.js (un solo archivo, sin dependencias, SQLite integrado) y JavaSc
 | **Gastos** por categoría y por persona | **Clientes**: lo que gastan y lo que deben |
 | ![Diseños 3D](docs/capturas/disenos.png) | ![Movimientos](docs/capturas/movimientos.png) |
 | **Diseños 3D** | **Movimientos** de stock |
+| ![Impresoras 3D](docs/capturas/impresoras-3d.png) | ![Boquillas con un toque](docs/capturas/boquillas.png) |
+| **Impresoras 3D** | **Boquillas con un toque** |
+| ![Categorías de informática](docs/capturas/informatica-categorias.png) | ![De dónde sale el beneficio](docs/capturas/beneficio.png) |
+| **Categorías de informática con precio** | **Desglose del beneficio** |
 | ![Modo oscuro](docs/capturas/modo-oscuro.png) | ![Piezas en modo oscuro](docs/capturas/piezas-oscuro.png) |
 | **Modo oscuro** | **Modo oscuro** en piezas |
 | ![Ajustes](docs/capturas/ajustes.png) | ![Entrar](docs/capturas/entrar.png) |
@@ -159,6 +163,14 @@ conecta: **[docs/GRANJA.md](docs/GRANJA.md)**.
 ![Granja de impresoras](docs/capturas/granja.png)
 
 ![Control en directo de una Bambu Lab](docs/capturas/granja-control.png)
+
+![Estadísticas, costes y actividad de la granja](docs/capturas/granja-estadisticas.png)
+
+### Modo taller (tablet o móvil)
+
+![Modo taller](docs/capturas/modo-taller.png)
+
+<img src="docs/capturas/modo-taller-movil.png" width="300" alt="Modo taller en el móvil">
 
 ## App para Android
 
