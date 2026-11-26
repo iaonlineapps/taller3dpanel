@@ -116,7 +116,8 @@ public class MainActivity extends Activity {
         box.addView(logo);
 
         TextView sub = new TextView(this);
-        sub.setText("Escribe la dirección de tu servidor Taller3D Panel.\nEn casa, por ejemplo 192.168.1.x:8095. Fuera de casa, tu dirección pública (https://…).");
+        sub.setText(Lang.t(this, "Escribe la dirección de tu servidor Taller3D Panel.\nEn casa, por ejemplo 192.168.1.x:8095. Fuera de casa, tu dirección pública (https://…).",
+                "Type the address of your Taller3D Panel server.\nAt home, for example 192.168.1.x:8095. Away from home, your public address (https://…)."));
         sub.setTextSize(15);
         sub.setTextColor(Color.parseColor("#646b80"));
         sub.setPadding(0, dp(12), 0, dp(20));
@@ -137,25 +138,37 @@ public class MainActivity extends Activity {
         box.addView(err);
 
         final Button go = new Button(this);
-        go.setText("Conectar");
+        go.setText(Lang.t(this, "Conectar", "Connect"));
         go.setTextColor(Color.WHITE);
         go.setBackgroundColor(BRAND);
         box.addView(go, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)));
 
         TextView ver = new TextView(this);
-        ver.setText("App Android " + version(this) + "  ·  ¿Aún no tienes servidor? Mira github.com/pctecnikk/taller3dpanel");
+        ver.setText(Lang.t(this, "App Android ", "Android app ") + version(this) + Lang.t(this, "  ·  ¿Aún no tienes servidor? Mira github.com/pctecnikk/taller3dpanel", "  ·  No server yet? See github.com/pctecnikk/taller3dpanel"));
         ver.setTextSize(12);
         ver.setTextColor(Color.parseColor("#646b80"));
         ver.setPadding(0, dp(24), 0, 0);
         ver.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { openExternal(Uri.parse(Novedades.REPO)); } });
         box.addView(ver);
 
+        // Idioma: español o inglés (la web usa el mismo)
+        final TextView lang = new TextView(this);
+        lang.setText(Lang.en(this) ? "🇪🇸  Cambiar a español" : "🇬🇧  Switch to English");
+        lang.setTextSize(15);
+        lang.setTextColor(BRAND);
+        lang.setPadding(0, dp(20), 0, dp(8));
+        lang.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) {
+            Lang.set(MainActivity.this, Lang.en(MainActivity.this) ? "es" : "en");
+            askServer(input.getText().toString(), null);
+        } });
+        box.addView(lang);
+
         final Runnable submit = new Runnable() { @Override public void run() {
             final String u = normalize(input.getText().toString());
-            if (u == null) { err.setText("Escribe una dirección válida"); return; }
-            go.setEnabled(false); go.setText("Comprobando…"); err.setText("");
+            if (u == null) { err.setText(Lang.t(MainActivity.this, "Escribe una dirección válida", "Type a valid address")); return; }
+            go.setEnabled(false); go.setText(Lang.t(MainActivity.this, "Comprobando…", "Checking…")); err.setText("");
             check(u, new Done() { @Override public void done(boolean ok, String msg) {
-                go.setEnabled(true); go.setText("Conectar");
+                go.setEnabled(true); go.setText(Lang.t(MainActivity.this, "Conectar", "Connect"));
                 if (ok) { prefs.edit().putString(KEY_URL, u).apply(); showWeb(u, null); }
                 else err.setText(msg);
             } });
@@ -188,9 +201,9 @@ public class MainActivity extends Activity {
                 byte[] b = new byte[4096]; int n = in == null ? 0 : in.read(b);
                 String body = n > 0 ? new String(b, 0, n, "UTF-8") : "";
                 ok = code == 200 && body.contains("\"version\"");
-                msg = ok ? null : "En esa dirección no hay un Taller3D Panel (respuesta " + code + ")";
+                msg = ok ? null : Lang.t(MainActivity.this, "En esa dirección no hay un Taller3D Panel (respuesta ", "There is no Taller3D Panel at that address (response ") + code + ")";
             } catch (Exception e) {
-                msg = "No se puede conectar. ¿Está encendido el servidor y estás en la misma red?";
+                msg = Lang.t(MainActivity.this, "No se puede conectar. ¿Está encendido el servidor y estás en la misma red?", "Cannot connect. Is the server on and are you on the same network?");
             }
             final boolean fOk = ok; final String fMsg = msg;
             main.post(new Runnable() { @Override public void run() { cb.done(fOk, fMsg); } });
@@ -215,6 +228,7 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(false);
         s.setSupportZoom(false);
         s.setUserAgentString(s.getUserAgentString() + " Taller3DPanelAndroid/" + version(this));
+        web.addJavascriptInterface(new Lang.Bridge(this), "T3DApp");
         CookieManager cm = CookieManager.getInstance();
         cm.setAcceptCookie(true);
         cm.setAcceptThirdPartyCookies(web, true);
@@ -267,7 +281,7 @@ public class MainActivity extends Activity {
                 boolean image = types != null && types.length > 0 && types[0] != null && types[0].startsWith("image");
                 if (!image) { i = new Intent(Intent.ACTION_GET_CONTENT); i.addCategory(Intent.CATEGORY_OPENABLE); i.setType("*/*"); }
                 try { startActivityForResult(Intent.createChooser(i, "Elegir archivo"), REQ_FILES); }
-                catch (ActivityNotFoundException e) { fileCallback = null; toast("No hay ninguna app para elegir archivos"); return false; }
+                catch (ActivityNotFoundException e) { fileCallback = null; toast(Lang.t(MainActivity.this, "No hay ninguna app para elegir archivos", "There is no app to choose files")); return false; }
                 return true;
             }
         });
@@ -279,7 +293,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        if (state == null) Toast.makeText(this, "Taller3D Panel · App Android " + version(this), Toast.LENGTH_SHORT).show();
+        if (state == null) Toast.makeText(this, Lang.t(this, "Taller3D Panel · App Android ", "Taller3D Panel · Android app ") + version(this), Toast.LENGTH_SHORT).show();
         if (state != null && web.restoreState(state) != null) return;
         web.loadUrl(base + "/");
     }
@@ -298,9 +312,9 @@ public class MainActivity extends Activity {
             r.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             r.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name);
             ((DownloadManager) getSystemService(DOWNLOAD_SERVICE)).enqueue(r);
-            toast("Descargando " + name + " en Descargas");
+            toast(Lang.t(this, "Descargando " + name + " en Descargas", "Downloading " + name + " to Downloads"));
         } catch (Exception e) {
-            toast("No se pudo descargar: " + e.getMessage());
+            toast(Lang.t(this, "No se pudo descargar: ", "Could not download: ") + e.getMessage());
         }
     }
 
@@ -314,17 +328,17 @@ public class MainActivity extends Activity {
 
     private void openExternal(Uri u) {
         try { startActivity(new Intent(Intent.ACTION_VIEW, u)); }
-        catch (ActivityNotFoundException e) { toast("No hay ninguna app para abrir este enlace"); }
+        catch (ActivityNotFoundException e) { toast(Lang.t(this, "No hay ninguna app para abrir este enlace", "There is no app to open this link")); }
     }
 
     private void showConnectionError(final String base) {
         if (errorShown) return;
         errorShown = true;
         new AlertDialog.Builder(this)
-                .setTitle("No se puede conectar")
-                .setMessage("No responde " + base + ".\n¿Está encendido el servidor? Si estás fuera de casa, usa tu dirección pública.")
-                .setPositiveButton("Reintentar", (d, w) -> { errorShown = false; if (web != null) web.loadUrl(base + "/"); })
-                .setNeutralButton("Cambiar dirección", (d, w) -> askServer(base, null))
+                .setTitle(Lang.t(this, "No se puede conectar", "Cannot connect"))
+                .setMessage(Lang.t(this, "No responde " + base + ".\n¿Está encendido el servidor? Si estás fuera de casa, usa tu dirección pública.", base + " is not responding.\nIs the server on? If you are away from home, use your public address."))
+                .setPositiveButton(Lang.t(this, "Reintentar", "Retry"), (d, w) -> { errorShown = false; if (web != null) web.loadUrl(base + "/"); })
+                .setNeutralButton(Lang.t(this, "Cambiar dirección", "Change address"), (d, w) -> askServer(base, null))
                 .setCancelable(false)
                 .show();
     }
@@ -351,7 +365,7 @@ public class MainActivity extends Activity {
         if (req == REQ_CAMERA && pendingPermission != null) {
             if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED)
                 pendingPermission.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
-            else { pendingPermission.deny(); toast("Sin permiso de cámara no se pueden leer códigos con la cámara"); }
+            else { pendingPermission.deny(); toast(Lang.t(this, "Sin permiso de cámara no se pueden leer códigos con la cámara", "Without camera permission codes cannot be read with the camera")); }
             pendingPermission = null;
         }
     }
@@ -361,10 +375,12 @@ public class MainActivity extends Activity {
         if (web != null && web.canGoBack()) { web.goBack(); return; }
         if (web != null) {
             new AlertDialog.Builder(this)
-                    .setItems(new String[]{"Salir de la app", "Cambiar servidor", "Novedades y versión"}, (d, w) -> {
+                    .setItems(Lang.en(this) ? new String[]{"Exit the app", "Change server", "What's new and version", "Idioma: español"}
+                                            : new String[]{"Salir de la app", "Cambiar servidor", "Novedades y versión", "Language: English"}, (d, w) -> {
                         if (w == 0) finish();
                         else if (w == 1) askServer(prefs.getString(KEY_URL, null), null);
-                        else Novedades.check(this, true);
+                        else if (w == 2) Novedades.check(this, true);
+                        else { String nl = Lang.en(this) ? "es" : "en"; Lang.set(this, nl); if (web != null) web.evaluateJavascript("window.setLang&&setLang('" + nl + "')", null); }
                     }).show();
             return;
         }

@@ -64,16 +64,16 @@ final class Novedades {
                 if (a.isFinishing()) return;
                 boolean newer = fLatest != null && compare(fLatest, mine) > 0;
                 if (newer && (manual || !fLatest.equals(p.getString(KEY_SKIP, "")))) {
-                    new AlertDialog.Builder(a).setTitle("Hay una versión nueva: " + fLatest)
-                            .setMessage("Tienes la " + mine + ". Descarga la nueva APK e instálala encima: no se pierde nada.")
-                            .setPositiveButton("Descargar", (d, w) -> a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(RELEASES_PAGE + "/tag/android-v" + fLatest))))
-                            .setNegativeButton("Ahora no", (d, w) -> p.edit().putString(KEY_SKIP, fLatest).apply())
+                    new AlertDialog.Builder(a).setTitle(Lang.t(a, "Hay una versión nueva: ", "There is a new version: ") + fLatest)
+                            .setMessage(Lang.t(a, "Tienes la " + mine + ". Descarga la nueva APK e instálala encima: no se pierde nada.", "You have " + mine + ". Download the new APK and install it on top: nothing is lost."))
+                            .setPositiveButton(Lang.t(a, "Descargar", "Download"), (d, w) -> a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(RELEASES_PAGE + "/tag/android-v" + fLatest))))
+                            .setNegativeButton(Lang.t(a, "Ahora no", "Not now"), (d, w) -> p.edit().putString(KEY_SKIP, fLatest).apply())
                             .show();
                 } else if (manual) {
-                    new AlertDialog.Builder(a).setTitle("Taller3D Panel · App Android " + mine)
-                            .setMessage(fLatest == null ? "No he podido comprobar si hay versiones nuevas." : "Tienes la última versión.")
-                            .setPositiveButton("Ver novedades", (d, w) -> a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(RELEASES_PAGE))))
-                            .setNegativeButton("Cerrar", null).show();
+                    new AlertDialog.Builder(a).setTitle(Lang.t(a, "Taller3D Panel · App Android ", "Taller3D Panel · Android app ") + mine)
+                            .setMessage(fLatest == null ? Lang.t(a, "No he podido comprobar si hay versiones nuevas.", "I could not check for new versions.") : Lang.t(a, "Tienes la última versión.", "You have the latest version."))
+                            .setPositiveButton(Lang.t(a, "Ver novedades", "See what's new"), (d, w) -> a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(RELEASES_PAGE))))
+                            .setNegativeButton(Lang.t(a, "Cerrar", "Close"), null).show();
                 }
             } });
         } }).start();

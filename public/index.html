@@ -9,6 +9,8 @@
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
+<script src="i18n.js?v=1.0.6"></script>
+<script>window.T=window.T||(s=>s);window.TL=window.TL||(s=>s);window.T3D_LANG=window.T3D_LANG||'es';window.T3D_LOCALE=window.T3D_LOCALE||T3D_LOCALE;window.setLang=window.setLang||(()=>{})</script>
 <script src="vendor/qrcode.js"></script>
 <script src="vendor/JsBarcode.all.min.js"></script>
 <script src="vendor/jsQR.js"></script>
@@ -322,6 +324,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
   <div class="tb">
    <button class="ib" id="qscan" aria-label="Escanear"><svg class="i"><use href="#i-qr"/></svg></button>
    <button class="vchip" id="vchip" title="Versión y novedades"></button>
+   <button class="ib" id="langchip" translate="no" style="font-size:13px;font-weight:700;width:auto;padding:0 10px"></button>
    <button class="ib" id="theme" aria-label="Cambiar tema"><svg class="i"><use id="thi" href="#i-moon"/></svg></button>
    <button class="ib hide-m" id="bell" aria-label="Avisos"><svg class="i"><use href="#i-bell"/></svg><span class="pip" id="pip" hidden></span></button>
    <button class="me" id="meBtn" aria-label="Mi cuenta"><div class="av" id="avt">T</div><span id="mename">Mi taller</span></button>
@@ -353,11 +356,11 @@ const S={products:[],customers:[],collabs:[],sales:[],expenses:[],prints:[],move
 let db=null,live=false,dls=null;
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let _fmt=null;const money=n=>{try{if(!_fmt||_fmt._c!==S.cfg.currency){_fmt=new Intl.NumberFormat('es-ES',{style:'currency',currency:S.cfg.currency||'EUR'});_fmt._c=S.cfg.currency}return _fmt.format(+n||0)}catch(e){return (+n||0).toFixed(2)+' €'}};
-const num=(n,d=0)=>new Intl.NumberFormat('es-ES',{maximumFractionDigits:d}).format(+n||0);
+let _fmt=null;const money=n=>{try{if(!_fmt||_fmt._c!==S.cfg.currency){_fmt=new Intl.NumberFormat(T3D_LOCALE,{style:'currency',currency:S.cfg.currency||'EUR'});_fmt._c=S.cfg.currency}return _fmt.format(+n||0)}catch(e){return (+n||0).toFixed(2)+' €'}};
+const num=(n,d=0)=>new Intl.NumberFormat(T3D_LOCALE,{maximumFractionDigits:d}).format(+n||0);
 const D=864e5,day0=t=>{const d=new Date(t);d.setHours(0,0,0,0);return +d};
-const fdate=t=>new Date(t).toLocaleDateString('es-ES',{day:'2-digit',month:'short'});
-const fdt=t=>new Date(t).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+const fdate=t=>new Date(t).toLocaleDateString(T3D_LOCALE,{day:'2-digit',month:'short'});
+const fdt=t=>new Date(t).toLocaleString(T3D_LOCALE,{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
 const uid=()=>'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const ico=n=>`<svg class="i"><use href="#i-${n}"/></svg>`;
 const COLS=['#5750f1','#12a150','#fb6b2b','#06b6d4','#e0a100','#d6336c','#8b5cf6','#64748b'];
@@ -497,9 +500,9 @@ function profitModal(){const {from,to}=period(S.range),T=totals(from,to),rl=RANG
 const pct=(a,b)=>{if(!b)return '';const p=(a-b)/Math.abs(b)*100;return `<b class="${p>=0?'up':'dn'}">${p>=0?'↑':'↓'} ${Math.abs(p).toFixed(1)}%</b>`};
 function buckets(days){const {from,to}=period(days);const span=(to-from)/D;
  let unit=span<=14?'d':span<=120?'w':'m',out=[];
- if(unit==='d'){for(let t=from;t<=to;t+=D)out.push({a:t,b:t+D-1,l:new Date(t).toLocaleDateString('es-ES',{day:'numeric',month:'short'})})}
- else if(unit==='w'){for(let t=from;t<=to;t+=7*D)out.push({a:t,b:Math.min(to,t+7*D-1),l:new Date(t).toLocaleDateString('es-ES',{day:'numeric',month:'short'})})}
- else{const d=new Date(from);d.setDate(1);while(+d<=to){const a=+d;d.setMonth(d.getMonth()+1);out.push({a,b:+d-1,l:new Date(a).toLocaleDateString('es-ES',{month:'short',year:'2-digit'})})}}
+ if(unit==='d'){for(let t=from;t<=to;t+=D)out.push({a:t,b:t+D-1,l:new Date(t).toLocaleDateString(T3D_LOCALE,{day:'numeric',month:'short'})})}
+ else if(unit==='w'){for(let t=from;t<=to;t+=7*D)out.push({a:t,b:Math.min(to,t+7*D-1),l:new Date(t).toLocaleDateString(T3D_LOCALE,{day:'numeric',month:'short'})})}
+ else{const d=new Date(from);d.setDate(1);while(+d<=to){const a=+d;d.setMonth(d.getMonth()+1);out.push({a,b:+d-1,l:new Date(a).toLocaleDateString(T3D_LOCALE,{month:'short',year:'2-digit'})})}}
  out.forEach(k=>{k.inc=0;k.exp=0});
  const put=(t,v,f)=>{const k=out.find(k=>t>=k.a&&t<=k.b);if(k)k[f]+=v};
  okSales().forEach(s=>put(sDate(s),+s.total||0,'inc'));S.jobs.forEach(j=>{if(j.paid)put(j.payDate||j.date,+j.price||0,'inc');put(j.date,jobCost(j),'exp')});S.expenses.forEach(e=>put(e.date,+e.amount||0,'exp'));return out}
@@ -619,7 +622,7 @@ function vVender(){const list=filtered();
  </section><aside class="card ticket" id="ticket">${ticket()}</aside></div>`}
 function ticket(){
  const tot=S.cart.reduce((s,l)=>s+l.qty*l.price,0),units=S.cart.reduce((s,l)=>s+l.qty,0),cash=+S.cash||0;
- return `<div class="ch" style="margin:0"><div><h2>Ticket actual</h2><div class="note">${units} unidad${units===1?'':'es'} · ${tnum(nextNum())}</div></div>${S.cart.length?'<button class="btn rd" id="clr" style="min-height:36px;padding:6px 12px">Vaciar</button>':''}</div>
+ return `<div class="ch" style="margin:0"><div><h2>Ticket actual</h2><div class="note">${units} ${units===1?'unidad':'unidades'} · ${tnum(nextNum())}</div></div>${S.cart.length?'<button class="btn rd" id="clr" style="min-height:36px;padding:6px 12px">Vaciar</button>':''}</div>
  <div class="lines">${S.cart.length?S.cart.map(l=>`<div class="ln"><div><div class="n">${esc(l.name)}</div><div class="u">${money(l.price)} c/u</div></div><div class="qty"><button data-dec="${esc(l.id)}" aria-label="Quitar uno">−</button><span>${l.qty}</span><button data-inc="${esc(l.id)}" aria-label="Añadir uno">+</button></div><div class="t">${money(l.qty*l.price)}</div></div>`).join(''):'<div class="empty">Escanea o toca una pieza</div>'}</div>
  <div class="f2"><div style="display:grid;gap:5px"><span class="note" style="font-weight:500">Cliente</span><div style="display:flex;gap:6px"><select id="cust">${custOpts(S.cust)}</select><button type="button" class="btn sf" id="quickc2" style="padding:0 14px" aria-label="Nuevo cliente">+</button></div></div>
  <label>Vendido por<select id="seller">${sel(S.seller,[['',S.cfg.owner||'Yo'],...S.collabs.map(c=>[c.id,c.name])])}</select></label></div>
@@ -666,7 +669,7 @@ function paintBarcodes(root=document){root.querySelectorAll('svg.bc').forEach(el
 function receiptText(s){const L=[S.cfg.name,'Ticket '+tnum(s.num)+' · '+fdt(s.date),'------------------------',...(s.items||[]).map(i=>`${i.qty} x ${i.name} = ${money(i.qty*i.price)}`),'------------------------','TOTAL: '+money(s.total),'Pago: '+s.method];if(s.customerName)L.push('Cliente: '+s.customerName);if(S.cfg.footer)L.push(S.cfg.footer);return L.join('\n')}
 function receiptFile(s){const el=document.createElement('div');el.innerHTML=receipt(s);paintBarcodes(el);
  return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Ticket ${tnum(s.num)}</title><style>body{margin:0;padding:20px;background:#eee;font-family:monospace}.rc{background:#fff;color:#111;font:13px/1.55 monospace;padding:22px 20px;max-width:300px;margin:0 auto}.c{text-align:center}.r{display:flex;justify-content:space-between;gap:10px}hr{border:0;border-top:1px dashed #999;margin:10px 0}.T{font-weight:700;font-size:16px}svg{width:100%;height:auto}button{display:block;margin:16px auto;padding:10px 18px;font:inherit}@media print{body{background:#fff;padding:0}button{display:none}}</style></head><body>${el.innerHTML}<button onclick="print()">Imprimir</button></body></html>`}
-function receiptActions(s){const wa='https://wa.me/'+(((S.customers.find(c=>c.id===s.customerId)||{}).phone||'').replace(/\D/g,''))+'?text='+encodeURIComponent(receiptText(s));
+function receiptActions(s){const wa='https://wa.me/'+(((S.customers.find(c=>c.id===s.customerId)||{}).phone||'').replace(/\D/g,''))+'?text='+encodeURIComponent(TL(receiptText(s)));
  return `<div class="btns" style="justify-content:center"><button class="btn sf" data-dlt="${esc(s.id)}">${ico('down')}Descargar</button><button class="btn gh" data-cpt="${esc(s.id)}">Copiar</button><a class="btn gh" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a>${s.status==='pendiente'?`<button class="btn" data-payt="${esc(s.id)}" style="background:var(--inc)">${ico('cash')}Cobrar ahora</button>`:''}${s.status!=='anulado'?`<button class="btn rd" data-anul="${esc(s.id)}">Anular</button>`:''}</div>`}
 function payTicket(id){const s=S.sales.find(x=>x.id===id);if(!s)return;
  modal(`<h2>Cobrar ${tnum(s.num)}</h2><p style="margin:0">${esc(s.customerName||'Cliente')} te debe <b>${money(s.total)}</b> desde el ${fdate(s.date)}.</p><div class="pay">${PAYS.map(([m,i])=>`<button data-payas="${m}">${ico(i)}${m}</button>`).join('')}</div><div class="acts"><button class="btn gh" data-close>Cancelar</button></div>`);
@@ -833,17 +836,17 @@ async function igCanvas(p){
  x.fillStyle='#ffc531';rr(760,690,250,110,55);x.fill();x.fillStyle='#1b1f3b';x.font='800 58px Inter,"Segoe UI",Roboto,sans-serif';x.textAlign='center';x.fillText(money(p.price),885,765);
  x.textAlign='left';x.fillStyle='#fff';x.font='800 64px Inter,"Segoe UI",Roboto,sans-serif';
  let name=p.name;while(x.measureText(name).width>880&&name.length>4)name=name.slice(0,-2);if(name!==p.name)name=name.trim()+'…';x.fillText(name,90,880);
- x.fillStyle='#c9ccff';x.font='600 34px Inter,"Segoe UI",Roboto,sans-serif';x.fillText([p.cat,p.material,p.color].filter(Boolean).join(' · ')+'  ·  Impresión 3D',90,935);
+ x.fillStyle='#c9ccff';x.font='600 34px Inter,"Segoe UI",Roboto,sans-serif';x.fillText([p.cat,p.material,p.color].filter(Boolean).map(T).join(' · ')+'  ·  '+T('Impresión 3D'),90,935);
  let lx=90;if(okImg(S.cfg.logo)){try{const lg=await loadImg(S.cfg.logo);const k=60/lg.height;x.drawImage(lg,90,970,lg.width*k,60);lx+=lg.width*k+18}catch(e){}}
  x.fillStyle='#fff';x.font='700 34px Inter,"Segoe UI",Roboto,sans-serif';x.fillText(S.cfg.name||'',lx,1012);
- x.textAlign='right';x.fillStyle='#ffc531';x.font='700 32px Inter,"Segoe UI",Roboto,sans-serif';x.fillText((+p.stock||0)>0?'Disponible · pídelo por mensaje':'Bajo pedido · escríbeme',990,1012);
+ x.textAlign='right';x.fillStyle='#ffc531';x.font='700 32px Inter,"Segoe UI",Roboto,sans-serif';x.fillText(T((+p.stock||0)>0?'Disponible · pídelo por mensaje':'Bajo pedido · escríbeme'),990,1012);
  return c}
 function igCaption(p){const tag=s=>'#'+String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w]/g,'').toLowerCase();
  return [`✨ ${p.name} ✨`,p.notes&&!/ejemplo|caja/i.test(p.notes)?p.notes:'',`💶 ${money(p.price)}${(+p.stock||0)>0?' · ¡disponible ya!':' · por encargo'}`,p.material||p.color?`🎨 ${[p.material,p.color].filter(Boolean).join(' · ')}`:'','📩 Pídelo por mensaje directo'+(S.cfg.phone?' o al '+S.cfg.phone:''),'',[tag(S.cfg.name),'#impresion3d','#3dprinting','#hechoamano',p.cat?tag(p.cat):'','#regalospersonalizados',(p.cat||'').toLowerCase().includes('navidad')?'#navidad':''].filter((t,i,arr)=>t&&t!=='#'&&arr.indexOf(t)===i).join(' ')].filter((l,i,a)=>l!==''||a[i-1]!=='').join('\n')}
 async function igPost(id){const p=S.products.find(x=>x.id===id);if(!p)return;
  modal(`<div class="ch" style="margin:0"><h2>Post para Instagram</h2><button class="btn gh" data-close>Cerrar</button></div><div id="igbox" class="empty">Preparando la imagen…</div>`,true);
  const c=await igCanvas(p),url=c.toDataURL('image/jpeg',.9),cap=igCaption(p);
- $('#igbox').outerHTML=`<div class="det"><img src="${url}" alt="Imagen del post" style="width:100%;border-radius:16px"><div style="display:grid;gap:10px;align-content:start"><label>Texto del post<textarea id="igcap" rows="10">${esc(cap)}</textarea></label>
+ $('#igbox').outerHTML=`<div class="det"><img src="${url}" alt="Imagen del post" style="width:100%;border-radius:16px"><div style="display:grid;gap:10px;align-content:start"><label>Texto del post<textarea id="igcap" rows="10">${esc(TL(cap))}</textarea></label>
  <div class="btns"><button class="btn" id="igdl">${ico('down')}Descargar imagen</button><button class="btn sf" id="igcp">Copiar texto</button>${navigator.canShare?'<button class="btn gh" id="igsh">Compartir…</button>':''}</div>
  <a class="note" href="https://www.instagram.com/" target="_blank" rel="noopener">Abrir Instagram ↗</a><p class="note" style="margin:0">Descarga la imagen, copia el texto y publícalo desde Instagram. La publicación automática necesita una cuenta profesional conectada a Meta: se puede añadir en la versión instalada.</p></div></div>`;
  const blob=await new Promise(ok=>c.toBlob(ok,'image/jpeg',.9)),fname='instagram-'+(p.code||p.name).replace(/[^\w-]+/g,'-').toLowerCase()+'.jpg';
@@ -1183,7 +1186,7 @@ function demoCmd(id,cmd,value){const s=demoSim[id];if(!s||!s.online){toast('La i
 /* ======================= MODO TALLER (tablet / móvil de producción) =======================
    Pantalla reducida para la producción: una tarjeta grande por impresora, la cola de piezas por
    imprimir y botones grandes de «Terminada» / «Falló». Usa los mismos datos que la app. */
-let kWake=null,kClock=setInterval(()=>{const c=document.getElementById('kclock');if(c)c.textContent=new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});if(S.view==='taller'&&!$('#ov').classList.contains('show')&&S.farm.some(f=>f.since))render()},30000);
+let kWake=null,kClock=setInterval(()=>{const c=document.getElementById('kclock');if(c)c.textContent=new Date().toLocaleTimeString(T3D_LOCALE,{hour:'2-digit',minute:'2-digit'});if(S.view==='taller'&&!$('#ov').classList.contains('show')&&S.farm.some(f=>f.since))render()},30000);
 const KST={libre:['Libre','#12a150'],imprimiendo:['Imprimiendo','#5750f1'],mantenimiento:['Mantenimiento','#e0a100'],averiada:['Averiada','#ef4b4b']};
 function kioskState(f){const s=farmState(f);const col=/Imprimiendo|Preparando/.test(s.t)?'#5750f1':/pausa|Mantenimiento/.test(s.t)?'#e0a100':/Averiada|Fallida/.test(s.t)?'#ef4b4b':/Terminada/.test(s.t)?'#0ea5e9':s.l&&!s.l.online&&f.lan?'#8a8f98':'#12a150';return {...s,col}}
 const qLeft=q=>Math.max(0,(+q.qty||0)-(+q.done||0));
@@ -1194,7 +1197,7 @@ function vTaller(){
  return `<div class="kz">
  <div class="kz-top"><div class="kz-brand">${S.cfg.logo&&okImg(S.cfg.logo)?`<img src="${S.cfg.logo}" alt="">`:''}<div><b>${esc(S.cfg.name||'Taller')}</b><span>Modo taller</span></div></div>
   <div class="kz-stats"><span><i style="background:#5750f1"></i>${busy} imprimiendo</span><span><i style="background:#12a150"></i>${fs.length-busy-warn} libres</span>${warn?`<span><i style="background:#ef4b4b"></i>${warn} con aviso</span>`:''}<span><i style="background:#e0a100"></i>${qs.reduce((t,q)=>t+qLeft(q),0)} piezas en cola</span></div>
-  <div class="kz-clock" id="kclock">${now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</div>
+  <div class="kz-clock" id="kclock">${now.toLocaleTimeString(T3D_LOCALE,{hour:'2-digit',minute:'2-digit'})}</div>
   <div class="kz-actions"><button class="kz-btn" id="kq">+ Cola</button><button class="kz-btn gh" id="kexit">Salir</button></div></div>
  ${fs.length?'':`<div class="kz-card" style="text-align:center;padding:30px"><h2 style="margin-bottom:8px">Aún no hay impresoras en el taller</h2><p class="note">Se crean a partir de tus impresoras (Impresoras 3D) y cada una tendrá su QR.</p><button class="kz-btn" id="kseed" style="margin-top:12px">Usar mis ${fleet().length} impresoras</button></div>`}
  <div class="kz-main"><div class="kz-grid">${fs.map((f,i)=>{const s=st[i],l=s.l&&s.l.online?s.l:null,pct=l&&l.percent!=null?Math.max(0,Math.min(100,l.percent)):null;
@@ -1549,7 +1552,7 @@ function jobReceipt(j){return `<div class="rc"><div class="c">${okImg(S.cfg.logo
  <hr><div class="c">${esc(S.cfg.footer||'')}</div><svg class="bc" data-code="${jnum(j.num)}"></svg></div>`}
 function jobReceiptModal(id){const j=S.jobs.find(x=>x.id===id);if(!j)return;const txt=[S.cfg.name,'Servicio '+jnum(j.num)+' · '+fdt(j.date),j.type+' · '+[j.device,j.brand].filter(Boolean).join(' '),j.desc,'Total: '+money(j.price),j.paid?'Cobrado':'Pendiente de pago'].filter(Boolean).join('\n');
  const ph=((S.customers.find(c=>c.id===j.customerId)||{}).phone||'').replace(/\D/g,'');
- modal(`<div class="ch" style="margin:0"><h2>Resguardo ${jnum(j.num)}</h2><button class="btn gh" data-close>Cerrar</button></div>${jobReceipt(j)}<div class="btns" style="justify-content:center"><button class="btn sf" id="jdl">${ico('down')}Descargar</button><a class="btn gh" href="https://wa.me/${esc(ph)}?text=${esc(encodeURIComponent(txt))}" target="_blank" rel="noopener">WhatsApp</a><button class="btn gh" data-ej="${esc(id)}">Editar</button></div>`);
+ modal(`<div class="ch" style="margin:0"><h2>Resguardo ${jnum(j.num)}</h2><button class="btn gh" data-close>Cerrar</button></div>${jobReceipt(j)}<div class="btns" style="justify-content:center"><button class="btn sf" id="jdl">${ico('down')}Descargar</button><a class="btn gh" href="https://wa.me/${esc(ph)}?text=${esc(encodeURIComponent(TL(txt)))}" target="_blank" rel="noopener">WhatsApp</a><button class="btn gh" data-ej="${esc(id)}">Editar</button></div>`);
  paintBarcodes($('#dlg'));$('#jdl').onclick=()=>{const el=document.createElement('div');el.innerHTML=jobReceipt(j);paintBarcodes(el);saveFile('servicio-'+jnum(j.num)+'.html',docFile('Servicio '+jnum(j.num),el.innerHTML),'text/html')}}
 function docFile(title,body){return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>body{margin:0;padding:20px;background:#eee;font-family:system-ui,sans-serif}.rc{background:#fff;color:#111;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;padding:22px 20px;max-width:320px;margin:0 auto}.c{text-align:center}.r{display:flex;justify-content:space-between;gap:10px}hr{border:0;border-top:1px dashed #999;margin:10px 0}.T{font-weight:700;font-size:16px}svg{width:100%;height:auto}.qt{background:#fff;color:#111;max-width:760px;margin:0 auto;padding:36px;font:14px/1.5 system-ui,sans-serif}.qt table{width:100%;border-collapse:collapse}.qt th,.qt td{padding:8px;border-bottom:1px solid #ddd;text-align:left}.qt .n{text-align:right}button{display:block;margin:16px auto;padding:10px 18px;font:inherit}@media print{body{background:#fff;padding:0}button{display:none}}</style></head><body>${body}<button onclick="print()">Imprimir</button></body></html>`}
 
@@ -1775,7 +1778,7 @@ function editQuote(id,pre={}){
 }
 function quoteDoc(q){const sub=(q.lines||[]).reduce((t,l)=>t+(+l.q||0)*(+l.u||0),0);
  return `<div class="qt"><div style="display:flex;justify-content:space-between;gap:16px;align-items:start;flex-wrap:wrap"><div>${okImg(S.cfg.logo)?`<img src="${S.cfg.logo}" alt="" style="max-height:64px;max-width:200px;display:block;margin-bottom:8px">`:''}<b style="font-size:18px">${esc(S.cfg.name)}</b>${compLines().map(l=>`<div>${esc(l)}</div>`).join('')}</div>
- <div style="text-align:right"><div style="font-size:22px;font-weight:800">PRESUPUESTO</div><div>${qnum(q.num)}</div><div>${new Date(q.date).toLocaleDateString('es-ES')}</div><div>Válido ${esc(q.valid)} días</div></div></div>
+ <div style="text-align:right"><div style="font-size:22px;font-weight:800">PRESUPUESTO</div><div>${qnum(q.num)}</div><div>${new Date(q.date).toLocaleDateString(T3D_LOCALE)}</div><div>Válido ${esc(q.valid)} días</div></div></div>
  <hr style="border:0;border-top:1px solid #ddd;margin:18px 0">${q.customerName?`<div><b>Para:</b> ${esc(q.customerName)}</div>`:''}${q.title?`<h3 style="margin:10px 0">${esc(q.title)}</h3>`:''}
  <table><thead><tr><th>Concepto</th><th class="n">Cant.</th><th class="n">Precio</th><th class="n">Importe</th></tr></thead><tbody>${(q.lines||[]).map(l=>`<tr><td>${esc(l.d)}</td><td class="n">${esc(l.q)}</td><td class="n">${esc(money(l.u))}</td><td class="n">${esc(money((+l.q||0)*(+l.u||0)))}</td></tr>`).join('')}</tbody></table>
  <div style="text-align:right;margin-top:12px">${q.disc?`<div>Subtotal ${esc(money(sub))}</div><div>Descuento ${esc(q.disc)}%</div>`:''}${+S.cfg.vat?(()=>{const t=qTotal(q),v=+S.cfg.vat,base=S.cfg.vatIncl===false?t:t/(1+v/100),iva=S.cfg.vatIncl===false?t*v/100:t-base;return `<div>Base imponible ${esc(money(base))}</div><div>IVA ${esc(num(v,2))}% ${esc(money(iva))}</div><div style="font-size:20px;font-weight:800">Total ${esc(money(base+iva))}</div>`})():`<div style="font-size:20px;font-weight:800">Total ${esc(money(qTotal(q)))}</div>`}</div>
@@ -1783,7 +1786,7 @@ function quoteDoc(q){const sub=(q.lines||[]).reduce((t,l)=>t+(+l.q||0)*(+l.u||0)
 function viewQuote(id,fallback){const q=S.quotes.find(x=>x.id===id)||fallback;if(!q)return;const ph=((S.customers.find(c=>c.id===q.customerId)||{}).phone||'').replace(/\D/g,'');
  const txt=[S.cfg.name+' · Presupuesto '+qnum(q.num),q.title,...(q.lines||[]).map(l=>`${l.q} x ${l.d}: ${money((+l.q||0)*(+l.u||0))}`),'Total: '+money(qTotal(q)),'Válido '+q.valid+' días'].filter(Boolean).join('\n');
  modal(`<div class="ch" style="margin:0"><h2>Presupuesto ${qnum(q.num)}</h2><button class="btn gh" data-close>Cerrar</button></div><div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px -18px rgba(0,0,0,.4)">${quoteDoc(q)}</div>
- <div class="btns" style="justify-content:center"><button class="btn sf" id="qdl">${ico('down')}Descargar</button><a class="btn gh" href="https://wa.me/${esc(ph)}?text=${esc(encodeURIComponent(txt))}" target="_blank" rel="noopener">WhatsApp</a>${id?`<button class="btn gh" id="qed">Editar</button>${q.status!=='aceptado'?'<button class="btn gh" id="qok">Marcar aceptado</button>':''}<button class="btn" id="qsell">Pasar a venta</button>`:''}</div>`,true);
+ <div class="btns" style="justify-content:center"><button class="btn sf" id="qdl">${ico('down')}Descargar</button><a class="btn gh" href="https://wa.me/${esc(ph)}?text=${esc(encodeURIComponent(TL(txt)))}" target="_blank" rel="noopener">WhatsApp</a>${id?`<button class="btn gh" id="qed">Editar</button>${q.status!=='aceptado'?'<button class="btn gh" id="qok">Marcar aceptado</button>':''}<button class="btn" id="qsell">Pasar a venta</button>`:''}</div>`,true);
  $('#qdl').onclick=()=>saveFile('presupuesto-'+qnum(q.num)+'.html',docFile('Presupuesto '+qnum(q.num),quoteDoc(q)),'text/html');
  if(id){$('#qed').onclick=()=>editQuote(id);const ok=$('#qok');if(ok)ok.onclick=async()=>{await patch('quotes',id,{status:'aceptado'});viewQuote(id);toast('Presupuesto aceptado')};
   $('#qsell').onclick=()=>{const k=1-(+q.disc||0)/100;(q.lines||[]).forEach(l=>{if((+l.q||0)>0)S.cart.push({id:'x'+uid(),name:l.d||'Presupuesto '+qnum(q.num),price:+((+l.u||0)*k).toFixed(2),cost:0,cat:'Presupuesto',qty:+l.q,custom:true})});S.cust=q.customerId||'';if(q.status!=='aceptado')patch('quotes',id,{status:'aceptado'});closeModal();go('vender');toast('Presupuesto pasado al ticket')}}}
@@ -1899,6 +1902,7 @@ function showLogin(){
   <label>${m==='login'?'Contraseña':'Contraseña (mínimo 4, números o letras)'}<input name="password" type="password" required minlength="${m==='login'?1:4}" autocomplete="${m==='login'?'current-password':'new-password'}"></label>
   <div class="note dn" id="lerr"></div><button class="btn big">${m==='setup'?'Registrarme y entrar':m==='register'?'Registrarme':'Entrar'}</button></form>
   ${m==='login'&&(SRV.allowRegister||IN_ARTIFACT)?'<button class="btn gh" id="toreg">¿No tienes cuenta? Regístrate</button>':''}${m==='register'?'<button class="btn gh" id="tolog">Ya tengo cuenta</button>':''}${window.__adding&&ME?'<button class="btn gh" id="cancadd">Volver a la cuenta de '+esc(ME.name||ME.username)+'</button>':''}
+  ${langTabs()}
   <div class="note" style="text-align:center">${IN_ARTIFACT&&m==='setup'?'Protege tu app con un usuario y contraseña. El email es opcional.<br>':''}v${esc(SRV.version||WEB_VERSION)}</div></div>`;
  const f=$('#flog');setTimeout(()=>f.querySelector('input').focus(),30);
  f.onsubmit=async e=>{e.preventDefault();$('#lerr').textContent='';const b=Object.fromEntries(new FormData(f));
@@ -1944,12 +1948,14 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.5';
+const WEB_VERSION='1.0.6';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/pctecnikk/taller3dpanel',APK_URL=REPO_URL+'/releases?q=android&expanded=true';
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.6',['La app ya está en **dos idiomas: español e inglés**. Cámbialo con el botón **ES / EN** de arriba, en la pantalla de entrar o en Ajustes → Idioma.',
+  'Las fechas, los números, los tickets que copias o mandas por WhatsApp y los CSV también salen en el idioma elegido.']],
  ['1.0.5',['**Duplicar una pieza**: con el botón derecho (o dejando el dedo pulsado en el móvil) sobre una pieza, o con el botón «Duplicar» de su ficha. Se abre con todo copiado (foto, categoría, colores, gramos, coste y precio) y el stock a 0: solo cambias lo que quieras, por ejemplo el nombre y el color.']],
  ['1.0.4',['El **stock se puede cambiar desde «Editar pieza»**: escribe el número que tienes y guarda. El cambio queda apuntado en Movimientos.']],
  ['1.0.3',['Junto al **nombre de cada pieza** salen unos **puntos con su color** (o sus colores, si es a dos colores). Así distingues de un vistazo la bola de Navidad roja de la verde, en el formulario, la ficha, la lista, la caja y Diseños.']],
@@ -1964,7 +1970,11 @@ const NEWS=[
   '**Cambiar de usuario** con un toque, **foto de cada impresora** y **boquillas** 0,2 / 0,4 / 0,6 / 0,8 con su tipo.',
   'Las tarjetas de resumen (ingresos, gastos, beneficio, piezas…) se pueden tocar para entrar.']]];
 const newer=(a,b)=>{const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<3;i++)if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0);return false};
-const mdl=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+/* Idioma: español (España) o inglés. Los textos se traducen en i18n.js; todo texto nuevo necesita su traducción allí. */
+const langTabs=()=>`<div class="tabs" translate="no" role="group" aria-label="Idioma / Language"><button type="button" data-lang="es" class="${T3D_LANG==='es'?'on':''}">🇪🇸 Español</button><button type="button" data-lang="en" class="${T3D_LANG==='en'?'on':''}">🇬🇧 English</button></div>`;
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-lang]');if(b){e.preventDefault();setLang(b.dataset.lang)}});
+{const lc=document.getElementById('langchip');if(lc){const o=T3D_LANG==='en'?'es':'en';lc.textContent=T3D_LANG==='en'?'EN':'ES';lc.dataset.lang=o;lc.title=T3D_LANG==='en'?'Cambiar a español':'Switch to English';lc.setAttribute('aria-label',lc.title)}}
+const mdl=t=>esc(T(t)).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
 function showNews(since){const l=since?NEWS.filter(([v])=>newer(v,since)):NEWS;if(!l.length)return;
  modal(`<div class="ch" style="margin:0"><h2>${since?'Taller3D Panel se ha actualizado a la '+esc(webVer()):'Novedades de Taller3D Panel'}</h2><button class="btn gh" data-close>Cerrar</button></div>
  <div class="news">${l.map(([v,it])=>`<h3>Versión ${esc(v)}${v===webVer()?' <span class="tag">la tuya</span>':''}</h3><ul>${it.map(i=>`<li>${mdl(i)}</li>`).join('')}</ul>`).join('')}</div>
@@ -1993,6 +2003,7 @@ function vAjustes(){const c=S.cfg,ej=['products','customers','sales','prints','s
  ${user}
  ${ME&&ME.role==='admin'?vUsuarios():''}
  ${sec('Apariencia',`<div class="tabs"><button data-th="light" class="${!isDark()?'on':''}">${ico('sun')} Claro</button><button data-th="dark" class="${isDark()?'on':''}">${ico('moon')} Oscuro</button></div>`)}
+ ${sec('Idioma · Language',langTabs()+'<p class="note" style="margin:0">'+(T3D_LANG==='en'?'The app is in English. You can change it here, at the top or on the sign-in screen.':'La app está en español. Puedes cambiarlo aquí, arriba o en la pantalla de entrar.')+'</p>')}
  </div><div style="display:grid;gap:16px">
  ${sec('Mis impresoras',`<div class="lst">${fleet().map(printerCard).join('')||'<div class="empty">Añade tus impresoras desde el catálogo</div>'}</div><p class="note" style="margin:0">Toca una impresora para ver y ajustar su perfil (consumo, velocidad, boquilla, relleno, precio y vida útil). La calculadora lo usa para estimar los costes.</p>`,'<button class="btn" id="addpr">+ Añadir</button>')}
  ${sec('Granja de impresoras',`<div class="tabs"><button data-farmon="1" class="${c.farmOn?'on':''}">Activada</button><button data-farmon="0" class="${c.farmOn?'':'on'}">Desactivada</button></div><p class="note" style="margin:0">Opcional. Añade la sección «Granja» con un QR para cada impresora y su estado (libre, imprimiendo, mantenimiento, averiada). En la versión instalada en tu red, las Bambu Lab en modo «Solo LAN» + «Modo desarrollador» (por Wi-Fi o cable) se ven y se controlan en directo. Sirve igual para 2 impresoras que para 100.</p>`)}
@@ -2004,7 +2015,7 @@ function vAjustes(){const c=S.cfg,ej=['products','customers','sales','prints','s
   ${!IN_ARTIFACT&&ME&&ME.role==='admin'?`<div class="btns"><a class="btn sf" href="api/backup">${ico('down')}Copia de seguridad completa</a><span class="btn gh filebtn">Restaurar una copia<input type="file" accept=".json,application/json" id="restoref"></span></div>`:''}
   ${ej?`<div style="border-top:1px solid var(--line);padding-top:12px"><p class="note" style="margin:0 0 10px">Hay ${ej} registros de ejemplo para enseñarte cómo funciona.</p><button class="btn rd" id="delej">Borrar datos de ejemplo</button></div>`:''}`)}
  </div></div>`}
-function csv(rows){return '\ufeff'+rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n')}
+function csv(rows){return '\ufeff'+rows.map((r,ri)=>r.map(v=>ri===0?T(v):v).map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n')}
 const CSV={
  csvj:()=>['servicios.csv',csv([['nº','fecha','cliente','tipo','equipo','estado','precio','coste','beneficio','cobrado'],...S.jobs.map(j=>[jnum(j.num),fdate(j.date),j.customerName,j.type,[j.device,j.brand].filter(Boolean).join(' '),(JST[j.status]||[j.status])[0],j.price,j.cost,((+j.price||0)-(+j.cost||0)).toFixed(2),j.paid?'sí':'no'])])],
  csvq:()=>['presupuestos.csv',csv([['nº','fecha','cliente','título','estado','total'],...S.quotes.map(q=>[qnum(q.num),fdate(q.date),q.customerName,q.title,(QST[q.status]||[q.status])[0],qTotal(q).toFixed(2)])])],
@@ -2142,7 +2153,7 @@ document.addEventListener('click',async e=>{
  else if(d.tk){S.tksel=d.tk;if(matchMedia('(max-width:860px)').matches){const s=S.sales.find(x=>x.id===d.tk);if(s)receiptModal(s)}else render()}
  else if(d.tkm){const s=S.sales.find(x=>x.id===d.tkm);if(s)receiptModal(s)}
  else if(d.dlt){const s=S.sales.find(x=>x.id===d.dlt);if(s)saveFile('ticket-'+String(s.num).padStart(4,'0')+'.html',receiptFile(s),'text/html')}
- else if(d.cpt){const s=S.sales.find(x=>x.id===d.cpt);if(s)navigator.clipboard.writeText(receiptText(s)).then(()=>toast('Ticket copiado'),()=>toast('No se pudo copiar'))}
+ else if(d.cpt){const s=S.sales.find(x=>x.id===d.cpt);if(s)navigator.clipboard.writeText(TL(receiptText(s))).then(()=>toast('Ticket copiado'),()=>toast('No se pudo copiar'))}
  else if(d.anul)anular(d.anul);
  else if(d.ec)editCustomer(d.ec);else if(d.eb)editCollab(d.eb);else if(d.eg)editExpense(d.eg);
  else if(d.th){if(d.th!==(isDark()?'dark':'light'))toggleTheme()}
