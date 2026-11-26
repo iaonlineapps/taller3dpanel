@@ -552,7 +552,7 @@ function vPanel(){
    <button class="btn gh" data-go="vender" style="width:100%;margin-top:8px">+ Nueva venta</button></div>
  </div>
  <div class="g12">
-  <div class="card"><div class="ch"><h2>Quién gasta</h2><div class="tabs">${[['clientes','Clientes'],['colab','Colaboradores']].map(([k,l])=>`<button data-who="${k}" class="${S.who===k?'on':''}">${l}</button>`).join('')}</div></div>${whoList(T)}</div>
+  <div class="card"><div class="ch"><h2>Quién compra, gasta y gana</h2><div class="tabs">${[['clientes','Clientes'],['colab','Colaboradores']].map(([k,l])=>`<button data-who="${k}" class="${S.who===k?'on':''}">${l}</button>`).join('')}</div></div>${whoList(T)}</div>
   <div class="card"><div class="ch"><h2>Inventario</h2><button class="btn gh" data-go="piezas">Ver todo ↗</button></div>
    <div class="scroll"><table class="stack"><thead><tr><th>Pieza</th><th>Ventas 30 días</th><th class="n">Precio</th><th class="n">Stock</th><th class="n">Ingresos 30 d</th></tr></thead><tbody>
    ${tk.slice(0,6).map(({p,s})=>`<tr class="ck" data-show="${esc(p.id)}"><td><div class="pc"><span class="th">${photo(p)}</span><div><b>${esc(p.name)}${dots(p)}</b><div class="note">${esc(p.code||'')}</div></div></div></td><td>${sparkSVG(spark(p.id))}</td><td class="n">${money(p.price)}</td><td class="n">${stockTag(p)}</td><td class="n"><b>${money(s*(+p.price||0))}</b></td></tr>`).join('')||'<tr><td colspan="5" class="empty">Sin piezas todavía</td></tr>'}</tbody></table></div></div>
@@ -580,8 +580,8 @@ function whoList(T){
  if(S.who==='clientes'){const m={};T.s.forEach(s=>{const k=s.customerId||'_';m[k]=m[k]||{n:s.customerId?s.customerName:'Sin cliente (mostrador)',t:0,c:0,id:s.customerId};m[k].t+=+s.total||0;m[k].c++});T.j.forEach(j=>{const k=j.customerId||'_';m[k]=m[k]||{n:j.customerId?j.customerName:'Sin cliente (mostrador)',t:0,c:0,id:j.customerId};m[k].t+=+j.price||0;m[k].c++});
   const l=Object.values(m).sort((a,b)=>b.t-a.t).slice(0,6);
   return `<div class="lst">${l.length?l.map(x=>`<button class="li" ${x.id?`data-ec="${esc(x.id)}"`:''}><div class="th" style="background:var(--pri2);color:var(--pri)">${esc((x.n||'?')[0])}</div><div><b>${esc(x.n)}</b><small>${x.c} compra${x.c>1?'s':''}</small></div><div class="rt"><b>${money(x.t)}</b></div></button>`).join(''):'<div class="empty">Sin compras en este periodo</div>'}</div>`}
- const rows=[{id:'',name:S.cfg.owner||'Yo'},...S.collabs].map(c=>{const g=T.e.filter(e=>(e.paidBy||'')===c.id).reduce((t,e)=>t+(+e.amount||0),0),v=T.s.filter(s=>(s.sellerId||'')===c.id).reduce((t,s)=>t+(+s.total||0),0),owe=c.id?S.expenses.filter(e=>e.paidBy===c.id&&!e.settled).reduce((t,e)=>t+(+e.amount||0),0)+0:0;return {...c,g,v,owe}});
- return `<div class="lst">${rows.map(c=>`<button class="li" ${c.id?`data-eb="${esc(c.id)}"`:'data-go="gastos"'}><div class="th" style="background:${c.id?'color-mix(in srgb,var(--or) 18%,transparent)':'var(--pri2)'};color:${c.id?'var(--or)':'var(--pri)'}">${esc((c.name||'?')[0])}</div><div><b>${esc(c.name)}</b><small>Vendido ${money(c.v)}${c.owe?` · <span class="dn">le debes ${money(c.owe)}</span>`:''}</small></div><div class="rt"><b class="dn">−${money(c.g)}</b><br><small>gastado</small></div></button>`).join('')}</div>`;
+ const rows=[{id:'',name:S.cfg.owner||'Yo'},...S.collabs].map(c=>{const g=T.e.filter(e=>(e.paidBy||'')===c.id).reduce((t,e)=>t+(+e.amount||0),0),v=T.s.filter(s=>(s.sellerId||'')===c.id).reduce((t,s)=>t+(+s.total||0),0),owe=c.id?S.expenses.filter(e=>e.paidBy===c.id&&!e.settled).reduce((t,e)=>t+(+e.amount||0),0):0,won=c.id?T.s.filter(s=>s.sellerId===c.id).reduce((t,s)=>t+(+s.commission||0),0):0,owes=c.id?collabStats(c.id).owes:0;return {...c,g,v,owe,won,owes}});
+ return `<div class="lst">${rows.map(c=>`<button class="li" ${c.id?`data-eb="${esc(c.id)}"`:'data-go="gastos"'}><div class="th" style="background:${c.id?'color-mix(in srgb,var(--or) 18%,transparent)':'var(--pri2)'};color:${c.id?'var(--or)':'var(--pri)'}">${esc((c.name||'?')[0])}</div><div><b>${esc(c.name)}</b><small>Vendido ${money(c.v)}${c.id&&c.g?` · <span>gastado {}</span>`.replace('{}',money(c.g)):''}${c.owes?` · <span class="dn">te debe ${money(c.owes)}</span>`:''}${c.owe?` · <span class="dn">le debes ${money(c.owe)}</span>`:''}</small></div>${c.id?`<div class="rt"><b style="color:var(--or)">+${money(c.won)}</b><br><small>ha ganado</small></div>`:`<div class="rt"><b class="dn">−${money(c.g)}</b><br><small>gastado</small></div>`}</button>`).join('')}</div>`;
 }
 function donut(o,exp){
  const e=Object.entries(o).sort((a,b)=>b[1]-a[1]),tot=e.reduce((t,x)=>t+x[1],0);if(!tot)return '<div class="empty">Sin datos en este periodo</div>';
@@ -2055,7 +2055,7 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.15';
+const WEB_VERSION='1.0.16';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/pctecnikk/taller3dpanel',APK_URL='app/Taller3DPanel.apk';
 /* La APK viaja con la web (public/app/): version.json dice cuál es la última. Si abres la web desde una app
@@ -2068,6 +2068,7 @@ async function appUpdateCheck(){const mine=appVersion();if(!mine)return;let v=''
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.16',['En el **Panel**, en «Colaboradores», cada colaborador enseña ahora **lo que ha ganado** con su margen en ese periodo, en vez de lo gastado. Debajo ves lo que ha vendido, lo que ha gastado y si te debe algo.']],
  ['1.0.15',['La lista de **materiales** ya tiene todos los tipos que venden Bambu Lab, eSUN, Elegoo, Smart Materials 3D y Winkle: PLA HD, PLA Mate, PLA Seda (Silk), PLA+, PLA reciclado, PLA-CF, PETG reciclado, PETG-CF, ABS-GF, ASA, TPU, Nylon, PVA… ordenados por grupos. Si falta alguno, elige «Otro (escribir)». Sale al crear o editar una pieza, en Filamentos y en la Calculadora.']],
  ['1.0.14',['Las **fotos de las piezas** ya se ven bien en la barra que se mueve arriba del Panel (antes salían cortadas).']],
  ['1.0.13',['**Ventas de un colaborador**: si la guardas como cobrada (efectivo, Bizum, tarjeta…), es que él ya ha cobrado al cliente. Se queda su parte, te da la tuya y no queda nada pendiente.',

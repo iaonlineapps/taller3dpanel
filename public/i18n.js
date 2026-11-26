@@ -17,6 +17,12 @@ window.setLang=function(l){if(l!=='es'&&l!=='en')return;try{localStorage.setItem
  try{window.T3DApp&&T3DApp.setLang&&T3DApp.setLang(l)}catch(e){}
  if(l!==LANG){var u=location.href.replace(/([?&])lang=(es|en)&?/,'$1').replace(/[?&]$/,'');location.replace(u)}};
 var EN={
+"gastado":"spent",
+"Quién compra, gasta y gana":"Who buys, spends and earns",
+"gastado {}":"spent {}",
+"te debe {}":"owes you {}",
+"ha ganado":"has earned",
+"En el **Panel**, en «Colaboradores», cada colaborador enseña ahora **lo que ha ganado** con su margen en ese periodo, en vez de lo gastado. Debajo ves lo que ha vendido, lo que ha gastado y si te debe algo.":"On the **Dashboard**, under «Collaborators», each collaborator now shows **what they have earned** with their margin in that period, instead of what they spent. Below you see what they sold, what they spent and whether they owe you anything.",
 "Lo que gasta cada uno, lo que vende, su margen por venta y lo que te debe":"What each one spends, what they sell, their margin per sale and what they owe you",
 "{} te debe {}":"{} owes you {}",
 "su parte: {}":"their share: {}",
