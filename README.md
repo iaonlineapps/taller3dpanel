@@ -47,7 +47,7 @@ una base de datos SQLite propia, dentro de tu instalación.
   pegarlo en la máquina, estado (libre, imprimiendo, mantenimiento, averiada), trabajo actual, buscador
   y filtros para granjas grandes. Las **Bambu Lab en modo «Solo LAN»** (por Wi-Fi o cable) se ven
   **en directo** (progreso, tiempo, temperaturas, AMS) y se **controlan** (pausar, reanudar, parar,
-  luz, velocidad). La propia instalación hace de **servidor de impresión**: ver la
+  luz, velocidad), con **historial** (encendida, empezó, terminó, falló y cuánto tardó), **estadísticas** y **avisos al terminar**. La propia instalación hace de **servidor de impresión**: ver la
   [guía de la granja](docs/GRANJA.md).
 - **Movimientos** de stock (kardex): cada entrada y salida con el stock antes y después.
 - **Usuarios** con nick, email y contraseña, y permisos (administrador, puede editar, solo ver).

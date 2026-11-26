@@ -118,6 +118,14 @@ Modelos: X1 Carbon, X1E, P1P, P1S, P2S, A1, A1 mini, H2D y H2S (todas usan el mi
    - con el lector USB o Bluetooth;
    - con la cámara del móvil (abre la app directamente en esa impresora).
 
+**Historial y estadísticas.** El servidor apunta solo, aunque nadie tenga la web abierta:
+- cuándo se enciende o se apaga cada impresora;
+- cuándo empieza, se pausa, termina o falla cada impresión, y cuánto ha tardado.
+
+En la granja tienes la **Actividad** de todas las impresoras y las **Estadísticas** por periodo (horas
+imprimiendo, terminadas, fallidas y % de éxito). En la ficha de cada impresora sale su propio historial.
+Con **«Avisarme al terminar»** el navegador te avisa cuando una acaba o falla (con la web abierta).
+
 Las impresoras que no son Bambu o no están en modo LAN también se pueden añadir. Para esas llevas el
 estado a mano: libre, imprimiendo (con el trabajo), mantenimiento o averiada. Al pulsar «Terminado» se
 registra la impresión de la pieza y sube el stock.

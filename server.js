@@ -34,7 +34,7 @@ const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 const REQUIRE_EMAIL = process.env.REQUIRE_EMAIL === '1';
 const VERSION = (process.env.TALLER3D_VERSION || '').replace(/^v/i, '').trim() ||
   (() => { try { return fs.readFileSync(path.join(ROOT, 'VERSION'), 'utf8').trim(); } catch { return '?'; } })();
-const COLLECTIONS = new Set(['products', 'customers', 'collabs', 'sales', 'expenses', 'prints', 'moves', 'spools', 'jobs', 'quotes', 'config', 'profiles', 'farm']);
+const COLLECTIONS = new Set(['products', 'customers', 'collabs', 'sales', 'expenses', 'prints', 'moves', 'spools', 'jobs', 'quotes', 'config', 'profiles', 'farm', 'farmlog']);
 const MAX_BODY = 3 * 1024 * 1024; // fotos y logos van como imagen reducida dentro del documento
 const SESSION_DAYS = 60;
 const FARM_LAN = process.env.FARM_LAN !== '0';
@@ -165,6 +165,37 @@ function pushLive(id) {
   if (liveTimers.has(id)) return; // como mucho un aviso por segundo y por impresora
   liveTimers.set(id, setTimeout(() => { liveTimers.delete(id); const l = links.get(id); broadcast({ farm: { id, live: l ? l.link.summary() : null } }); }, 1000));
 }
+// Historial de la granja: el servidor apunta solo cuándo se enciende/apaga cada impresora y cuándo
+// empieza, se pausa, termina o falla cada impresión (aunque nadie tenga la web abierta).
+const tracks = new Map(); // id -> { online, state, file, startAt }
+const delOldLog = db.prepare("DELETE FROM docs WHERE col='farmlog' AND id IN (SELECT id FROM docs WHERE col='farmlog' ORDER BY updated DESC LIMIT -1 OFFSET 5000)");
+function logEv(pid, ev, extra = {}) {
+  let name = ''; try { name = JSON.parse((q.getDoc.get('farm', pid) || {}).data || '{}').name || ''; } catch { }
+  const id = 'L' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex');
+  const d = { pid, name, ev, date: Date.now(), auto: true, ...extra };
+  q.putDoc.run('farmlog', id, JSON.stringify(d), Date.now(), 'farm'); broadcast({ col: 'farmlog', id, data: d });
+  if (Math.random() < 0.02) delOldLog.run();
+}
+const RUN = new Set(['RUNNING', 'PREPARE', 'SLICING']);
+function track(id, link) {
+  const sm = link.summary(), t = tracks.get(id) || { online: false, state: '', file: '', startAt: 0, first: true };
+  if (sm.online !== t.online) { logEv(id, sm.online ? 'online' : 'offline', sm.online ? {} : { error: sm.error || '' }); t.online = sm.online; }
+  const raw = ((link.state || {}).print || {}).gcode_state; // solo cuando la impresora ya ha dicho su estado
+  const st = sm.online && raw ? raw : t.state;
+  if (sm.online && st && st !== t.state) {
+    const was = t.state;
+    if (RUN.has(st) && !RUN.has(was) && was !== 'PAUSE') { t.startAt = Date.now(); t.file = sm.file; if (!t.first) logEv(id, 'start', { file: sm.file, layers: sm.layers, remaining: sm.remaining }); else { if (sm.percent > 0 && sm.percent < 100 && sm.remaining != null) t.startAt = Date.now() - Math.round(sm.remaining * 60000 * sm.percent / (100 - sm.percent)); logEv(id, 'running', { file: sm.file, percent: sm.percent }); } }
+    else if (st === 'PAUSE' && RUN.has(was)) logEv(id, 'pause', { file: sm.file || t.file, percent: sm.percent });
+    else if (RUN.has(st) && was === 'PAUSE') logEv(id, 'resume', { file: sm.file || t.file });
+    else if ((st === 'FINISH' || st === 'FAILED') && (RUN.has(was) || was === 'PAUSE')) {
+      const mins = t.startAt ? Math.round((Date.now() - t.startAt) / 60000) : null;
+      logEv(id, st === 'FINISH' ? 'finish' : 'fail', { file: sm.file || t.file, mins, percent: sm.percent }); t.startAt = 0;
+    }
+    t.state = st;
+  }
+  if (sm.online && st) t.first = false;
+  tracks.set(id, t);
+}
 function farmSync() {
   if (!FARM_LAN) return;
   const want = new Map();
@@ -174,7 +205,7 @@ function farmSync() {
     if (d.lan && d.ip && d.serial && sec) want.set(r.id, { host: String(d.ip).trim(), serial: String(d.serial).trim(), code: sec.access, port: +d.port || 8883 });
   }
   for (const [id, l] of links) { const w = want.get(id); if (!w || JSON.stringify(w) !== l.key) { l.link.close(); links.delete(id); broadcast({ farm: { id, live: null } }); } }
-  for (const [id, w] of want) if (!links.has(id)) { const link = new BambuLink(w); link.on('update', () => pushLive(id)); links.set(id, { link, key: JSON.stringify(w) }); }
+  for (const [id, w] of want) if (!links.has(id)) { const link = new BambuLink(w); link.on('update', () => { track(id, link); pushLive(id); }); links.set(id, { link, key: JSON.stringify(w) }); }
 }
 function farmLive() { const o = {}; for (const r of farmDocs.all()) { const l = links.get(r.id); o[r.id] = { hasAccess: !!getSecret.get(r.id), live: l ? l.link.summary() : null }; } return o; }
 
