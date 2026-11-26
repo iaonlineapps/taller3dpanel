@@ -54,7 +54,7 @@ zipalign -f -p 4 "$OUT/base.apk" "$OUT/aligned.apk"
 
 echo "5/5 Firmar"
 if [ -z "${KEYSTORE:-}" ]; then
-  KEYSTORE=.cache/debug.jks; KS_PASS=android; KEY_ALIAS=debug
+  mkdir -p .cache; KEYSTORE=.cache/debug.jks; KS_PASS=android; KEY_ALIAS=debug
   [ -f "$KEYSTORE" ] || keytool -genkeypair -keystore "$KEYSTORE" -storepass android -keypass android \
       -alias debug -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Taller3D Panel debug" >/dev/null 2>&1
 fi
