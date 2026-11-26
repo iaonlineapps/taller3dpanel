@@ -53,6 +53,7 @@ aside.side{background:var(--side);border-right:1px solid var(--line);position:st
 .tb{display:flex;gap:8px;margin-left:auto;align-items:center}
 .vchip{height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--soft);color:var(--mut);font-size:12px;font-weight:600;white-space:nowrap}.vchip:hover{color:var(--pri)}
 @media(max-width:560px){.vchip{display:none}}
+.backb{margin:0 0 12px;min-height:38px;padding:0 14px;font-size:14px;width:auto!important;display:inline-flex!important;justify-self:start;align-self:start}
 .pfoot{margin:28px 0 8px;text-align:center;font-size:12.5px;color:var(--mut);line-height:1.8}.pfoot a,.pfoot button{color:var(--pri);font-weight:600;background:none;border:0;padding:0;font-size:inherit;min-height:0;cursor:pointer}
 .news h3{font-size:15px;margin:14px 0 6px}.news ul{margin:0;padding-left:20px;display:grid;gap:4px;font-size:14px}
 .ib{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);display:grid;place-items:center;background:var(--card);color:var(--ink);position:relative}
@@ -1674,8 +1675,17 @@ $('#gs').addEventListener('blur',()=>setTimeout(hideRes,180));
 $('#gres').addEventListener('mousedown',e=>{const b=e.target.closest('[data-gr]');if(b){e.preventDefault();const a=gres[+b.dataset.gr].a;$('#gs').value='';hideRes();a()}});
 
 /* ======================= MODAL ======================= */
-function modal(h,wide){const d=$('#dlg');d.className='dlg'+(wide?' w':'');d.innerHTML=h;$('#ov').classList.add('show');d.scrollTop=0}
-function closeModal(){$('#ov').classList.remove('show')}
+/* Atrás: cada sección y cada ventana abierta se apuntan en el historial, así el botón «atrás» del móvil
+   (o de la app Android) vuelve a donde estabas en vez de salir de la aplicación. */
+let skipPop=0;
+function modal(h,wide){const d=$('#dlg'),ov=$('#ov');d.className='dlg'+(wide?' w':'');d.innerHTML=h;
+ if(!ov.classList.contains('show')){try{history.pushState({v:S.view,m:1,d:navD()},'','#'+S.view)}catch(e){}}ov.classList.add('show');d.scrollTop=0}
+function closeModal(){const ov=$('#ov');if(!ov.classList.contains('show'))return;ov.classList.remove('show');
+ if(history.state&&history.state.m){skipPop++;history.back()}}
+addEventListener('popstate',e=>{if(skipPop){skipPop--;return}
+ const ov=$('#ov');if(ov.classList.contains('show')){ov.classList.remove('show');return}
+ if($('#side').classList.contains('open')){closeSide()}
+ const v=(e.state&&e.state.v)||location.hash.slice(1)||'panel';if(V[v]&&v!==S.view){S.view=v;S.q='';render();scrollTo(0,0)}});
 function confirmBox(msg,fn){modal(`<h2>¿Seguro?</h2><p style="margin:0">${esc(msg)}</p><div class="acts"><button class="btn gh" data-close>Cancelar</button><button class="btn" id="yes" style="background:var(--exp)">Sí, continuar</button></div>`);$('#yes').onclick=async()=>{$('#yes').disabled=true;try{await fn()}finally{closeModal();render()}}}
 function moreSheet(){modal(`<div class="ch" style="margin:0"><h2>Más secciones</h2><button class="btn gh" data-close>Cerrar</button></div><div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${[['presupuestos','calc','Calculadora'],['servicios','pc','Informática'],['tickets','rcpt','Tickets'],['disenos','pen','Diseños 3D'],['filamentos','spool','Filamentos'],...(S.cfg.farmOn?[['granja','farm','Granja']]:[]),['movimientos','swap','Movimientos'],['clientes','user','Clientes'],['colaboradores','team','Colaboradores'],['usuarios','user','Usuarios'],['ajustes','cog','Ajustes']].map(([v,i,l])=>`<button class="card" data-go="${v}" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(i)}${l}</button>`).join('')}<button class="card" id="mth" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(isDark()?'sun':'moon')}${isDark()?'Modo claro':'Modo oscuro'}</button></div>`)}
 const closeSide=()=>{$('#side').classList.remove('open');$('#scrim').classList.remove('show')};
@@ -1686,7 +1696,7 @@ let rq=0;const render=()=>{if(rq)return;rq=requestAnimationFrame(()=>{rq=0;doRen
 function doRender(){
  const a=document.activeElement,fid=a&&a.id,pos=a&&a.selectionStart,keep=['q','tkq','scan','cash','fmq'].includes(fid)?fid:'';if(S.view==='presupuestos'&&a&&a.closest&&a.closest('#calcf'))return;
  const scanVal=$('#scan')?.value||'';
- $('#main').innerHTML=V[S.view]()+footHTML();{const fn=$('#footnews');if(fn)fn.onclick=()=>showNews()}$('#vchip').textContent='v'+webVer();if(ME&&!window.__newsChk){window.__newsChk=1;newsIfUpdated()}
+ $('#main').innerHTML=backBtn()+V[S.view]()+footHTML();{const bb=$('#backb');if(bb)bb.onclick=()=>history.back()}{const fn=$('#footnews');if(fn)fn.onclick=()=>showNews()}$('#vchip').textContent='v'+webVer();if(ME&&!window.__newsChk){window.__newsChk=1;newsIfUpdated()}
  document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
  const low=lowList().length,lc=$('#lowc');lc.hidden=!low;lc.textContent=low;$('#pip').hidden=!low;
  $('#bname').innerHTML=esc(S.cfg.name);const who=ME?(ME.name||ME.username):(S.cfg.owner||'Yo');$('#mename').textContent=who;{const a=$('#avt');if(ME&&myAvatar(ME.id)){a.innerHTML=avatarHTML(ME,38);a.style.overflow='hidden'}else a.textContent=(who||'Y')[0].toUpperCase()}
@@ -1699,7 +1709,12 @@ function doRender(){
  if(keep){const el=$('#'+keep);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}}
  if(ro){ro.disconnect();ro=null}const c=$('#chart');if(c){ro=new ResizeObserver(drawChart);ro.observe(c)}
 }
-function go(v){if(!V[v])return;S.view=v;S.q='';closeModal();closeSide();try{history.replaceState(null,'','#'+v)}catch(e){}render();scrollTo(0,0)}
+function go(v){if(!V[v])return;const from=S.view;
+ const push=()=>{if(v!==from){try{history.pushState({v,d:navD()+1},'','#'+v)}catch(e){}}};
+ const ov=$('#ov');if(ov.classList.contains('show')){ov.classList.remove('show');if(history.state&&history.state.m){try{history.replaceState({v,d:navD()+1},'','#'+v)}catch(e){}}else push()}else push();
+ S.view=v;S.q='';closeSide();render();scrollTo(0,0)}
+const navD=()=>(history.state&&+history.state.d)||0;
+const backBtn=()=>navD()>0?`<button class="btn gh backb" id="backb" type="button">← Volver</button>`:'';
 addEventListener('hashchange',()=>{const v=location.hash.slice(1);if(/^granja\/IMP-\d+$/i.test(v)){const f=farmFromCode(v);go('granja');if(f)farmDetail(f.id);return}if(V[v]&&v!==S.view)go(v)});
 
 /* ======================= EVENTOS ======================= */
@@ -1793,6 +1808,7 @@ document.addEventListener('click',async e=>{
  }
 });
 const h=location.hash.slice(1);if(V[h])S.view=h;else if(/^granja\/IMP-\d+$/i.test(h)){S.view='granja';S.pendingFarm=h.slice(7)}
+try{history.replaceState({v:S.view,d:0},'','#'+S.view)}catch(e){}
 doRender();
 
 /* ======================= BASE DE DATOS ======================= */
