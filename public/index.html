@@ -194,6 +194,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
 .mother{grid-column:2/-1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.costbox{display:grid;gap:8px}
 @media(max-width:600px){.mrow{grid-template-columns:auto minmax(0,1fr) auto;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}.mrow:last-child{border-bottom:0}.mfil{grid-column:2/-1}.mg{grid-column:2}.mdel{grid-column:3}.mother{grid-column:1/-1;grid-template-columns:1fr 1fr}}
 .cdots{display:inline-flex;gap:3px;vertical-align:middle;margin-left:6px}.cdots i{width:11px;height:11px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);display:block}.cdots.big i{width:16px;height:16px}#pdots .cdots{margin-left:2px}
+.ctxm{position:fixed;z-index:200;min-width:190px;max-width:280px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.18);padding:6px;display:grid}.ctxm button{all:unset;cursor:pointer;padding:11px 12px;border-radius:8px;font-size:15px}.ctxm button:hover,.ctxm button:focus-visible{background:var(--soft)}.ctxh{padding:8px 12px 6px;font-size:13px;color:var(--mute);border-bottom:1px solid var(--line);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Diseños */
 .board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
 .col{background:var(--soft);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px}
@@ -713,7 +714,7 @@ function showProduct(id){
   ${p.notes?`<div class="note">${esc(p.notes)}</div>`:''}
   ${mv.length?`<div><h3 style="margin-bottom:4px">Últimos movimientos</h3>${mv.map(m=>`<div class="note" style="display:flex;justify-content:space-between;gap:8px"><span>${fdate(m.date)} · ${esc(MVT[m.type]||m.type)}</span><b class="${m.qty>=0?'up':'dn'}">${m.qty>0?'+':''}${m.qty}</b></div>`).join('')}</div>`:''}
  </div></div>
- <div class="acts"><button class="btn gh" data-edit="${esc(id)}" style="margin-right:auto">Editar</button><button class="btn gh" data-adj="${esc(id)}">Ajustar stock</button><button class="btn gh" data-ig="${esc(id)}">${ico('ig')}Post Instagram</button><button class="btn sf" data-print="${esc(id)}">Registrar impresión</button><button class="btn" data-sell="${esc(id)}" ${(+p.stock||0)>0?'':'disabled'}>Vender</button></div>`,true);
+ <div class="acts"><button class="btn gh" data-edit="${esc(id)}">Editar</button><button class="btn gh" data-dup="${esc(id)}" style="margin-right:auto">Duplicar</button><button class="btn gh" data-adj="${esc(id)}">Ajustar stock</button><button class="btn gh" data-ig="${esc(id)}">${ico('ig')}Post Instagram</button><button class="btn sf" data-print="${esc(id)}">Registrar impresión</button><button class="btn" data-sell="${esc(id)}" ${(+p.stock||0)>0?'':'disabled'}>Vender</button></div>`,true);
  paintBarcodes($('#dlg'));
 }
 /* Coste de una pieza: filamentos (uno o varios colores) + desperdicio + luz + desgaste + fallos, como la calculadora (sin tu mano de obra) */
@@ -731,7 +732,7 @@ function pieceCost(mats,hours,printer){const pr=fleet().find(f=>f.alias===printe
 function editProduct(id,pre={}){
  const p=Object.assign({name:'',cat:'',price:'',cost:'',stock:0,min:2,code:nextCode(),material:'PLA',color:'',grams:'',hours:'',printer:fleet().length===1?fleet()[0].alias:'',notes:'',estado:'listo',file:'',photo:''},S.products.find(x=>x.id===id)||{},pre);let ph=p.photo||'';
  let mats=matsOf(p),manual=p.costManual!=null?!!p.costManual:!!(id&&+p.cost>0&&!Array.isArray(p.mats));
- modal(`<h2>${id?'Editar pieza':p.estado==='listo'?'Nueva pieza':'Nueva idea de diseño'}</h2><form id="fp" style="display:grid;gap:12px">
+ modal(`<h2>${id?'Editar pieza':pre.dupOf?'Duplicar pieza':p.estado==='listo'?'Nueva pieza':'Nueva idea de diseño'}</h2>${pre.dupOf?'<p class="note" style="margin:-6px 0 0">Está todo copiado. Cambia lo que quieras (nombre, color…) y guarda.</p>':''}<form id="fp" style="display:grid;gap:12px">
  <div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:center"><div class="ph2" id="fph" style="border-radius:14px">${photo(p)}</div>
   <div class="btns"><span class="btn sf filebtn">${p.photo?'Cambiar foto':'Añadir foto'}<input type="file" accept="image/*" id="pfile"></span>${p.photo?'<button type="button" class="btn rd" id="nophoto">Quitar</button>':''}</div></div>
  <label><span>Nombre <span id="pdots"></span></span><input name="name" required value="${esc(p.name)}"></label>
@@ -745,7 +746,7 @@ function editProduct(id,pre={}){
  <div class="costbox" id="costbox"></div>
  <label>Notas<textarea name="notes" rows="2">${esc(p.notes)}</textarea></label>
  <div class="acts">${id?'<button type="button" class="btn rd" id="delp" style="margin-right:auto">Borrar</button>':''}<button type="button" class="btn gh" data-close>Cancelar</button><button class="btn" id="savep">Guardar</button></div></form>`);
- const f=$('#fp');
+ const f=$('#fp');if(pre.dupOf)setTimeout(()=>{f.name.focus();f.name.select()},60);
  const spOpts=v=>`<option value="">Otro (lo escribo yo)</option>${S.spools.map(s=>`<option value="${esc(s.id)}" ${s.id===v?'selected':''}>${esc(spoolName(s))}${+s.priceKg?' · '+money(s.priceKg)+'/kg':''}</option>`).join('')}`;
  const sw=m=>`<span class="msw" style="background:${esc(colorHex(m)||'transparent')}"></span>`;
  const paintMats=()=>{$('#matl').innerHTML=mats.map((m,i)=>`<div class="mrow">${sw(m)}<label class="mfil">${mats.length>1?'Color '+(i+1):'Filamento'}<select data-mi="${i}" data-mk="spool">${spOpts(m.spool)}</select></label><label class="mg">Gramos<input data-mi="${i}" data-mk="grams" type="number" step="any" min="0" inputmode="decimal" value="${esc(m.grams)}" placeholder="0"></label>${mats.length>1?`<button type="button" class="btn rd mdel" data-mdel="${i}" aria-label="Quitar este color">✕</button>`:''}
@@ -780,6 +781,20 @@ function colorHex(m){const sp=m.spool&&S.spools.find(s=>s.id===m.spool);if(sp&&/
 function dots(p,big){const ms=Array.isArray(p.mats)&&p.mats.length?p.mats:String(p.color||'').split('+').map(c=>({color:c.trim()})).filter(m=>m.color);
  const l=ms.map(m=>({h:colorHex(m),n:m.color||(m.spool&&(S.spools.find(s=>s.id===m.spool)||{}).color)||''})).filter(x=>x.h);if(!l.length)return '';
  const n=l.map(x=>x.n).filter(Boolean).join(' + ');return `<span class="cdots${big?' big':''}" title="${esc(n)}" aria-label="${esc(n)}" role="img">${l.map(x=>`<i style="background:${x.h==='transparent'?'repeating-linear-gradient(45deg,#ddd 0 3px,#fff 3px 6px)':x.h}"></i>`).join('')}</span>`}
+function dupProduct(id){const p=S.products.find(x=>x.id===id);if(!p)return;closeCtx();closeModal();
+ const c=JSON.parse(JSON.stringify(p));delete c.id;Object.assign(c,{name:p.name+' (copia)',code:nextCode(),stock:0,fav:false,created:Date.now(),dupOf:id});
+ setTimeout(()=>editProduct('',c),30)}
+/* Menú del botón derecho (o pulsación larga) sobre una pieza: Ver, Editar, Duplicar */
+function closeCtx(){const m=$('#ctxm');if(m)m.remove()}
+function openCtx(pid,x,y){closeCtx();const p=S.products.find(q=>q.id===pid);if(!p)return;const m=document.createElement('div');m.id='ctxm';m.className='ctxm';m.setAttribute('role','menu');
+ m.innerHTML=`<div class="ctxh">${esc(p.name)}${dots(p)}</div><button role="menuitem" data-show="${esc(pid)}">Ver ficha</button><button role="menuitem" data-edit="${esc(pid)}">Editar</button><button role="menuitem" data-dup="${esc(pid)}">Duplicar</button>`;
+ document.body.appendChild(m);const r=m.getBoundingClientRect();m.style.left=Math.max(8,Math.min(x,innerWidth-r.width-8))+'px';m.style.top=Math.max(8,Math.min(y,innerHeight-r.height-8))+'px';m.querySelector('button').focus()}
+const ctxPid=t=>{const el=t&&t.closest&&t.closest('[data-show],[data-dz]');if(!el||el.closest('#ctxm'))return '';return el.dataset.show||el.dataset.dz||''};
+document.addEventListener('contextmenu',e=>{const pid=ctxPid(e.target);if(!pid||!roOK('products'))return;e.preventDefault();openCtx(pid,e.clientX,e.clientY)});
+{let lt=null,lp=null;document.addEventListener('touchstart',e=>{const pid=ctxPid(e.target);if(!pid||e.touches.length>1)return;const t=e.touches[0];lp={x:t.clientX,y:t.clientY};clearTimeout(lt);lt=setTimeout(()=>{if(!$('#ctxm')&&roOK('products')){openCtx(pid,lp.x,lp.y);const stop=ev=>{ev.preventDefault();ev.stopPropagation()};document.addEventListener('click',stop,{capture:true,once:true})}},600)},{passive:true});
+ document.addEventListener('touchmove',e=>{const t=e.touches[0];if(lp&&Math.hypot(t.clientX-lp.x,t.clientY-lp.y)>10)clearTimeout(lt)},{passive:true});['touchend','touchcancel'].forEach(n=>document.addEventListener(n,()=>clearTimeout(lt),{passive:true}))}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#ctxm')){e.stopPropagation();closeCtx()}},true);
+addEventListener('scroll',closeCtx,true);addEventListener('resize',closeCtx);
 function matsSave(mats){const l=mats.map(m=>{const sp=m.spool&&S.spools.find(s=>s.id===m.spool);return {spool:sp?sp.id:'',material:String(sp?sp.material:m.material||'').trim(),color:String(sp?sp.color:m.color||'').trim(),grams:+m.grams||0,priceKg:sp?0:(+m.priceKg||0)}}).filter(m=>m.grams||m.material||m.color||m.spool);
  const u=a=>[...new Set(a.filter(Boolean))].join(' + ');return {mats:l,material:u(l.map(m=>m.material)),color:u(l.map(m=>m.color)),grams:+l.reduce((t,m)=>t+m.grams,0).toFixed(1)}}
 const matsText=p=>Array.isArray(p.mats)&&p.mats.length>1?p.mats.map(m=>[m.material,m.color].filter(Boolean).join(' ')+(m.grams?` (${num(m.grams)} g)`:'')).join(' + '):[p.material,p.color].filter(Boolean).join(' · ');
@@ -846,7 +861,7 @@ function designCard(id){const p=S.products.find(x=>x.id===id);if(!p)return;if((p
  const nx=p.estado==='idea'?['diseno','Empezar a diseñar']:['listo','Terminado: pasar a stock'];
  modal(`<div class="det"><div class="ph2" style="border-radius:16px">${photo(p)}</div><div style="display:flex;flex-direction:column;gap:10px"><span class="tag ${p.estado==='diseno'?'y':''}" style="align-self:start">${ESTADOS[p.estado]}</span><h2 style="font-size:22px">${esc(p.name)}${dots(p,1)}</h2>
  <dl class="specs"><dt>Categoría</dt><dd>${esc(p.cat||'—')}</dd>${p.file?`<dt>Archivo</dt><dd>${esc(p.file)}</dd>`:''}${p.price?`<dt>Precio previsto</dt><dd>${money(p.price)}</dd>`:''}${p.material?`<dt>Material</dt><dd>${esc(matsText(p))}</dd>`:''}</dl>${p.notes?`<div class="note">${esc(p.notes)}</div>`:''}</div></div>
- <div class="acts"><button class="btn gh" data-edit="${esc(id)}" style="margin-right:auto">Editar</button><button class="btn" id="nx">${nx[1]}</button></div>`,true);
+ <div class="acts"><button class="btn gh" data-edit="${esc(id)}">Editar</button><button class="btn gh" data-dup="${esc(id)}" style="margin-right:auto">Duplicar</button><button class="btn" id="nx">${nx[1]}</button></div>`,true);
  $('#nx').onclick=async()=>{await patch('products',id,{estado:nx[0]});closeModal();render();toast(nx[0]==='listo'?'¡Ya está en tu stock!':'Movido a «Diseñando»')}}
 
 /* ======================= FILAMENTOS ======================= */
@@ -1929,12 +1944,13 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.4';
+const WEB_VERSION='1.0.5';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/pctecnikk/taller3dpanel',APK_URL=REPO_URL+'/releases?q=android&expanded=true';
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.5',['**Duplicar una pieza**: con el botón derecho (o dejando el dedo pulsado en el móvil) sobre una pieza, o con el botón «Duplicar» de su ficha. Se abre con todo copiado (foto, categoría, colores, gramos, coste y precio) y el stock a 0: solo cambias lo que quieras, por ejemplo el nombre y el color.']],
  ['1.0.4',['El **stock se puede cambiar desde «Editar pieza»**: escribe el número que tienes y guarda. El cambio queda apuntado en Movimientos.']],
  ['1.0.3',['Junto al **nombre de cada pieza** salen unos **puntos con su color** (o sus colores, si es a dos colores). Así distingues de un vistazo la bola de Navidad roja de la verde, en el formulario, la ficha, la lista, la caja y Diseños.']],
  ['1.0.2',['Al añadir o editar una pieza, el **coste se calcula solo** con los gramos y el precio por kg de tu filamento, más la luz, el desgaste de la impresora y los fallos. Si lo prefieres, puedes escribirlo a mano.',
@@ -2110,6 +2126,7 @@ document.addEventListener('submit',async e=>{const f=e.target,id=f.id;if(!['fcfg
   else if(id==='fme')await saveCfg({owner:f.owner.value.trim()||'Yo',email:f.email.value.trim()});
   toast('Guardado')}catch(_){}});
 document.addEventListener('click',async e=>{
+ if($('#ctxm')){const inMenu=e.target.closest('#ctxm');setTimeout(closeCtx,0);if(!inMenu)return}
  if(e.target.id==='ov'){closeModal();return}
  const t=e.target.closest('button,tr,.sm[data-low],.kpi[data-k]');if(!t)return;const d=t.dataset;
  if(d.k&&t.classList.contains('kpi')){kpiGo(d.k);return}
@@ -2119,7 +2136,7 @@ document.addEventListener('click',async e=>{
  else if(d.cat){S.cat=d.cat;render()}else if(d.pay){S.pay=d.pay;syncCart()}else if(d.lay){S.layout=d.lay;render()}
  else if(d.range!=null){S.range=+d.range;render()}else if(d.who){S.who=d.who;render()}else if(d.mvf){S.mvf=d.mvf;render()}else if(d.gcat){S.gcat=d.gcat;render()}
  else if('low' in d){S.lowOnly=!S.lowOnly;render()}
- else if(d.show)showProduct(d.show);else if(d.edit)editProduct(d.edit);else if(d.print)registerPrint(d.print);else if(d.adj)adjustStock(d.adj);
+ else if(d.dup)dupProduct(d.dup);else if(d.show)showProduct(d.show);else if(d.edit)editProduct(d.edit);else if(d.print)registerPrint(d.print);else if(d.adj)adjustStock(d.adj);
  else if(d.sell){const p=S.products.find(x=>x.id===d.sell);closeModal();if(p&&(S.cart.find(l=>l.id===p.id)||{qty:0}).qty<(+p.stock||0)){go('vender');addCart(p.id,1)}else toast('No queda más stock')}
  else if(d.dz)designCard(d.dz);else if(d.sp)editSpool(d.sp);
  else if(d.tk){S.tksel=d.tk;if(matchMedia('(max-width:860px)').matches){const s=S.sales.find(x=>x.id===d.tk);if(s)receiptModal(s)}else render()}
