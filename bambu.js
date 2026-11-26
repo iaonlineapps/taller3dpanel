@@ -103,6 +103,7 @@ class BambuLink extends EventEmitter {
       layer: num(p.layer_num), layers: num(p.total_layer_num), file: p.subtask_name || p.gcode_file || '',
       nozzle: num(p.nozzle_temper), nozzleT: num(p.nozzle_target_temper), bed: num(p.bed_temper), bedT: num(p.bed_target_temper), chamber: num(p.chamber_temper),
       speed: num(p.spd_lvl), light: light ? light.mode === 'on' : null, trays, wifi: p.wifi_signal || '', errors: Array.isArray(p.hms) ? p.hms.length : 0,
+      nozzleDia: num(p.nozzle_diameter), nozzleType: p.nozzle_type || '',
       printError: num(p.print_error) || 0, updated: Date.now(),
     };
   }

@@ -840,6 +840,7 @@ function paintFarmModal(){const box=$('#fmlive');if(!box||!$('#ov').classList.co
  l.percent=l.percent==null?null:Math.max(0,Math.min(100,l.percent));const s=LIVEST[l.state]||[l.state,'var(--pri)'],run=l.state==='RUNNING'||l.state==='PREPARE',pau=l.state==='PAUSE';
  box.innerHTML=`<div class="card" style="padding:14px;display:grid;gap:10px"><div style="display:flex;justify-content:space-between;align-items:center"><b style="color:${s[1]}">● ${esc(s[0])}</b><span class="note">${l.wifi?'Wi-Fi '+esc(l.wifi):''}</span></div>
   ${l.percent!=null&&(run||pau)?`<div class="bar"><div class="h"><span>${esc(l.file||'')}</span><span>${l.percent}%</span></div><div class="trk"><i style="width:${l.percent}%"></i></div></div><div class="note">Quedan ${fmtMin(l.remaining)}${l.layers?' · capa '+l.layer+' de '+l.layers:''}</div>`:''}
+  ${l.nozzleDia?`<div class="note">Boquilla puesta: <b>${num(l.nozzleDia,1)} mm${l.nozzleType?' '+esc({hardened_steel:'acero endurecido',stainless_steel:'acero inoxidable',hardened_steel_high_flow:'alto flujo'}[l.nozzleType]||l.nozzleType):''}</b> (leída de la impresora)</div>`:''}
   <div class="note">Boquilla ${num(l.nozzle||0)}° / ${num(l.nozzleT||0)}° · Cama ${num(l.bed||0)}° / ${num(l.bedT||0)}°${l.chamber?' · Cámara '+num(l.chamber)+'°':''}</div>
   ${l.trays&&l.trays.length?`<div style="display:flex;gap:10px;flex-wrap:wrap">${farmTrays(l)}</div>`:''}
   ${l.errors||l.printError?`<div class="note" style="color:var(--exp)">La impresora tiene ${l.errors||1} aviso(s): míralo en su pantalla o en Bambu Studio.</div>`:''}
@@ -1020,12 +1021,31 @@ function printerArt(k,c='#5750f1'){
  if(k==='bed')return `<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="12" y="10" width="5" height="40" rx="2" fill="#2b2f45"/><rect x="12" y="10" width="40" height="5" rx="2" fill="#2b2f45"/><rect x="28" y="15" width="10" height="10" rx="2" fill="${c}"/><rect x="8" y="48" width="48" height="6" rx="2" fill="#2b2f45"/><rect x="18" y="43" width="30" height="4" rx="1" fill="#9aa3bb"/><path d="M28 43l5-9 5 9z" fill="${c}" opacity=".6"/></svg>`;
  const big=k==='big',w=big?52:44,x=(64-w)/2;
  return `<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="${x}" y="${big?6:10}" width="${w}" height="${big?52:46}" rx="5" fill="#2b2f45"/><rect x="${x+4}" y="${big?11:15}" width="${w-8}" height="${big?36:30}" rx="2" fill="${k==='open'?'#1b2238':'#9db4ff'}" opacity="${k==='open'?1:.35}"/><rect x="${x+w/2-6}" y="${big?16:20}" width="12" height="7" rx="2" fill="${c}"/><rect x="${x+8}" y="${big?41:39}" width="${w-16}" height="3" rx="1" fill="#9aa3bb"/><circle cx="${x+w-7}" cy="${big?53:51}" r="2" fill="#34d399"/></svg>`}
-const PDEF={nozzle:0.4,layer:0.2,infill:15,walls:2,buy:'',life:5000,maint:0.05};
-function fleet(){const f=Array.isArray(S.cfg.fleet)&&S.cfg.fleet.length?S.cfg.fleet:S.cfg.printers.map((n,i)=>({id:'f'+i,alias:n,brand:'',model:'',k:'enc',w:150,gh:20}));return f.map(p=>({...PDEF,...p}))}
+const PDEF={nozzle:0.4,ntype:'',layer:0.2,infill:15,walls:2,buy:'',life:5000,maint:0.05};
+/* ---- boquillas (nozzles) ----
+   Bambu Lab vende: 0,2 inoxidable; 0,4 inoxidable o endurecido; 0,6 y 0,8 endurecido; 0,4 alto flujo (endurecido).
+   A1, A1 mini, P1P y P1S traen 0,4 inoxidable; X1C, X1E, P2S, X2D, H2D y H2S traen 0,4 endurecido.
+   Perfiles de Bambu Studio: capa 0,10 / 0,20 / 0,30 / 0,40 según boquilla 0,2 / 0,4 / 0,6 / 0,8. */
+const NTYPES={ss:'Acero inoxidable',hs:'Acero endurecido',hf:'Alto flujo (endurecido)',br:'Latón'};
+const NSHORT={ss:'inox',hs:'endurecido',hf:'alto flujo',br:'latón'};
+const NLAYER={0.2:0.1,0.4:0.2,0.6:0.3,0.8:0.4},NSPEED={0.2:0.35,0.4:1,0.6:1.8,0.8:2.8};
+const isBambu=f=>/bambu/i.test((f&&f.brand)||'');
+const nozzleCombos=f=>isBambu(f)?[[0.2,'ss'],[0.4,'ss'],[0.4,'hs'],[0.4,'hf'],[0.6,'hs'],[0.8,'hs']]:[0.2,0.4,0.6,0.8].flatMap(d=>[[d,'br'],[d,'ss'],[d,'hs']]);
+const nozzleDefault=f=>isBambu(f)?(/^(A1|A1 mini|A2L|P1P|P1S)$/i.test(f.model||'')?'ss':'hs'):'br';
+const nozzleTxt=f=>num(+f.nozzle||0.4,1)+' mm'+(f.ntype?' '+NSHORT[f.ntype]:'');
+// según la tabla de compatibilidad de Bambu Lab: fibra (CF/GF) y glow piden acero endurecido; purpurina, mármol, madera… solo evitan la 0,2
+const ABRASIVE=/(\b|-)(cf|gf|carbon|carbono|fibra|glass|vidrio|glow|fosfo\w*|paht)\b/i;
+const PARTICLES=/\b(marble|m[aá]rmol|sparkle|galaxy|purpurina|metal|wood|madera|stone|piedra|rock)\b/i;
+function nozzleWarn(pr,txt){if(!pr||!txt)return '';const d=+pr.nozzle||0.4,t=pr.ntype||'';
+ if((ABRASIVE.test(txt)||PARTICLES.test(txt))&&d<=0.2)return 'Este filamento lleva partículas (fibra, purpurina, mármol…) y atasca una boquilla de 0,2. Usa 0,4 o mayor.';
+ if(ABRASIVE.test(txt)&&(t==='ss'||t==='br'))return 'Este filamento es abrasivo: necesita boquilla de acero endurecido. Con '+NTYPES[t].toLowerCase()+' la boquilla se desgasta.';
+ if(/\btpu\b/i.test(txt)&&d<=0.2)return 'El TPU no se recomienda con boquilla de 0,2.';
+ return ''}
+function fleet(){const f=Array.isArray(S.cfg.fleet)&&S.cfg.fleet.length?S.cfg.fleet:S.cfg.printers.map((n,i)=>({id:'f'+i,alias:n,brand:'',model:'',k:'enc',w:150,gh:20}));return f.map(p=>({...PDEF,...p,ntype:p.ntype||(p.brand?nozzleDefault(p):'')}))}
 const printerByName=n=>fleet().find(f=>f.alias===n);
 async function saveCfg(part){if(ME&&ME.role!=='admin'){toast('Solo un administrador puede cambiar los ajustes');throw {code:'invalid_argument'}}S.cfg={...S.cfg,...part};if(S.cfg.fleet&&S.cfg.fleet.length)S.cfg.printers=S.cfg.fleet.map(f=>f.alias);_fmt=null;try{if(db)await db.doc('config/main').set(S.cfg)}catch(e){toast('No se pudo guardar');throw e}render()}
 function printerCard(f){const used=S.prints.filter(x=>x.printer===f.alias),h=used.reduce((t,x)=>t+(+x.hours||0),0),u=used.reduce((t,x)=>t+(+x.qty||0),0);
- return `<button class="li" data-pr="${esc(f.id)}" style="grid-template-columns:56px minmax(0,1fr) auto"><div class="th" style="width:56px;height:56px;background:var(--soft);overflow:hidden">${prPic(f)}</div><div><b>${esc(f.alias)}</b><small>${esc([f.brand,f.model].filter(Boolean).join(' ')||'Sin modelo')}${f.v?' · '+esc(f.v)+' mm':''}</small><small style="display:block">${num(f.w)} W · boquilla ${num(f.nozzle,2)} · capa ${num(f.layer,2)} · relleno ${num(f.infill)}%</small></div><div class="rt"><b>${num(h,1)} h</b><br><small>${num(u)} piezas</small></div></button>`}
+ return `<button class="li" data-pr="${esc(f.id)}" style="grid-template-columns:56px minmax(0,1fr) auto"><div class="th" style="width:56px;height:56px;background:var(--soft);overflow:hidden">${prPic(f)}</div><div><b>${esc(f.alias)}</b><small>${esc([f.brand,f.model].filter(Boolean).join(' ')||'Sin modelo')}${f.v?' · '+esc(f.v)+' mm':''}</small><small style="display:block">${num(f.w)} W · boquilla ${esc(nozzleTxt(f))} · capa ${num(f.layer,2)} · relleno ${num(f.infill)}%</small></div><div class="rt"><b>${num(h,1)} h</b><br><small>${num(u)} piezas</small></div></button>`}
 function pickPrinter(replaceId){
  let brand='Bambu Lab',q='';
  modal(`<div class="ch" style="margin:0"><h2>Catálogo de impresoras</h2><button class="btn gh" data-close>Cerrar</button></div>
@@ -1038,7 +1058,7 @@ function pickPrinter(replaceId){
  $('#pcq').oninput=e=>{q=e.target.value.toLowerCase();paint()};
  $('#dlg').onclick=e=>{const b=e.target.closest('[data-pcb]');if(b){brand=b.dataset.pcb;paint();return}
   const m=e.target.closest('[data-pci]');if(!m)return;const p=PCAT[+m.dataset.pci];$('#dlg').onclick=null;
-  const base={brand:p[0],model:p[1],k:p[2],v:p[3],w:p[4],gh:p[5]};
+  const base={brand:p[0],model:p[1],k:p[2],v:p[3],w:p[4],gh:p[5],gh04:p[5]};base.ntype=nozzleDefault(base);
   if(replaceId){const l=fleet().map(f=>f.id===replaceId?{...f,...base}:f);saveCfg({fleet:l}).then(()=>{closeModal();toast('Modelo cambiado')});return}
   let alias=p[1],n=2;while(fleet().some(f=>f.alias===alias))alias=p[1]+' '+(n++);
   editPrinter(null,{id:'f'+Date.now().toString(36),alias,...base})};
@@ -1046,15 +1066,30 @@ function pickPrinter(replaceId){
 function editPrinter(id,fresh){const f=fresh?{...PDEF,...fresh}:fleet().find(x=>x.id===id);if(!f)return;
  modal(`<div style="display:flex;gap:14px;align-items:center"><div id="phbox" style="width:72px;height:72px;flex:none;border-radius:14px;overflow:hidden;background:var(--soft)">${prPic(f)}</div><div><h2>${fresh?'Añadir impresora':'Perfil de la impresora'}</h2><div class="note">${esc(f.brand)} ${esc(f.model)}${f.v?' · '+esc(f.v)+' mm':''}</div></div></div>
  <form id="fpr" style="display:grid;gap:12px">${photoField(f.photo)}<label>Nombre que le das<input name="alias" required value="${esc(f.alias)}"></label>
- <div class="f3"><label>Consumo medio (W)<input name="w" type="number" min="0" value="${esc(f.w)}"></label><label>Velocidad (g/hora)<input name="gh" type="number" min="0" step="0.5" value="${esc(f.gh)}"></label><label>Boquilla (mm)<input name="nozzle" type="number" min="0.1" step="any" value="${esc(f.nozzle)}"></label></div>
+ <div style="display:grid;gap:8px"><b style="font-size:14px">Boquilla puesta ahora</b><div class="chips" id="nzc" style="flex-wrap:wrap"></div>
+ <input type="hidden" name="nozzle" value="${esc(f.nozzle)}"><input type="hidden" name="ntype" value="${esc(f.ntype||'')}">
+ <details${(f.nozzles||[]).length?' open':''}><summary class="note" style="cursor:pointer">Las boquillas que tienes (para cambiar rápido)</summary><div class="chips" id="nzo" style="flex-wrap:wrap;margin-top:8px"></div></details>
+ <div class="note" id="nzn"></div></div>
+ <div class="f2"><label>Consumo medio (W)<input name="w" type="number" min="0" value="${esc(f.w)}"></label><label>Velocidad (g/hora)<input name="gh" type="number" min="0" step="any" value="${esc(f.gh)}"></label></div>
  <div class="f3"><label>Altura de capa (mm)<input name="layer" type="number" min="0.04" step="any" value="${esc(f.layer)}"></label><label>Relleno habitual (%)<input name="infill" type="number" min="0" max="100" value="${esc(f.infill)}"></label><label>Paredes<input name="walls" type="number" min="1" max="10" value="${esc(f.walls)}"></label></div>
  <div class="f3"><label>Lo que te costó<input name="buy" type="number" min="0" step="1" value="${esc(f.buy)}" placeholder="Ej. 600"></label><label>Vida útil (horas)<input name="life" type="number" min="100" step="100" value="${esc(f.life)}"></label><label>Mantenimiento (/hora)<input name="maint" type="number" min="0" step="0.01" value="${esc(f.maint)}"></label></div>
  <p class="note" style="margin:0">Con el precio y la vida útil se calcula el desgaste por hora. Si mides el consumo con un enchufe medidor, pon tu dato real.</p>
  <div class="acts">${fresh?'':`<button type="button" class="btn rd" id="delpr" style="margin-right:auto">Quitar</button><button type="button" class="btn gh" id="chpr">Cambiar modelo</button>`}<button type="button" class="btn gh" data-close>Cancelar</button><button class="btn">Guardar</button></div></form>`);
  let pph=f.photo||'';bindPhoto($('#phbox'),pph,f.k,v=>{pph=v});
+ {const fm0=$('#fpr'),combos=nozzleCombos(f),key=(d,t)=>d+'|'+t;let own=new Set(f.nozzles||[]);
+  const gh04=+f.gh04||((+f.gh||0)/(NSPEED[+f.nozzle]||1));
+  const paintN=()=>{const d=+fm0.nozzle.value,t=fm0.ntype.value;
+   $('#nzc').innerHTML=(own.size?combos.filter(([a,b])=>own.has(key(a,b))||(a===d&&b===t)):combos).map(([a,b])=>`<button type="button" class="chip ${a===d&&b===t?'on':''}" data-nz="${key(a,b)}">${num(a,1)} · ${NSHORT[b]}</button>`).join('')+(own.size?'':'');
+   $('#nzo').innerHTML=combos.map(([a,b])=>`<button type="button" class="chip ${own.has(key(a,b))?'on':''}" data-nzo="${key(a,b)}">${num(a,1)} ${NSHORT[b]}</button>`).join('');
+   $('#nzn').textContent=(t?NTYPES[t]+' de '+num(d,1)+' mm. ':'')+(t==='ss'||t==='br'?'Vale para PLA, PETG, ABS, TPU… No para filamentos con fibra, purpurina o mármol.':t?'Vale para todo, también filamentos abrasivos (CF, GF, glow, mármol…).':'')+(d<=0.2?' Con 0,2 no uses filamentos con partículas ni TPU.':'')};
+  fm0.addEventListener('click',e=>{const b=e.target.closest('[data-nz],[data-nzo]');if(!b)return;e.preventDefault();
+   if(b.dataset.nzo){const k=b.dataset.nzo;own.has(k)?own.delete(k):own.add(k);paintN();return}
+   const [d,t]=b.dataset.nz.split('|');const old=+fm0.nozzle.value;fm0.nozzle.value=d;fm0.ntype.value=t;
+   if(+d!==old){fm0.layer.value=NLAYER[+d]||+d/2;if(gh04)fm0.gh.value=+(gh04*(NSPEED[+d]||1)).toFixed(1)}paintN()});
+  paintN();window.__nzOwn=()=>[...own]}
  const fm=$('#fpr');fm.onsubmit=async e=>{e.preventDefault();const alias=fm.alias.value.trim()||f.model||'Impresora';
   if(fleet().some(x=>x.alias===alias&&x.id!==f.id)){toast('Ya tienes una impresora con ese nombre');return}
-  const n={...f,alias,w:+fm.w.value||0,gh:+fm.gh.value||0,nozzle:+fm.nozzle.value||0.4,layer:+fm.layer.value||0.2,infill:+fm.infill.value||0,walls:+fm.walls.value||2,buy:fm.buy.value===''?'':+fm.buy.value,life:+fm.life.value||5000,maint:+fm.maint.value||0,photo:pph};
+  const n={...f,alias,w:+fm.w.value||0,gh:+fm.gh.value||0,nozzle:+fm.nozzle.value||0.4,layer:+fm.layer.value||0.2,infill:+fm.infill.value||0,walls:+fm.walls.value||2,buy:fm.buy.value===''?'':+fm.buy.value,life:+fm.life.value||5000,maint:+fm.maint.value||0,photo:pph,ntype:fm.ntype.value,nozzles:window.__nzOwn?window.__nzOwn():(f.nozzles||[]),gh04:+f.gh04||((+fm.gh.value||0)/(NSPEED[+fm.nozzle.value]||1))};
   const old=fresh?null:f.alias,l=fresh?[...fleet(),n]:fleet().map(x=>x.id===f.id?n:x);
   await saveCfg({fleet:l});
   if(old&&old!==alias){for(const p of S.products.filter(p=>p.printer===old))await patch('products',p.id,{printer:alias});for(const p of S.prints.filter(p=>p.printer===old))await patch('prints',p.id,{printer:alias})}
@@ -1295,7 +1330,8 @@ function calcOut(){const c=S.calc||calcDefaults(),r=calcCompute(c),mx=Math.max(.
  return `<div><div class="note">Precio recomendado por pieza</div><div class="big">${money(r.price)}</div><div class="note">Coste real ${money(r.unit)} · ganas <b class="${r.profit>=0?'up':'dn'}">${money(r.profit)}</b> por pieza</div></div>
  ${r.qty>1?`<div class="sum" style="grid-template-columns:1fr 1fr"><div class="sm"><div class="l">Total ${r.qty} piezas</div><div class="v">${money(r.price*r.qty)}</div></div><div class="sm" style="border-left-color:var(--inc)"><div class="l">Beneficio total</div><div class="v">${money(r.profit*r.qty)}</div></div></div>`:''}
  <div class="bars">${r.parts.filter(p=>p[1]>0.0005).map(([k,v],i)=>`<div class="bar"><div class="h"><span>${k}</span><span>${money(v)}</span></div><div class="trk"><i style="width:${(v/mx*100).toFixed(1)}%;background:${pal[i]}"></i></div></div>`).join('')}</div>
- <div class="note">${esc(r.pr.alias||'')}: ${num(r.pr.w)} W${r.pr.buy?` · desgaste ${money((+r.pr.buy||0)/(+r.pr.life||5000)+(+r.pr.maint||0))}/h`:' · pon lo que te costó la impresora en Ajustes para contar su desgaste'}</div>
+ ${(()=>{const sp=S.spools.find(x=>x.id===c.spool),w=nozzleWarn(r.pr,[c.material,sp&&sp.material,sp&&sp.line].filter(Boolean).join(' '));return w?`<div class="note" style="color:var(--exp);background:color-mix(in srgb,var(--exp) 10%,transparent);padding:8px 10px;border-radius:10px">⚠ ${esc(w)}</div>`:''})()}
+ <div class="note">${esc(r.pr.alias||'')}${r.pr.nozzle?' · boquilla '+esc(nozzleTxt(r.pr)):''}: ${num(r.pr.w)} W${r.pr.buy?` · desgaste ${money((+r.pr.buy||0)/(+r.pr.life||5000)+(+r.pr.maint||0))}/h`:' · pon lo que te costó la impresora en Ajustes para contar su desgaste'}</div>
  <div class="btns"><button class="btn" id="c2q">Crear presupuesto</button><button class="btn sf" id="c2p">Aplicar a una pieza</button><button class="btn gh" id="c2s">Guardar como valores por defecto</button></div>`}
 function paintCalc(){const o=$('#calcout');if(o)o.innerHTML=calcOut();const mi=$('#minfo');if(mi)mi.innerHTML=modelInfo(lastModel)}
 async function loadModel(file){

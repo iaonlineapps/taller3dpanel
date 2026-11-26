@@ -37,7 +37,7 @@ una base de datos SQLite propia, dentro de tu instalación.
   fallos, tu trabajo y extras, y te da el precio recomendado con tu margen.
 - **Presupuestos** con tu logo, IVA, condiciones e IBAN. Se envían por WhatsApp y con un toque pasan a
   venta.
-- **Impresoras:** con **foto de cada impresora** (la tuya, como la tienes en el taller) y catálogo de modelos (Bambu Lab A1 mini, A1, P1S, P2S, X1 Carbon, H2D, H2S…, Prusa,
+- **Impresoras:** **boquillas con un toque** (0,2 / 0,4 / 0,6 / 0,8 en acero inoxidable, endurecido o alto flujo, como las vende Bambu Lab), que ajustan solas la altura de capa y la velocidad, aviso si un filamento no va con la boquilla (fibra de carbono, glow, mármol…), **foto de cada impresora** (la tuya, como la tienes en el taller) y catálogo de modelos (Bambu Lab A1 mini, A1, P1S, P2S, X1 Carbon, H2D, H2S…, Prusa,
   Creality, Elegoo, Anycubic, Qidi, Flashforge, Sovol…) con su perfil para los cálculos.
 - **Servicio informático:** trabajos de formateo, reparación, montaje… con cliente, equipo, estado,
   lo que cobras, lo que te cuesta y si está cobrado. Resguardo con código de barras.
