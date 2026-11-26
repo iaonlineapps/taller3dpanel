@@ -1382,7 +1382,6 @@ var EN={
 "administrador":"administrator",
 "La app ya está en **dos idiomas: español e inglés**. Cámbialo con el botón **ES / EN** de arriba, en la pantalla de entrar o en Ajustes → Idioma.":"The app is now in **two languages: Spanish and English**. Change it with the **ES / EN** button at the top, on the sign-in screen or in Settings → Language.",
 "Las fechas, los números, los tickets que copias o mandas por WhatsApp y los CSV también salen en el idioma elegido.":"Dates, numbers, the tickets you copy or send by WhatsApp and the CSV files also come out in the chosen language.",
-"Idioma · Language":"Language · Idioma",
 "El coste sale del perfil de cada impresora (consumo, desgaste y velocidad) y del precio medio de tus bobinas; lo producido, de las impresiones de piezas registradas con esa impresora. {} Periodo: {}.":"The cost comes from each printer's profile (power use, wear and speed) and the average price of your spools; the value produced, from the part prints recorded with that printer. {} Period: {}.",
 "{} · {}":"{} · {}",
 "{} ventas":"{} sales",
@@ -1456,11 +1455,12 @@ window.TL=function(s){return LANG==='es'||s==null?s:String(s).split('\n').map(T)
 if(LANG==='es')return;
 var SKIP={SCRIPT:1,STYLE:1,TEXTAREA:1,CODE:1,PRE:1,svg:1,SVG:1};
 var ATTR=['placeholder','title','aria-label','alt'];
-function el(e){if(e.closest&&e.closest('[translate="no"]'))return;
- for(var i=0;i<ATTR.length;i++){var v=e.getAttribute(ATTR[i]);if(v){var t=T(v);if(t!==v)e.setAttribute(ATTR[i],t)}}
+var doneT=new WeakMap(),doneA=new WeakMap();
+function el(e){if(e.closest&&e.closest('[translate="no"]'))return;var d=doneA.get(e);
+ for(var i=0;i<ATTR.length;i++){var v=e.getAttribute(ATTR[i]);if(v&&!(d&&d[ATTR[i]]===v)){var t=T(v);if(t!==v){if(!d){d={};doneA.set(e,d)}d[ATTR[i]]=t;e.setAttribute(ATTR[i],t)}}}
  if(e.tagName==='INPUT'&&/^(button|submit)$/i.test(e.type)&&e.value){var w=T(e.value);if(w!==e.value)e.value=w}}
 function txt(n){var p=n.parentNode;if(!p||SKIP[p.nodeName]||(p.closest&&p.closest('[translate="no"],textarea')))return;
- var v=n.data;if(!/[A-Za-zÁ-ÿ¿¡]/.test(v))return;var t=T(v);if(t===v)return;
+ var v=n.data;if(doneT.get(n)===v||!/[A-Za-zÁ-ÿ¿¡]/.test(v))return;var t=T(v);if(t===v)return;doneT.set(n,t);
  if(p.nodeName==='OPTION'&&!p.hasAttribute('value'))p.setAttribute('value',p.textContent);
  n.data=t}
 function walk(r){if(r.nodeType===3)return txt(r);if(r.nodeType!==1)return;el(r);if(SKIP[r.nodeName])return;
