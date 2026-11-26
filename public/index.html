@@ -309,7 +309,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
 const S={products:[],customers:[],collabs:[],sales:[],expenses:[],prints:[],moves:[],spools:[],
  cfg:{name:'Mi taller 3D',owner:'Yo',currency:'EUR',printers:['Impresora 1','Impresora 2'],fleet:[],footer:'¡Gracias por tu compra!',phone:'',logo:'',vat:0,vatIncl:true,kwh:0.18,labor:15,margin:60,fail:5,cats:[],email:''},
  view:'panel',cart:[],cat:'Todas',q:'',pay:'Efectivo',cust:'',seller:'',cash:'',range:30,layout:'galeria',scanMode:'vender',beep:true,askQty:false,last:null,
- tkq:'',tksel:'',mvf:'todos',gcat:'Todas',who:'clientes',lowOnly:false,jobs:[],quotes:[],jobf:'abiertos',qtab:'calc',garea:'todas',calc:null};
+ tkq:'',tksel:'',mvf:'todos',gcat:'Todas',who:'clientes',lowOnly:false,appusers:[],jobs:[],quotes:[],jobf:'abiertos',qtab:'calc',garea:'todas',calc:null};
 let db=null,live=false,dls=null;
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -462,7 +462,7 @@ function vPanel(){
  const rl=RANGES.find(r=>r[0]===S.range)[1];
  const kpi=(l,v,icon,bg,d)=>`<div class="card kpi"><div><div class="l">${l}</div><div class="v">${v}</div></div><div class="ic" style="background:${bg}">${ico(icon)}</div><div class="d">${d}</div></div>`;
  const vs=' vs periodo anterior',cmp=(a,b,alt)=>P&&b?pct(a,b)+vs:alt;
- return `<div class="ph"><div><h1>Hola${(()=>{const n=!IN_ARTIFACT&&ME?(ME.name||ME.username):S.cfg.owner;return n?', '+esc(n):''})()}</h1><div class="sub">Resumen de ${esc(S.cfg.name)} · ${S.range?'últimos '+S.range+' días':'desde el principio'}</div></div>
+ return `<div class="ph"><div><h1>Hola${(()=>{const n=ME?(ME.name||ME.username):S.cfg.owner;return n?', '+esc(n):''})()}</h1><div class="sub">Resumen de ${esc(S.cfg.name)} · ${S.range?'últimos '+S.range+' días':'desde el principio'}</div></div>
  <div class="tabs" role="tablist">${RANGES.map(([v,l])=>`<button data-range="${v}" class="${v===S.range?'on':''}">${l}</button>`).join('')}</div></div>
  ${tk.length?`<div class="card tick" aria-label="Piezas y stock"><div class="tr">${[...tk,...tk].map(({p,s})=>`<button class="ti" data-show="${esc(p.id)}"><span class="mini">${photo(p)}</span><b>${esc(p.name)}</b><span>${num(p.stock)} ud</span><span class="${s?'up':'note'}">${s?'↑ '+s+' vendidas':'sin ventas'}</span></button>`).join('')}</div></div>`:''}
  <div class="kpis">
@@ -1298,20 +1298,49 @@ function serverDB(){
   onSnapshot:(fn)=>{const s={col,fn:()=>{const d=docs(col);fn({docs:d,size:d.length,empty:!d.length,metadata:{fromCache:false},docChanges:()=>[]})}};subs.push(s);if(ready)setTimeout(s.fn);return ()=>{const i=subs.indexOf(s);if(i>=0)subs.splice(i,1)}}};return q};
  return {doc:docRef,collection:colRef,_load:load,_stream:stream};
 }
+/* Usuarios de la versión personal (dentro de Claude): se guardan en la propia base de datos de la app.
+   La contraseña nunca se guarda tal cual: solo su huella PBKDF2 (150 000 vueltas) con sal propia. */
+let LOCAL_SESS=null,authReady=false;
+const sessGet=()=>{try{const v=localStorage.getItem('t3d-sess');if(v)return JSON.parse(v)}catch(e){}return LOCAL_SESS};
+const sessSet=v=>{LOCAL_SESS=v;try{v?localStorage.setItem('t3d-sess',JSON.stringify(v)):localStorage.removeItem('t3d-sess')}catch(e){}};
+async function pbk(pw,salt){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);const b=await crypto.subtle.deriveBits({name:'PBKDF2',salt:new TextEncoder().encode(salt),iterations:150000,hash:'SHA-256'},k,256);return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+const rhex=n=>[...crypto.getRandomValues(new Uint8Array(n))].map(x=>x.toString(16).padStart(2,'0')).join('');
+const pubLocal=u=>({id:u.id,username:u.username,name:u.name||u.username,email:u.email||'',role:u.role||'editor',active:u.active!==false});
+async function localCreate(b,role){
+ const username=String(b.username||'').trim(),password=String(b.password||''),email=String(b.email||'').trim();
+ if(!/^[a-zA-Z0-9._-]{3,32}$/.test(username))throw {message:'El usuario debe tener de 3 a 32 letras, números, punto, guion o guion bajo'};
+ if(password.length<8)throw {message:'La contraseña debe tener al menos 8 caracteres'};
+ if(email&&!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email))throw {message:'El email no es válido'};
+ if(S.appusers.some(u=>u.username.toLowerCase()===username.toLowerCase()))throw {message:'Ese usuario ya existe'};
+ const salt=rhex(16),hash=await pbk(password,salt);
+ const d={username,name:String(b.name||username).trim().slice(0,80),email,salt,hash,role:role||'editor',active:true,created:Date.now()};
+ const id=await put('appusers','',d);const u={...d,id};if(!S.appusers.some(x=>x.id===id))S.appusers.push(u);return u}
+function localStartSession(u){SRV.needSetup=false;sessSet({uid:u.id,h:u.hash.slice(0,16)});ME=pubLocal(u);$('#login').hidden=true;$('#login').innerHTML='';render()}
+function checkLocalAuth(){
+ if(!IN_ARTIFACT)return;authReady=true;if($('#login').dataset.mode==='busy')return;
+ if(!S.appusers.length){ME=null;SRV.needSetup=true;showLogin();return}
+ SRV.needSetup=false;const s=sessGet(),u=s&&S.appusers.find(x=>x.id===s.uid&&x.hash.slice(0,16)===s.h&&x.active!==false);
+ if(u){ME=pubLocal(u);$('#login').hidden=true;$('#login').innerHTML='';render()}else{ME=null;if(['setup','loading'].includes($('#login').dataset.mode)||$('#login').hidden)$('#login').dataset.mode='login';showLogin()}}
 function showLogin(){
  const box=$('#login');box.hidden=false;
  const m=SRV.needSetup?'setup':(box.dataset.mode||'login');box.dataset.mode=m;
  box.innerHTML=`<div class="card" style="width:min(420px,100%);display:grid;gap:14px;padding:28px">
   <div style="display:flex;gap:12px;align-items:center">${DEF_MARK}<b style="font-size:20px">Taller3D Panel</b></div>
-  <div><h1 style="font-size:24px">${m==='setup'?'Crea tu usuario administrador':m==='register'?'Crear una cuenta':'Entrar'}</h1><div class="sub">${m==='setup'?'Es la primera vez que se abre: este usuario podrá gestionarlo todo.':m==='register'?'Un administrador tendrá que activarla.':'Gestión de tu taller de impresión 3D'}</div></div>
+  <div><h1 style="font-size:24px">${m==='setup'?'Regístrate':m==='register'?'Crear una cuenta':'Entrar'}</h1><div class="sub">${m==='setup'?'Es la primera vez que se abre: el primer usuario que se registra es el <b>administrador</b>.':m==='register'?'Un administrador tendrá que activarla.':'Gestión de tu taller de impresión 3D'}</div></div>
   <form id="flog" style="display:grid;gap:12px">${m!=='login'?'<label>Tu nombre<input name="name" required autocomplete="name"></label>':''}
   <label>${m==='login'?'Usuario o email':'Usuario (nick)'}<input name="username" required autocomplete="username" autocapitalize="none"></label>${m!=='login'&&SRV.requireEmail?'<label>Email<input name="email" type="email" required autocomplete="email"></label>':m!=='login'?'<label>Email (opcional)<input name="email" type="email" autocomplete="email"></label>':''}
   <label>Contraseña<input name="password" type="password" required minlength="${m==='login'?1:8}" autocomplete="${m==='login'?'current-password':'new-password'}"></label>
-  <div class="note dn" id="lerr"></div><button class="btn big">${m==='setup'?'Crear y entrar':m==='register'?'Pedir cuenta':'Entrar'}</button></form>
-  ${m==='login'&&SRV.allowRegister?'<button class="btn gh" id="toreg">Crear una cuenta</button>':''}${m==='register'?'<button class="btn gh" id="tolog">Ya tengo cuenta</button>':''}
-  <div class="note" style="text-align:center">v${esc(SRV.version||'')}</div></div>`;
+  <div class="note dn" id="lerr"></div><button class="btn big">${m==='setup'?'Registrarme y entrar':m==='register'?'Registrarme':'Entrar'}</button></form>
+  ${m==='login'&&(SRV.allowRegister||IN_ARTIFACT)?'<button class="btn gh" id="toreg">¿No tienes cuenta? Regístrate</button>':''}${m==='register'?'<button class="btn gh" id="tolog">Ya tengo cuenta</button>':''}
+  <div class="note" style="text-align:center">${IN_ARTIFACT&&m==='setup'?'Protege tu app con un usuario y contraseña. El email es opcional.<br>':''}v${esc(SRV.version||WEB_VERSION)}</div></div>`;
  const f=$('#flog');setTimeout(()=>f.querySelector('input').focus(),30);
  f.onsubmit=async e=>{e.preventDefault();$('#lerr').textContent='';const b=Object.fromEntries(new FormData(f));
+  if(IN_ARTIFACT){const bt=f.querySelector('button');bt.disabled=true;try{
+    if(m==='setup'){box.dataset.mode='busy';const u=await localCreate(b,'admin');box.dataset.mode='login';localStartSession(u);toast('Usuario creado. ¡Bienvenido!');return}
+    if(m==='register'){box.dataset.mode='busy';const u=await localCreate(b,'editor');await patch('appusers',u.id,{active:false});box.dataset.mode='register';$('#lerr').className='note up';$('#lerr').textContent='Cuenta pedida. El administrador tiene que activarla en Ajustes → Usuarios.';return}
+    const login=String(b.username||'').trim().toLowerCase(),u=S.appusers.find(x=>x.username.toLowerCase()===login||(x.email||'').toLowerCase()===login);
+    if(!u||u.active===false||await pbk(String(b.password||''),u.salt)!==u.hash){$('#lerr').textContent='Usuario o contraseña incorrectos';return}
+    localStartSession(u)}catch(err){box.dataset.mode=m;$('#lerr').textContent=err.message||'No se pudo'}finally{bt.disabled=false}return}
   try{const r=await api('POST',m==='setup'?'api/setup':m==='register'?'api/register':'api/login',b);if(m==='register'){$('#lerr').className='note up';$('#lerr').textContent='Cuenta pedida. Avisa al administrador para que la active.';return}ME=r.user;SRV.needSetup=false;box.hidden=true;box.innerHTML='';startServer()}
   catch(err){$('#lerr').textContent=err.message||'No se pudo entrar'}};
  const tr=$('#toreg');if(tr)tr.onclick=()=>{box.dataset.mode='register';showLogin()};const tl=$('#tolog');if(tl)tl.onclick=()=>{box.dataset.mode='login';showLogin()};
@@ -1323,7 +1352,7 @@ async function initServer(){
 function vUsuarios(){/* sección de cuentas: solo en la versión instalable */
  return `<div class="card" style="display:grid;gap:12px"><div class="ch" style="margin:0"><h2>Usuarios</h2>${ME&&ME.role==='admin'?'<button class="btn" id="newu">+ Nuevo usuario</button>':''}</div>
  <div class="lst" id="ulist"><div class="empty">Cargando…</div></div></div>`}
-async function paintUsers(){const box=$('#ulist');if(!box)return;try{const l=await api('GET','api/users');
+async function paintUsers(){const box=$('#ulist');if(!box)return;try{const l=IN_ARTIFACT?S.appusers.map(pubLocal):await api('GET','api/users');
  box.innerHTML=l.map(u=>`<button class="li" data-eu="${esc(u.id)}"><div class="th" style="background:var(--pri2);color:var(--pri)">${esc((u.name||u.username||'?')[0].toUpperCase())}</div><div><b>${esc(u.name||u.username)}</b><small>@${esc(u.username)}${u.email?' · '+esc(u.email):''} · ${esc({admin:'Administrador',editor:'Puede editar',lector:'Solo ver'}[u.role]||u.role)}</small></div><div class="rt">${u.active?'<span class="tag g">Activo</span>':'<span class="tag y">Pendiente</span>'}</div></button>`).join('')}catch(e){box.innerHTML='<div class="empty">Solo un administrador puede ver los usuarios.</div>'}}
 function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',active:true};
  modal(`<h2>${isNew?'Nuevo usuario':'Usuario @'+esc(u.username)}</h2><form id="fu" style="display:grid;gap:12px"><div class="f2"><label>Nombre<input name="name" value="${esc(u.name)}" required></label><label>Usuario (nick)<input name="username" value="${esc(u.username)}" ${isNew?'required':'readonly'} autocapitalize="none"></label></div><label>Email<input name="email" type="email" value="${esc(u.email||'')}"></label>
@@ -1331,8 +1360,9 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  <label>${isNew?'Contraseña':'Nueva contraseña (déjala vacía para no cambiarla)'}<input name="password" type="password" minlength="8" ${isNew?'required':''} autocomplete="new-password"></label>
  <div class="acts">${!isNew&&ME&&u.id!==ME.id?'<button type="button" class="btn rd" id="delu" style="margin-right:auto">Borrar</button>':''}<button type="button" class="btn gh" data-close>Cancelar</button><button class="btn">Guardar</button></div></form>`);
  const f=$('#fu');f.onsubmit=async e=>{e.preventDefault();const b={name:f.name.value.trim(),email:f.email.value.trim(),role:f.role.value,active:f.active.value==='1'};if(f.password.value)b.password=f.password.value;
+  if(IN_ARTIFACT){try{if(isNew)await localCreate({...b,username:f.username.value.trim()},b.role);else{const cur=S.appusers.find(x=>x.id===u.id);const admins=S.appusers.filter(x=>x.role==='admin'&&x.active!==false);if(cur.role==='admin'&&(b.role!=='admin'||!b.active)&&admins.length<=1)throw {message:'Tiene que quedar al menos un administrador activo'};const d={name:b.name,email:b.email,role:b.role,active:b.active};if(b.password){if(b.password.length<8)throw {message:'Mínimo 8 caracteres'};d.salt=rhex(16);d.hash=await pbk(b.password,d.salt)}await patch('appusers',u.id,d)}closeModal();toast('Usuario guardado');render()}catch(err){toast(err.message||'No se pudo guardar')}return}
   try{if(isNew)await api('POST','api/users',{...b,username:f.username.value.trim()});else await api('PATCH','api/users/'+encodeURIComponent(u.id),b);closeModal();toast('Usuario guardado');render()}catch(err){toast(err.message||'No se pudo guardar')}};
- const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
+ const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
 const WEB_VERSION='1.0.0';
@@ -1342,7 +1372,7 @@ const compLines=()=>{const c=S.cfg;return [c.legal&&c.legal!==c.name?c.legal:'',
 function taxRows(t){const v=+S.cfg.vat||0;if(!v)return '';const base=S.cfg.vatIncl===false?t:t/(1+v/100),iva=S.cfg.vatIncl===false?t*v/100:t-base;return `<div class="r"><span>Base imponible</span><span>${base.toFixed(2)}</span></div><div class="r"><span>IVA ${num(v,2)}%${S.cfg.vatIncl===false?'':' (incluido)'}</span><span>${iva.toFixed(2)}</span></div>`}
 const sec=(t,body,extra='')=>`<div class="card" style="display:grid;gap:14px;align-content:start"><div class="ch" style="margin:0"><h2>${t}</h2>${extra}</div>${body}</div>`;
 function vAjustes(){const c=S.cfg,ej=['products','customers','sales','prints','spools','expenses','collabs','moves','jobs','quotes'].reduce((t,k)=>t+S[k].filter(x=>/^ej/.test(x.id)).length,0);
- const user=IN_ARTIFACT?sec('Mi usuario',`<form id="fme" style="display:grid;gap:12px"><div class="f2"><label>Tu nombre<input name="owner" value="${esc(c.owner)}"></label><label>Tu email<input name="email" type="email" value="${esc(c.email)}"></label></div><div class="acts"><button class="btn">Guardar</button></div></form><p class="note" style="margin:0">En esta versión personal entras con tu cuenta de Claude. En la versión instalable (Docker o Android) cada persona entra con su usuario y contraseña.</p>`)
+ const user=IN_ARTIFACT&&!ME?sec('Mi usuario',`<form id="fme" style="display:grid;gap:12px"><div class="f2"><label>Tu nombre<input name="owner" value="${esc(c.owner)}"></label><label>Tu email<input name="email" type="email" value="${esc(c.email)}"></label></div><div class="acts"><button class="btn">Guardar</button></div></form><p class="note" style="margin:0">En esta versión personal entras con tu cuenta de Claude. En la versión instalable (Docker o Android) cada persona entra con su usuario y contraseña.</p>`)
   :sec('Mi cuenta',`<div style="display:flex;gap:12px;align-items:center"><span class="av">${esc(((ME&&(ME.name||ME.username))||'?')[0].toUpperCase())}</span><div><b>${esc(ME?ME.name||ME.username:'')}</b><div class="note">@${esc(ME?ME.username:'')} · ${esc({admin:'Administrador',editor:'Puede editar',lector:'Solo ver'}[ME&&ME.role]||'')}</div></div></div><div class="btns"><button class="btn gh" id="chpw">Cambiar contraseña</button><button class="btn rd" id="logout">${ico('out')}Salir</button></div>`);
  return `<div class="ph"><div><h1>Ajustes</h1><div class="sub">Tu empresa, tus impresoras, tus costes y tu cuenta</div></div><span class="tag">${esc(versionText())}</span></div>
  <div class="g2" style="align-items:start"><div style="display:grid;gap:16px">
@@ -1357,7 +1387,7 @@ function vAjustes(){const c=S.cfg,ej=['products','customers','sales','prints','s
  <label>Condiciones de los presupuestos<textarea name="terms" rows="2" placeholder="Ej. 50% por adelantado. Plazo de entrega 7 días.">${esc(c.terms)}</textarea></label>
  <div class="acts"><button class="btn">Guardar datos de la empresa</button></div></form>`)}
  ${user}
- ${IN_ARTIFACT?'':(ME&&ME.role==='admin'?vUsuarios():'')}
+ ${ME&&ME.role==='admin'?vUsuarios():''}
  ${sec('Apariencia',`<div class="tabs"><button data-th="light" class="${!isDark()?'on':''}">${ico('sun')} Claro</button><button data-th="dark" class="${isDark()?'on':''}">${ico('moon')} Oscuro</button></div>`)}
  </div><div style="display:grid;gap:16px">
  ${sec('Mis impresoras',`<div class="lst">${fleet().map(printerCard).join('')||'<div class="empty">Añade tus impresoras desde el catálogo</div>'}</div><p class="note" style="margin:0">Toca una impresora para ver y ajustar su perfil (consumo, velocidad, boquilla, relleno, precio y vida útil). La calculadora lo usa para estimar los costes.</p>`,'<button class="btn" id="addpr">+ Añadir</button>')}
@@ -1415,7 +1445,7 @@ function doRender(){
  $('#main').innerHTML=V[S.view]();
  document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
  const low=lowList().length,lc=$('#lowc');lc.hidden=!low;lc.textContent=low;$('#pip').hidden=!low;
- $('#bname').innerHTML=esc(S.cfg.name);const who=!IN_ARTIFACT&&ME?(ME.name||ME.username):(S.cfg.owner||'Yo');$('#mename').textContent=who;$('#avt').textContent=(who||'Y')[0].toUpperCase();
+ $('#bname').innerHTML=esc(S.cfg.name);const who=ME?(ME.name||ME.username):(S.cfg.owner||'Yo');$('#mename').textContent=who;$('#avt').textContent=(who||'Y')[0].toUpperCase();
  $('#lmark').innerHTML=logoMark(32);const oj=S.jobs.filter(j=>j.status==='pendiente'||j.status==='curso').length,jc=$('#jobc');jc.hidden=!oj;jc.textContent=oj;$('#sver').textContent=versionText().replace(' · ','\n');
  if(S.view==='ajustes')setTimeout(paintUsers,0);
  syncCart();themeIcon();paintBarcodes($('#main'));
@@ -1429,16 +1459,11 @@ addEventListener('hashchange',()=>{const v=location.hash.slice(1);if(V[v]&&v!==S
 /* ======================= EVENTOS ======================= */
 $('#theme').onclick=toggleTheme;
 function accountModal(){
- if(IN_ARTIFACT){modal(`<div style="display:flex;gap:12px;align-items:center"><span class="av">${esc((S.cfg.owner||'Y')[0].toUpperCase())}</span><div><h2>${esc(S.cfg.owner||'Mi usuario')}</h2><div class="note">${esc(S.cfg.email||'Sin email')}</div></div></div>
-  <form id="fme2" style="display:grid;gap:12px"><div class="f2"><label>Tu nombre<input name="owner" value="${esc(S.cfg.owner)}"></label><label>Tu email<input name="email" type="email" value="${esc(S.cfg.email)}"></label></div>
-  <p class="note" style="margin:0">En esta versión personal entras con tu cuenta de Claude. En la versión instalada (tu servidor o la APK) entras con tu usuario (nick) y contraseña.</p>
-  <div class="acts"><button type="button" class="btn gh" data-close>Cerrar</button><button class="btn">Guardar</button></div></form>`);
-  $('#fme2').onsubmit=async e=>{e.preventDefault();const f=e.target;await saveCfg({owner:f.owner.value.trim()||'Yo',email:f.email.value.trim()});closeModal();toast('Guardado')};return}
  if(!ME){showLogin();return}
  modal(`<div style="display:flex;gap:12px;align-items:center"><span class="av">${esc((ME.name||ME.username||'?')[0].toUpperCase())}</span><div><h2>${esc(ME.name||ME.username)}</h2><div class="note">@${esc(ME.username)} · ${esc({admin:'Administrador',editor:'Puede editar',lector:'Solo ver'}[ME.role]||ME.role)}</div></div></div>
-  <form id="fme3" style="display:grid;gap:12px"><div class="f2"><label>Nombre<input name="name" value="${esc(ME.name||'')}"></label><label>Email${SRV.requireEmail?'':' (opcional)'}<input name="email" type="email" value="${esc(ME.email||'')}" ${SRV.requireEmail?'required':''}></label></div>
+  <form id="fme3" style="display:grid;gap:12px"><div class="f2"><label>Nombre<input name="name" value="${esc(ME.name||'')}"></label><label>Email${SRV.requireEmail&&!IN_ARTIFACT?'':' (opcional)'}<input name="email" type="email" value="${esc(ME.email||'')}" ${SRV.requireEmail&&!IN_ARTIFACT?'required':''}></label></div>
   <div class="acts" style="justify-content:space-between"><div class="btns"><button type="button" class="btn gh" id="chpw">Cambiar contraseña</button>${ME.role==='admin'?'<button type="button" class="btn gh" data-go="ajustes">Usuarios y ajustes</button>':''}<button type="button" class="btn rd" id="logout">${ico('out')}Salir</button></div><button class="btn">Guardar</button></div></form>`);
- $('#fme3').onsubmit=async e=>{e.preventDefault();const f=e.target;try{const r=await api('PATCH','api/me',{name:f.name.value.trim(),email:f.email.value.trim()});ME=r.user;closeModal();toast('Cuenta guardada');render()}catch(err){toast(err.message||'No se pudo guardar')}}}
+ $('#fme3').onsubmit=async e=>{e.preventDefault();const f=e.target;try{if(IN_ARTIFACT){const em=f.email.value.trim();if(em&&!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(em))throw {message:'El email no es válido'};await patch('appusers',ME.id,{name:f.name.value.trim()||ME.username,email:em});ME={...ME,name:f.name.value.trim()||ME.username,email:em};closeModal();toast('Cuenta guardada');render();return}const r=await api('PATCH','api/me',{name:f.name.value.trim(),email:f.email.value.trim()});ME=r.user;closeModal();toast('Cuenta guardada');render()}catch(err){toast(err.message||'No se pudo guardar')}}}
 $('#meBtn').onclick=accountModal;$('#qscan').onclick=quickScan;
 $('#burger').onclick=()=>{$('#side').classList.add('open');$('#scrim').classList.add('show')};$('#scrim').onclick=closeSide;
 $('#bell').onclick=()=>{S.lowOnly=true;go('piezas')};
@@ -1485,7 +1510,7 @@ document.addEventListener('click',async e=>{
  else if(d.payt)payTicket(d.payt);else if(d.tkf){S.tkf=d.tkf;render()}else if(d.ig)igPost(d.ig);
  else if(d.pr)editPrinter(d.pr);else if(d.ej){closeModal();editJob(d.ej)}else if(d.jr)jobReceiptModal(d.jr);else if(d.jobf){S.jobf=d.jobf;render()}
  else if(d.qtab){S.qtab=d.qtab;render()}else if(d.vq)viewQuote(d.vq);else if(d.garea){S.garea=d.garea;render()}
- else if(d.eu){api('GET','api/users').then(l=>{const u=l.find(x=>x.id===d.eu);if(u)editUser(u)}).catch(()=>{})}
+ else if(d.eu){if(IN_ARTIFACT){const u=S.appusers.find(x=>x.id===d.eu);if(u)editUser(pubLocal(u))}else api('GET','api/users').then(l=>{const u=l.find(x=>x.id===d.eu);if(u)editUser(u)}).catch(()=>{})}
  else if(CSV[t.id]){const [n,c]=CSV[t.id]();saveFile(n,c,'text/csv')}
  else switch(t.id){
   case 'clr':S.cart=[];S.cash='';syncCart();break;case 'cobrar':cobrar();break;
@@ -1496,8 +1521,8 @@ document.addEventListener('click',async e=>{
   case 'newj':editJob('');break;case 'newq':editQuote('');break;case 'scansp':scanSpool();break;case 'addpr':pickPrinter();break;case 'nologo':saveCfg({logo:''});break;
   case 'c2q':{const c=calcRead(),r=calcCompute(c);editQuote('',{title:c.name||'',lines:[{d:(c.name||'Pieza impresa en 3D'),q:c.qty,u:+r.price.toFixed(2)}]});break}
   case 'c2p':calcRead();applyToPiece();break;case 'c2s':{const c=calcRead();saveCfg({kwh:c.kwh,labor:c.laborRate,margin:c.margin,fail:c.fail}).then(()=>toast('Valores guardados por defecto'));break}
-  case 'newu':editUser(null);break;case 'logout':api('POST','api/logout').catch(()=>{}).then(()=>location.reload());break;
-  case 'chpw':modal(`<h2>Cambiar contraseña</h2><form id="fpw" style="display:grid;gap:12px"><label>Contraseña actual<input name="old" type="password" required autocomplete="current-password"></label><label>Nueva contraseña<input name="pw" type="password" minlength="8" required autocomplete="new-password"></label><div class="acts"><button type="button" class="btn gh" data-close>Cancelar</button><button class="btn">Cambiar</button></div></form>`);$('#fpw').onsubmit=async ev=>{ev.preventDefault();const f=ev.target;try{await api('POST','api/password',{old:f.old.value,password:f.pw.value});closeModal();toast('Contraseña cambiada')}catch(err){toast(err.message||'No se pudo cambiar')}};break;case 'mth':closeModal();toggleTheme();break;
+  case 'newu':editUser(null);break;case 'logout':if(IN_ARTIFACT){sessSet(null);ME=null;closeModal();$('#login').dataset.mode='login';showLogin();break}api('POST','api/logout').catch(()=>{}).then(()=>location.reload());break;
+  case 'chpw':modal(`<h2>Cambiar contraseña</h2><form id="fpw" style="display:grid;gap:12px"><label>Contraseña actual<input name="old" type="password" required autocomplete="current-password"></label><label>Nueva contraseña<input name="pw" type="password" minlength="8" required autocomplete="new-password"></label><div class="acts"><button type="button" class="btn gh" data-close>Cancelar</button><button class="btn">Cambiar</button></div></form>`);$('#fpw').onsubmit=async ev=>{ev.preventDefault();const f=ev.target;try{if(IN_ARTIFACT){const u=S.appusers.find(x=>x.id===ME.id);if(!u||await pbk(f.old.value,u.salt)!==u.hash)throw {message:'La contraseña actual no es correcta'};if(f.pw.value.length<8)throw {message:'Mínimo 8 caracteres'};const salt=rhex(16),hash=await pbk(f.pw.value,salt);await patch('appusers',u.id,{salt,hash});sessSet({uid:u.id,h:hash.slice(0,16)});closeModal();toast('Contraseña cambiada');return}await api('POST','api/password',{old:f.old.value,password:f.pw.value});closeModal();toast('Contraseña cambiada')}catch(err){toast(err.message||'No se pudo cambiar')}};break;case 'mth':closeModal();toggleTheme();break;
   case 'delej':confirmBox('Se borrarán solo los registros de ejemplo. Lo que hayas creado tú se queda.',async()=>{for(const k of ['sales','moves','prints','expenses','jobs','quotes','products','customers','collabs','spools'])for(const x of S[k].filter(x=>/^ej/.test(x.id)))await del(k,x.id);toast('Datos de ejemplo borrados')});break;
  }
 });
@@ -1510,14 +1535,17 @@ function subscribeAll(){
  const ok=snap=>{if(!snap.metadata.fromCache&&!live){live=true;clearTimeout(timer);status(true,IN_ARTIFACT?'Todo guardado en la nube':'Guardado en tu servidor')}else if(!snap.metadata.fromCache)clearTimeout(timer)};
  const fail=()=>{clearTimeout(timer);status(false,'Error de conexión')};
  const sub=(col,q)=>q.onSnapshot(snap=>{S[col]=snap.docs.map(d=>({id:d.id,...d.data()}));ok(snap);if(col==='products')S.cart=S.cart.filter(l=>l.custom||S.products.some(p=>p.id===l.id));render()},fail);
+ if(IN_ARTIFACT)db.collection('appusers').onSnapshot(snap=>{if(snap.metadata.fromCache&&snap.empty&&!authReady)return;S.appusers=snap.docs.map(d=>({id:d.id,...d.data()}));checkLocalAuth()},()=>{authReady=true;$('#login').hidden=true});
  ['products','customers','collabs','spools','quotes'].forEach(c=>sub(c,db.collection(c)));
  ['sales','expenses','prints','moves','jobs'].forEach(c=>sub(c,db.collection(c).orderBy('date','desc').limit(1000)));
  db.doc('config/main').onSnapshot(s=>{if(s.exists){const d=s.data()||{};S.cfg={...S.cfg,...d,printers:Array.isArray(d.printers)&&d.printers.length?d.printers.map(String):S.cfg.printers};_fmt=null;render()}},()=>{});
 }
 (async()=>{
  if(!IN_ARTIFACT){initServer();return}
+ {const l=$('#login');l.hidden=false;l.dataset.mode='loading';l.innerHTML='<div class="empty">Cargando…</div>'}
  try{db=await claude.use('db')}catch(e){db=null}
- if(!db){status(false,'Sin base de datos: los cambios no se guardan');return}
+ if(!db){status(false,'Sin base de datos: los cambios no se guardan');$('#login').hidden=true;return}
+ setTimeout(()=>{if(!authReady){authReady=true;$('#login').hidden=true;toast('No se pudo comprobar el usuario: sin conexión')}},12000);
  subscribeAll();
 })();
 }
