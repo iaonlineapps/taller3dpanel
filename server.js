@@ -255,7 +255,7 @@ function readBody(req) {
     req.on('error', ko);
   });
 }
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json', '.json': 'application/json' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json', '.json': 'application/json', '.wasm': 'application/wasm', '.md': 'text/plain; charset=utf-8', '.txt': 'text/plain; charset=utf-8' };
 function serveStatic(req, res, p) {
   if (p === '/' || p === '') p = '/index.html';
   const f = path.join(PUB, path.normalize(decodeURIComponent(p)).replace(/^([/\\])+/, ''));
@@ -263,7 +263,10 @@ function serveStatic(req, res, p) {
   fs.stat(f, (err, st) => {
     if (err || !st.isFile()) return send(res, 404, 'No encontrado', 'text/plain');
     const ext = path.extname(f).toLowerCase();
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=86400', ...SEC });
+    // El lector de STEP (OpenCascade en WebAssembly) va en un worker aparte y necesita eval/wasm;
+    // el permiso es solo para ese worker, la app sigue con la política estricta.
+    const csp = /[\\/]vendor[\\/]occt[\\/]/.test(f) ? { 'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self'" } : {};
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=86400', ...SEC, ...csp });
     fs.createReadStream(f).pipe(res);
   });
 }

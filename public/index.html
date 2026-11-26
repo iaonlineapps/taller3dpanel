@@ -1576,6 +1576,19 @@ function parseSTL(buf){const dv=new DataView(buf);
  if(buf.byteLength>=84){const n=dv.getUint32(80,true);if(84+n*50===buf.byteLength){const V=new Float32Array(n*9),T=new Uint32Array(n*3);for(let i=0;i<n;i++){const o=84+i*50+12;for(let k=0;k<9;k++)V[i*9+k]=dv.getFloat32(o+k*4,true);T[i*3]=i*3;T[i*3+1]=i*3+1;T[i*3+2]=i*3+2}return meshStats(V,T)}}
  const txt=new TextDecoder().decode(buf),re=/vertex\s+([-+\d.eE]+)\s+([-+\d.eE]+)\s+([-+\d.eE]+)/g,V=[];let m;while(m=re.exec(txt))V.push(+m[1],+m[2],+m[3]);
  if(V.length<9)throw new Error('No he encontrado triángulos en el STL');const T=new Uint32Array(V.length/3).map((_,i)=>i);return meshStats(new Float32Array(V),T)}
+// STEP (Fusion 360, SolidWorks, Onshape…): se convierte a malla con occt-import-js (LGPL, en vendor/occt),
+// que solo se descarga la primera vez que subes un STEP. Va en un worker para no congelar la pantalla.
+function parseSTEP(buf){return new Promise((ok,ko)=>{let w;
+ try{w=new Worker('vendor/occt/lector-step.js')}catch(e){return ko(new Error('Tu navegador no puede abrir archivos STEP'))}
+ const t=setTimeout(()=>{w.terminate();ko(new Error('El STEP tarda demasiado; prueba a exportarlo como STL o 3MF'))},180000);
+ w.onerror=()=>{clearTimeout(t);w.terminate();ko(new Error('No se pudo cargar el lector de STEP'))};
+ w.onmessage=ev=>{clearTimeout(t);w.terminate();const res=ev.data;
+  if(!res||!res.success||!res.meshes||!res.meshes.length)return ko(new Error(res&&res.error?'No se pudo cargar el lector de STEP en este navegador':'No he podido leer el STEP (¿está vacío o dañado?)'));
+  const mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];let tot={vol:0,area:0,tris:0,parts:res.meshes.length};
+  for(const m of res.meshes){const V=m.attributes.position.array,T=m.index.array,s=meshStats(V,T);tot.vol+=s.vol;tot.area+=s.area;tot.tris+=s.tris;
+   for(let i=0;i<V.length;i+=3)for(let a=0;a<3;a++){if(V[i+a]<mn[a])mn[a]=V[i+a];if(V[i+a]>mx[a])mx[a]=V[i+a]}}
+  tot.box=mx.map((v,i)=>Math.max(0,v-mn[i]));ok(tot)};
+ w.postMessage({format:'step',buffer:new Uint8Array(buf),params:{linearUnit:'millimeter',linearDeflectionType:'bounding_box_ratio',linearDeflection:0.001,angularDeflection:0.5}})})}
 function parseModelXML(txt){const doc=new DOMParser().parseFromString(txt,'application/xml');const unit=(doc.documentElement.getAttribute('unit')||'millimeter').toLowerCase(),k={micron:.001,millimeter:1,centimeter:10,inch:25.4,foot:304.8,meter:1000}[unit]||1;
  let tot={vol:0,area:0,box:[0,0,0],tris:0};
  doc.querySelectorAll('mesh').forEach(me=>{const V=[],T=[];me.querySelectorAll('vertex').forEach(v=>V.push(+v.getAttribute('x')*k,+v.getAttribute('y')*k,+v.getAttribute('z')*k));me.querySelectorAll('triangle').forEach(t=>T.push(+t.getAttribute('v1'),+t.getAttribute('v2'),+t.getAttribute('v3')));
@@ -1583,7 +1596,8 @@ function parseModelXML(txt){const doc=new DOMParser().parseFromString(txt,'appli
 async function analyzeModel(file){
  const buf=await file.arrayBuffer(),name=file.name,ext=name.toLowerCase().split('.').pop(),r={name,ext};
  if(ext==='stl'){Object.assign(r,parseSTL(buf));return r}
- if(ext!=='3mf')throw new Error('Sube un archivo .stl o .3mf');
+ if(ext==='step'||ext==='stp'){Object.assign(r,await parseSTEP(buf));r.step=true;return r}
+ if(ext!=='3mf')throw new Error('Sube un archivo .stl, .3mf o .step');
  const z=await unzip(buf),td=new TextDecoder();
  const si=z.names.find(n=>/slice_info\.config$/i.test(n));
  if(si){const doc=new DOMParser().parseFromString(td.decode(await z.get(si)),'application/xml');const plates=[...doc.querySelectorAll('plate')].map(p=>{const md=k=>{const e=[...p.querySelectorAll('metadata')].find(x=>x.getAttribute('key')===k);return e?e.getAttribute('value'):''};
@@ -1611,7 +1625,7 @@ let lastModel=null;
 function vCalc(){
  if(!S.calc)S.calc=calcDefaults();const c=S.calc,m=lastModel;
  return `<div class="g21" style="align-items:start"><div class="card" style="display:grid;gap:14px">
- <label class="card" id="drop" style="border:2px dashed var(--line);background:var(--soft);display:flex;gap:14px;align-items:center;cursor:pointer;padding:16px">${ico('box')}<div style="flex:1"><b>Sube tu archivo STL o 3MF</b><div class="note">Si es un 3MF laminado en Bambu Studio leo sus gramos y su tiempo exactos; si no, los estimo con el perfil de tu impresora.</div></div><span class="btn sf">Elegir archivo</span><input type="file" id="mfile" accept=".stl,.3mf,model/stl,model/3mf" hidden></label>
+ <label class="card" id="drop" style="border:2px dashed var(--line);background:var(--soft);display:flex;gap:14px;align-items:center;cursor:pointer;padding:16px">${ico('box')}<div style="flex:1"><b>Sube tu archivo STL, 3MF o STEP</b><div class="note">Si es un 3MF laminado en Bambu Studio leo sus gramos y su tiempo exactos; si no (STL, STEP de Fusion 360…), los estimo con el perfil de tu impresora.</div></div><span class="btn sf">Elegir archivo</span><input type="file" id="mfile" accept=".stl,.3mf,.step,.stp,model/stl,model/3mf,model/step" hidden></label>
  <div id="minfo">${modelInfo(m)}</div>
  <form id="calcf" style="display:grid;gap:12px" onsubmit="return false">
   <label>Nombre de la pieza o trabajo<input name="name" value="${esc(c.name||(m?m.name.replace(/\.(stl|3mf)$/i,''):''))}" placeholder="Ej. Llavero con nombre"></label>
@@ -1622,17 +1636,17 @@ function vCalc(){
   <div class="f3"><label>Cantidad de piezas<input name="qty" type="number" min="1" step="1" value="${esc(c.qty)}"></label><label>Desperdicio (%)<input name="waste" type="number" min="0" step="1" value="${esc(c.waste)}"></label><label>Fallos (%)<input name="fail" type="number" min="0" step="1" value="${esc(c.fail)}"></label></div>
   <div class="f3"><label>Tu trabajo (min/pieza)<input name="laborMin" type="number" min="0" step="1" value="${esc(c.laborMin)}"></label><label>Tu hora vale<input name="laborRate" type="number" min="0" step="0.5" value="${esc(c.laborRate)}"></label><label>Extras por pieza<input name="extras" type="number" min="0" step="0.01" value="${esc(c.extras)}" placeholder="Anilla, caja…"></label></div>
   <div class="f3"><label>Margen de beneficio (%)<input name="margin" type="number" min="0" step="5" value="${esc(c.margin)}"></label><label>Precio de la luz (/kWh)<input name="kwh" type="number" min="0" step="0.01" value="${esc(c.kwh)}"></label><label>Redondear precio<select name="round">${sel(c.round,[['90','A ,90'],['50','A ,50'],['1','A euro entero'],['0','Sin redondear']])}</select></label></div>
-  <label style="display:flex;flex-direction:row;gap:8px;align-items:center"><input type="checkbox" name="supp" ${c.supp?'checked':''} style="width:18px;height:18px;min-height:0">La pieza lleva soportes (para la estimación desde STL)</label>
+  <label style="display:flex;flex-direction:row;gap:8px;align-items:center"><input type="checkbox" name="supp" ${c.supp?'checked':''} style="width:18px;height:18px;min-height:0">La pieza lleva soportes (para la estimación desde STL o STEP)</label>
  </form></div>
  <div class="card" id="calcout" style="position:sticky;top:84px;display:grid;gap:14px">${calcOut()}</div></div>`}
 function modelInfo(m){if(!m)return '';const pr=fleet().find(x=>x.id===(S.calc||{}).printer)||fleet()[0];const vol=(pr&&pr.v||'').split('×').map(Number),fits=vol.length===3&&m.box?m.box.every((b,i)=>b<=vol[i]+.01)||[m.box[1],m.box[0],m.box[2]].every((b,i)=>b<=vol[i]+.01):null;
  return `<div class="card" style="display:grid;grid-template-columns:${m.thumb?'84px ':''}minmax(0,1fr);gap:14px;align-items:center;background:var(--soft)">${m.thumb?`<img src="${m.thumb}" alt="" style="width:84px;height:84px;object-fit:contain;background:#fff;border-radius:12px">`:''}<div><b>${esc(m.name)}</b>
- <div class="note">${m.box?`${m.box.map(v=>num(v,1)).join(' × ')} mm · `:''}${m.vol?num(m.vol/1000,2)+' cm³':''}${m.tris?' · '+num(m.tris)+' triángulos':''}</div>
+ <div class="note">${m.box?`${m.box.map(v=>num(v,1)).join(' × ')} mm · `:''}${m.vol?num(m.vol/1000,2)+' cm³':''}${m.tris?' · '+num(m.tris)+' triángulos':''}${m.parts>1?' · '+m.parts+' cuerpos':''}</div>
  ${m.sliced?`<div class="note"><b class="up">Laminado en Bambu Studio:</b> ${num(m.grams,1)} g · ${hhmm(m.hours)}${m.plates.length>1?' · '+m.plates.length+' placas':''}${m.fil&&m.fil.length?' · '+esc([...new Set(m.fil.map(f=>f.type))].join(', ')):''}</div>`:`<div class="note">Estimación con el perfil de <b>${esc(pr?pr.alias:'tu impresora')}</b> (relleno ${num(pr&&pr.infill)}%, ${num(pr&&pr.walls)} paredes). Para el dato exacto, súbelo laminado (.3mf de Bambu Studio).</div>`}
  ${fits===false?`<div class="note dn">Ojo: no cabe en ${esc(pr.alias)} (${esc(pr.v)} mm)</div>`:''}</div></div>`}
 const hhmm=h=>{const m=Math.round((+h||0)*60);return Math.floor(m/60)+' h '+String(m%60).padStart(2,'0')+' min'};
 function calcOut(){const c=S.calc||calcDefaults(),r=calcCompute(c),mx=Math.max(...r.parts.map(p=>p[1]),0.0001),pal=['#5750f1','#9b97ff','#e0a100','#fb6b2b','#ef4b4b','#12a150','#06b6d4'];
- if(!(+c.grams)&&!(+c.hours))return `<h2>Resultado</h2><div class="empty">Sube un STL/3MF o escribe los gramos y las horas de la pieza.</div>`;
+ if(!(+c.grams)&&!(+c.hours))return `<h2>Resultado</h2><div class="empty">Sube un STL, 3MF o STEP o escribe los gramos y las horas de la pieza.</div>`;
  return `<div><div class="note">Precio recomendado por pieza</div><div class="big">${money(r.price)}</div><div class="note">Coste real ${money(r.unit)} · ganas <b class="${r.profit>=0?'up':'dn'}">${money(r.profit)}</b> por pieza</div></div>
  ${r.qty>1?`<div class="sum" style="grid-template-columns:1fr 1fr"><div class="sm"><div class="l">Total ${r.qty} piezas</div><div class="v">${money(r.price*r.qty)}</div></div><div class="sm" style="border-left-color:var(--inc)"><div class="l">Beneficio total</div><div class="v">${money(r.profit*r.qty)}</div></div></div>`:''}
  <div class="bars">${r.parts.filter(p=>p[1]>0.0005).map(([k,v],i)=>`<div class="bar"><div class="h"><span>${k}</span><span>${money(v)}</span></div><div class="trk"><i style="width:${(v/mx*100).toFixed(1)}%;background:${pal[i]}"></i></div></div>`).join('')}</div>
@@ -1641,11 +1655,11 @@ function calcOut(){const c=S.calc||calcDefaults(),r=calcCompute(c),mx=Math.max(.
  <div class="btns"><button class="btn" id="c2q">Crear presupuesto</button><button class="btn sf" id="c2p">Aplicar a una pieza</button><button class="btn gh" id="c2s">Guardar como valores por defecto</button></div>`}
 function paintCalc(){const o=$('#calcout');if(o)o.innerHTML=calcOut();const mi=$('#minfo');if(mi)mi.innerHTML=modelInfo(lastModel)}
 async function loadModel(file){
- if(!file)return;const mi=$('#minfo');if(mi)mi.innerHTML='<div class="note">Leyendo el archivo…</div>';
+ if(!file)return;const mi=$('#minfo');if(mi)mi.innerHTML=`<div class="note">${/\.(step|stp)$/i.test(file.name)?'Leyendo el STEP… la primera vez descarga el lector (unos 8 MB)':'Leyendo el archivo…'}</div>`;
  try{const m=await analyzeModel(file);lastModel=m;const c=calcRead();const pr=fleet().find(x=>x.id===c.printer)||fleet()[0]||PDEF;
   if(m.sliced){c.grams=+m.grams.toFixed(1);c.hours=+m.hours.toFixed(2);const t=(m.fil[0]||{}).type;if(t&&DENS[t])c.material=t}
   else{const e=estimate(m,pr,DENS[c.material],c.supp);c.grams=+e.grams.toFixed(1);c.hours=+e.hours.toFixed(2)}
-  c.name=m.name.replace(/(\.gcode)?\.(stl|3mf)$/i,'');S.calc=c;render();toast(m.sliced?'Datos de Bambu Studio cargados':'Estimación calculada')}
+  c.name=m.name.replace(/(\.gcode)?\.(stl|3mf|step|stp)$/i,'');S.calc=c;render();toast(m.sliced?'Datos de Bambu Studio cargados':'Estimación calculada')}
  catch(e){lastModel=null;if(mi)mi.innerHTML=`<div class="note dn">${esc(e.message||'No se pudo leer el archivo')}</div>`}}
 function applyToPiece(){const c=S.calc,r=calcCompute(c);
  modal(`<h2>Aplicar a una pieza</h2><p class="note" style="margin:0">Se guardarán el coste (${money(r.unit)}), el precio (${money(r.price)}), los gramos y las horas.</p><label>Pieza<select id="apid">${S.products.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label>
@@ -1862,12 +1876,14 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.0';
+const WEB_VERSION='1.0.1';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/pctecnikk/taller3dpanel',APK_URL=REPO_URL+'/releases?q=android&expanded=true';
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.1',['La **calculadora lee archivos STEP** (Fusion 360, SolidWorks, Onshape…): medidas, volumen y estimación de gramos y horas.',
+  'Las **X1 y P1 con AMS** ya muestran los colores de cada hueco en la granja.']],
  ['1.0.0',['Primera versión: panel, ventas con lector QR, tickets, piezas y stock con foto, diseños, filamentos, movimientos, calculadora con STL/3MF y presupuestos.',
   'Clientes, colaboradores, gastos, servicio informático con categorías y precio habitual, y usuarios con permisos.',
   '**Granja de impresoras** (opcional, en Ajustes): QR por impresora y control en directo de las Bambu Lab en modo LAN.',

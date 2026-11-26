@@ -5,13 +5,16 @@
 Gestión completa para tu **taller de impresión 3D** (y tu **servicio informático**), en tu propio
 servidor: una Raspberry Pi o cualquier ordenador con Docker. Controla el **stock de tus piezas con
 foto**, vende con **lector de códigos QR y de barras**, genera **tickets y presupuestos con el logo de tu
-empresa**, calcula **cuánto te cuesta cada impresión** a partir de un STL o 3MF y lleva las cuentas de
+empresa**, calcula **cuánto te cuesta cada impresión** a partir de un STL, 3MF o STEP y lleva las cuentas de
 **clientes, gastos y colaboradores**. Con modo claro y oscuro, **app para Android** y todos los datos en
 una base de datos SQLite propia, dentro de tu instalación.
 
 > **Licencia:** código abierto para **uso no comercial** ([PolyForm Noncommercial 1.0.0](LICENSE.md)).
 > Puedes descargarlo, usarlo en tu taller o tu pyme, modificarlo y compartirlo gratis; lo que no se
 > permite es venderlo ni ofrecerlo como servicio de pago.
+>
+> El lector de STEP usa [occt-import-js](https://github.com/kovacsv/occt-import-js) (OpenCascade), con su propia licencia
+> **LGPL-2.1**, sin modificar y en [`public/vendor/occt`](public/vendor/occt).
 
 **Qué incluye:**
 
@@ -31,7 +34,7 @@ una base de datos SQLite propia, dentro de tu instalación.
 - **Filamentos:** catálogo de Bambu Lab, Prusament, Smart Materials 3D, Winkle, Polymaker, eSun, Sunlu,
   Elegoo, Creality, SainSmart, Fiberlogy y genéricos. Lo que queda de cada bobina y **alta leyendo el
   QR de la bobina**.
-- **Calculadora de impresión:** sube un **STL o 3MF**. Si el 3MF está laminado en Bambu Studio usa sus
+- **Calculadora de impresión:** sube un **STL, 3MF o STEP** (el de Fusion 360). Si el 3MF está laminado en Bambu Studio usa sus
   gramos y su tiempo exactos; si no, los estima con el **perfil de tu impresora** (consumo, velocidad,
   boquilla, relleno, paredes, precio y vida útil). Calcula filamento, desperdicio, luz, desgaste,
   fallos, tu trabajo y extras, y te da el precio recomendado con tu margen.
@@ -180,7 +183,7 @@ conecta: **[docs/GRANJA.md](docs/GRANJA.md)**.
 Descarga **Taller3DPanel.apk** desde [Releases](https://github.com/pctecnikk/taller3dpanel/releases)
 (las versiones `android-vX.Y.Z`), ábrela en el móvil y toca **Instalar**. La primera vez pide la
 dirección de tu servidor (en casa, por ejemplo `192.168.1.50:8095`). Desde la app puedes leer códigos
-con la **cámara**, subir fotos de tus piezas y archivos STL/3MF, y guardar tickets y presupuestos en
+con la **cámara**, subir fotos de tus piezas y archivos STL, 3MF o STEP, y guardar tickets y presupuestos en
 Descargas. Avisa cuando hay una versión nueva.
 
 También puedes **instalar la web como app** desde el navegador del móvil (menú → *Añadir a pantalla de
