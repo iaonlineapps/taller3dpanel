@@ -17,6 +17,17 @@ window.setLang=function(l){if(l!=='es'&&l!=='en')return;try{localStorage.setItem
  try{window.T3DApp&&T3DApp.setLang&&T3DApp.setLang(l)}catch(e){}
  if(l!==LANG){var u=location.href.replace(/([?&])lang=(es|en)&?/,'$1').replace(/[?&]$/,'');location.replace(u)}};
 var EN={
+"Lo que gasta cada uno, lo que vende, su margen por venta y lo que te debe":"What each one spends, what they sell, their margin per sale and what they owe you",
+"{} te debe {}":"{} owes you {}",
+"su parte: {}":"their share: {}",
+"Cuando te lo pague, pulsa «Cobrar ahora».":"When they pay you, tap «Charge now».",
+"(ya se lo ha quedado él)":"(they already kept it)",
+"Ya cobrado":"Already collected",
+"Te debe (a deber)":"Owes you (on credit)",
+"Sus ventas":"Their sales",
+"Las ventas cobradas ya las ha cobrado él: se queda su parte y te da la tuya. Las ventas «A deber» son encargos sin pagar: te debe tu parte hasta que pulses «Cobrar ahora» en el ticket.":"Paid sales were already collected by them: they keep their share and give you yours. «On credit» sales are unpaid orders: they owe you your share until you tap «Charge now» on the ticket.",
+"**Ventas de un colaborador**: si la guardas como cobrada (efectivo, Bizum, tarjeta…), es que él ya ha cobrado al cliente. Se queda su parte, te da la tuya y no queda nada pendiente.":"**A collaborator's sales**: if you save it as paid (cash, Bizum, card…), they have already collected from the customer. They keep their share, give you yours and nothing is left pending.",
+"Si la guardas **«A deber»** (un encargo sin pagar), en su ficha sale **«Te debe»** con tu parte. Cuando te pague, pulsa «Cobrar ahora» en el ticket. Con un colaborador ya no hace falta elegir cliente para dejarla a deber.":"If you save it **«On credit»** (an unpaid order), their card shows **«Owes you»** with your share. When they pay you, tap «Charge now» on the ticket. With a collaborator you no longer need to pick a customer to leave it on credit.",
 "margen del colaborador":"collaborator's margin",
 "Tiene ventas de antes de ponerle el margen. Esas ventas no llevan su parte.":"They have sales from before you set the margin. Those sales do not include their share.",
 "Aplicar su margen a sus ventas anteriores ({})":"Apply their margin to their earlier sales ({})",
