@@ -272,6 +272,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
  <button class="nv" data-v="clientes"><svg class="i"><use href="#i-user"/></svg>Clientes</button>
  <button class="nv" data-v="colaboradores"><svg class="i"><use href="#i-team"/></svg>Colaboradores</button>
  <button class="nv" data-v="gastos"><svg class="i"><use href="#i-wallet"/></svg>Gastos</button>
+ <button class="nv" data-v="usuarios" id="navusers" hidden><svg class="i"><use href="#i-user"/></svg>Usuarios<span class="cnt" id="penc" hidden></span></button>
  <button class="nv" data-v="ajustes"><svg class="i"><use href="#i-cog"/></svg>Ajustes</button>
  <div class="dbcard"><span class="dot" id="dot"></span><span id="stt">Conectando con la base de datos…</span></div>
  <div class="note" id="sver" style="padding:8px 12px 0;white-space:pre-line"></div>
@@ -350,21 +351,22 @@ function themeIcon(){$('#thi').setAttribute('href',isDark()?'#i-sun':'#i-moon')}
 function toggleTheme(){const m=isDark()?'light':'dark';window.__mode=m;try{localStorage.setItem('t3d-mode',m)}catch(e){}__applyMode();themeIcon();render()}
 
 /* ======================= DATOS ======================= */
-async function put(col,id,d){
+const roOK=col=>{if(!ME)return true;if(ME.role==='lector'&&!['profiles','appusers'].includes(col)){toast('Tu usuario solo puede ver, no cambiar datos');return false}return true};
+async function put(col,id,d){if(!roOK(col))throw {code:'invalid_argument'};
  try{if(db){if(id)await db.doc(col+'/'+id).set(d);else{const r=await db.collection(col).add(d);return r.id}}
   else{if(id){const o=S[col].find(x=>x.id===id);if(o){Object.keys(o).forEach(k=>k!=='id'&&delete o[k]);Object.assign(o,d)}}else{const n={...d,id:uid()};S[col].unshift(n);render();return n.id}render()}}
  catch(e){toast(e&&e.code==='quota_exceeded'?'La base de datos está llena':'No se pudo guardar');throw e}
  return id;
 }
-async function patch(col,id,d){if(db)await db.doc(col+'/'+id).update(d);else{Object.assign(S[col].find(x=>x.id===id)||{},d);render()}}
-async function del(col,id){try{if(db)await db.doc(col+'/'+id).delete();else{S[col]=S[col].filter(x=>x.id!==id);render()}}catch(e){toast('No se pudo borrar')}}
+async function patch(col,id,d){if(!roOK(col))throw {code:'invalid_argument'};if(db)await db.doc(col+'/'+id).update(d);else{Object.assign(S[col].find(x=>x.id===id)||{},d);render()}}
+async function del(col,id){if(!roOK(col))return;try{if(db)await db.doc(col+'/'+id).delete();else{S[col]=S[col].filter(x=>x.id!==id);render()}}catch(e){toast('No se pudo borrar')}}
 /* Kardex: todo cambio de stock deja un movimiento */
-async function stockMove(p,delta,type,ref,extra={}){
+async function stockMove(p,delta,type,ref,extra={}){if(!roOK('products'))throw {code:'invalid_argument'};
  const before=+p.stock||0,after=Math.max(0,Math.round(before+delta));p.stock=after;
  const mv={date:Date.now(),pid:p.id,name:p.name,type,qty:after-before,before,after,ref:ref||'',...extra};
  if(db){await db.doc('products/'+p.id).update({stock:after});await db.collection('moves').add(mv)}else{S.moves.unshift({...mv,id:uid()})}
 }
-async function spoolMove(sp,grams){const left=Math.max(0,Math.round((+sp.left||0)+grams));sp.left=left;if(db)await db.doc('spools/'+sp.id).update({left});}
+async function spoolMove(sp,grams){if(!roOK('spools'))return;const left=Math.max(0,Math.round((+sp.left||0)+grams));sp.left=left;if(db)await db.doc('spools/'+sp.id).update({left});}
 async function saveFile(filename,text,type){
  if(!IN_ARTIFACT){try{let body={filename,type,content:text};if(text instanceof Blob){const b64=await new Promise(ok=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]);fr.readAsDataURL(text)});body={filename,type,b64}}const r=await api('POST','api/export',body);const l=document.createElement('a');l.href=r.url;l.download=filename;document.body.appendChild(l);l.click();l.remove();return}catch(e){toast('No se pudo descargar');return}}
  if(!dls){try{dls=window.claude&&await claude.use('downloads')}catch(e){dls=null}}
@@ -581,7 +583,7 @@ function addCart(id,d=1){
  l.qty+=d;if(l.qty<=0)S.cart=S.cart.filter(x=>x!==l);if(d>0)toast('Añadido: '+p.name+(d>1?' ×'+d:''));syncCart();
 }
 async function cobrar(){
- if(!S.cart.length)return;const tot=+S.cart.reduce((s,l)=>s+l.qty*l.price,0).toFixed(2),cash=S.pay==='Efectivo'?(+S.cash||tot):0;
+ if(!S.cart.length)return;if(ME&&ME.role==='lector'){toast('Tu usuario solo puede ver, no cobrar');return}const tot=+S.cart.reduce((s,l)=>s+l.qty*l.price,0).toFixed(2),cash=S.pay==='Efectivo'?(+S.cash||tot):0;
  if(S.pay==='Efectivo'&&cash<tot){beep(false);toast('El efectivo recibido es menor que el total');return}
  if(S.pay==='A deber'&&!S.cust){beep(false);toast('Elige quién te lo debe (o crea el cliente)');quickClient();return}
  const c=S.customers.find(x=>x.id===S.cust);
@@ -899,7 +901,7 @@ function printerArt(k,c='#5750f1'){
 const PDEF={nozzle:0.4,layer:0.2,infill:15,walls:2,buy:'',life:5000,maint:0.05};
 function fleet(){const f=Array.isArray(S.cfg.fleet)&&S.cfg.fleet.length?S.cfg.fleet:S.cfg.printers.map((n,i)=>({id:'f'+i,alias:n,brand:'',model:'',k:'enc',w:150,gh:20}));return f.map(p=>({...PDEF,...p}))}
 const printerByName=n=>fleet().find(f=>f.alias===n);
-async function saveCfg(part){S.cfg={...S.cfg,...part};if(S.cfg.fleet&&S.cfg.fleet.length)S.cfg.printers=S.cfg.fleet.map(f=>f.alias);_fmt=null;try{if(db)await db.doc('config/main').set(S.cfg)}catch(e){toast('No se pudo guardar');throw e}render()}
+async function saveCfg(part){if(ME&&ME.role!=='admin'){toast('Solo un administrador puede cambiar los ajustes');throw {code:'invalid_argument'}}S.cfg={...S.cfg,...part};if(S.cfg.fleet&&S.cfg.fleet.length)S.cfg.printers=S.cfg.fleet.map(f=>f.alias);_fmt=null;try{if(db)await db.doc('config/main').set(S.cfg)}catch(e){toast('No se pudo guardar');throw e}render()}
 function printerCard(f){const used=S.prints.filter(x=>x.printer===f.alias),h=used.reduce((t,x)=>t+(+x.hours||0),0),u=used.reduce((t,x)=>t+(+x.qty||0),0);
  return `<button class="li" data-pr="${esc(f.id)}" style="grid-template-columns:56px minmax(0,1fr) auto"><div class="th" style="width:56px;height:56px;background:var(--soft)">${printerArt(f.k)}</div><div><b>${esc(f.alias)}</b><small>${esc([f.brand,f.model].filter(Boolean).join(' ')||'Sin modelo')}${f.v?' · '+esc(f.v)+' mm':''}</small><small style="display:block">${num(f.w)} W · boquilla ${num(f.nozzle,2)} · capa ${num(f.layer,2)} · relleno ${num(f.infill)}%</small></div><div class="rt"><b>${num(h,1)} h</b><br><small>${num(u)} piezas</small></div></button>`}
 function pickPrinter(replaceId){
@@ -1349,17 +1351,25 @@ async function startServer(){db=serverDB();window.__db=db;try{await db._load()}c
 async function initServer(){
  try{const r=await fetch('api/me',{credentials:'same-origin'});if(!r.ok)throw 0;const j=await r.json();SRV=j;ME=j.user}catch(e){status(false,'Sin conexión con el servidor');return}
  if(!ME){showLogin();return}startServer()}
+function vUsuariosPage(){
+ if(!ME||ME.role!=='admin')return `<div class="card empty">Solo un administrador puede gestionar los usuarios.</div>`;
+ return `<div class="ph"><div><h1>Usuarios</h1><div class="sub">Cuentas para entrar en la app (con nick y contraseña). No son lo mismo que los colaboradores: un colaborador puede tener cuenta o no.</div></div></div>
+ <div class="g2" style="align-items:start">${vUsuarios()}<div class="card" style="display:grid;gap:10px"><h2>Permisos</h2>
+ <div class="li" style="grid-template-columns:40px minmax(0,1fr)"><div class="th" style="background:var(--pri2);color:var(--pri)">A</div><div><b>Administrador</b><small>Todo, incluidos los ajustes y los usuarios.</small></div></div>
+ <div class="li" style="grid-template-columns:40px minmax(0,1fr)"><div class="th" style="background:color-mix(in srgb,var(--inc) 15%,transparent);color:var(--inc)">E</div><div><b>Puede editar</b><small>Vender, piezas, clientes, gastos… pero no los ajustes ni los usuarios.</small></div></div>
+ <div class="li" style="grid-template-columns:40px minmax(0,1fr)"><div class="th" style="background:var(--soft)">V</div><div><b>Solo ver</b><small>Consulta todo sin poder cambiar nada.</small></div></div>
+ <p class="note" style="margin:0">Las cuentas que se piden desde «Regístrate» aparecen como <b>Pendiente</b>: tócalas y ponlas en «Activo» para dejarles entrar.</p></div></div>`}
 function vUsuarios(){/* sección de cuentas: solo en la versión instalable */
  return `<div class="card" style="display:grid;gap:12px"><div class="ch" style="margin:0"><h2>Usuarios</h2>${ME&&ME.role==='admin'?'<button class="btn" id="newu">+ Nuevo usuario</button>':''}</div>
  <div class="lst" id="ulist"><div class="empty">Cargando…</div></div></div>`}
 async function paintUsers(){const box=$('#ulist');if(!box)return;try{const l=IN_ARTIFACT?S.appusers.map(pubLocal):await api('GET','api/users');
  box.innerHTML=l.map(u=>`<button class="li" data-eu="${esc(u.id)}"><div class="th" style="background:var(--pri2);color:var(--pri);border-radius:50%">${avatarHTML(u,44)}</div><div><b>${esc(u.name||u.username)}</b><small>@${esc(u.username)}${u.email?' · '+esc(u.email):''} · ${esc({admin:'Administrador',editor:'Puede editar',lector:'Solo ver'}[u.role]||u.role)}</small></div><div class="rt">${u.active?'<span class="tag g">Activo</span>':'<span class="tag y">Pendiente</span>'}</div></button>`).join('')}catch(e){box.innerHTML='<div class="empty">Solo un administrador puede ver los usuarios.</div>'}}
 function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',active:true};
- modal(`<h2>${isNew?'Nuevo usuario':'Usuario @'+esc(u.username)}</h2><form id="fu" style="display:grid;gap:12px"><div class="f2"><label>Nombre<input name="name" value="${esc(u.name)}" required></label><label>Usuario (nick)<input name="username" value="${esc(u.username)}" ${isNew?'required':'readonly'} autocapitalize="none"></label></div><label>Email<input name="email" type="email" value="${esc(u.email||'')}"></label>
+ modal(`<h2>${isNew?'Nuevo usuario':'Usuario @'+esc(u.username)}</h2><form id="fu" style="display:grid;gap:12px"><div class="f2"><label>Nombre (opcional)<input name="name" value="${esc(u.name)}"></label><label>Usuario (nick)<input name="username" value="${esc(u.username)}" ${isNew?'required':'readonly'} autocapitalize="none"></label></div><label>Email<input name="email" type="email" value="${esc(u.email||'')}"></label>
  <div class="f2"><label>Permisos<select name="role">${sel(u.role,[['admin','Administrador'],['editor','Puede editar'],['lector','Solo ver']])}</select></label><label>Estado<select name="active">${sel(u.active?'1':'0',[['1','Activo'],['0','Desactivado']])}</select></label></div>
  <label>${isNew?'Contraseña':'Nueva contraseña (déjala vacía para no cambiarla)'}<input name="password" type="password" minlength="4" ${isNew?'required':''} autocomplete="new-password"></label>
  <div class="acts">${!isNew&&ME&&u.id!==ME.id?'<button type="button" class="btn rd" id="delu" style="margin-right:auto">Borrar</button>':''}<button type="button" class="btn gh" data-close>Cancelar</button><button class="btn">Guardar</button></div></form>`);
- const f=$('#fu');f.onsubmit=async e=>{e.preventDefault();const b={name:f.name.value.trim(),email:f.email.value.trim(),role:f.role.value,active:f.active.value==='1'};if(f.password.value)b.password=f.password.value;
+ const f=$('#fu');f.onsubmit=async e=>{e.preventDefault();const b={name:f.name.value.trim()||f.username.value.trim(),email:f.email.value.trim(),role:f.role.value,active:f.active.value==='1'};if(f.password.value)b.password=f.password.value;
   if(IN_ARTIFACT){try{if(isNew)await localCreate({...b,username:f.username.value.trim()},b.role);else{const cur=S.appusers.find(x=>x.id===u.id);const admins=S.appusers.filter(x=>x.role==='admin'&&x.active!==false);if(cur.role==='admin'&&(b.role!=='admin'||!b.active)&&admins.length<=1)throw {message:'Tiene que quedar al menos un administrador activo'};const d={name:b.name,email:b.email,role:b.role,active:b.active};if(b.password){if(b.password.length<4)throw {message:'Mínimo 4 caracteres'};d.salt=rhex(16);d.hash=await pbk(b.password,d.salt)}await patch('appusers',u.id,d)}closeModal();toast('Usuario guardado');render()}catch(err){toast(err.message||'No se pudo guardar')}return}
   try{if(isNew)await api('POST','api/users',{...b,username:f.username.value.trim()});else await api('PATCH','api/users/'+encodeURIComponent(u.id),b);closeModal();toast('Usuario guardado');render()}catch(err){toast(err.message||'No se pudo guardar')}};
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
@@ -1408,7 +1418,7 @@ const CSV={
  csvm:()=>['movimientos.csv',csv([['fecha','pieza','tipo','referencia','cantidad','antes','después'],...S.moves.map(m=>[fdt(m.date),m.name,MVT[m.type]||m.type,m.ref,m.qty,m.before,m.after])])]};
 
 /* ======================= BÚSQUEDA GLOBAL ======================= */
-const PAGES=[['presupuestos','Calculadora y presupuestos'],['servicios','Servicio informático'],['panel','Panel'],['vender','Vender'],['tickets','Tickets'],['piezas','Piezas y stock'],['disenos','Diseños 3D'],['filamentos','Filamentos'],['movimientos','Movimientos'],['clientes','Clientes'],['colaboradores','Colaboradores'],['gastos','Gastos'],['ajustes','Ajustes']];
+const PAGES=[['usuarios','Usuarios'],['presupuestos','Calculadora y presupuestos'],['servicios','Servicio informático'],['panel','Panel'],['vender','Vender'],['tickets','Tickets'],['piezas','Piezas y stock'],['disenos','Diseños 3D'],['filamentos','Filamentos'],['movimientos','Movimientos'],['clientes','Clientes'],['colaboradores','Colaboradores'],['gastos','Gastos'],['ajustes','Ajustes']];
 let gsel=0;
 function searchAll(q){q=q.toLowerCase().trim();if(!q)return [];const r=[];
  PAGES.forEach(([k,l])=>l.toLowerCase().includes(q)&&r.push({t:'Página',l,a:()=>go(k)}));
@@ -1433,11 +1443,11 @@ $('#gres').addEventListener('mousedown',e=>{const b=e.target.closest('[data-gr]'
 function modal(h,wide){const d=$('#dlg');d.className='dlg'+(wide?' w':'');d.innerHTML=h;$('#ov').classList.add('show');d.scrollTop=0}
 function closeModal(){$('#ov').classList.remove('show')}
 function confirmBox(msg,fn){modal(`<h2>¿Seguro?</h2><p style="margin:0">${esc(msg)}</p><div class="acts"><button class="btn gh" data-close>Cancelar</button><button class="btn" id="yes" style="background:var(--exp)">Sí, continuar</button></div>`);$('#yes').onclick=async()=>{$('#yes').disabled=true;try{await fn()}finally{closeModal();render()}}}
-function moreSheet(){modal(`<div class="ch" style="margin:0"><h2>Más secciones</h2><button class="btn gh" data-close>Cerrar</button></div><div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${[['presupuestos','calc','Calculadora'],['servicios','pc','Informática'],['tickets','rcpt','Tickets'],['disenos','pen','Diseños 3D'],['filamentos','spool','Filamentos'],['movimientos','swap','Movimientos'],['clientes','user','Clientes'],['colaboradores','team','Colaboradores'],['ajustes','cog','Ajustes']].map(([v,i,l])=>`<button class="card" data-go="${v}" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(i)}${l}</button>`).join('')}<button class="card" id="mth" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(isDark()?'sun':'moon')}${isDark()?'Modo claro':'Modo oscuro'}</button></div>`)}
+function moreSheet(){modal(`<div class="ch" style="margin:0"><h2>Más secciones</h2><button class="btn gh" data-close>Cerrar</button></div><div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${[['presupuestos','calc','Calculadora'],['servicios','pc','Informática'],['tickets','rcpt','Tickets'],['disenos','pen','Diseños 3D'],['filamentos','spool','Filamentos'],['movimientos','swap','Movimientos'],['clientes','user','Clientes'],['colaboradores','team','Colaboradores'],['usuarios','user','Usuarios'],['ajustes','cog','Ajustes']].map(([v,i,l])=>`<button class="card" data-go="${v}" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(i)}${l}</button>`).join('')}<button class="card" id="mth" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(isDark()?'sun':'moon')}${isDark()?'Modo claro':'Modo oscuro'}</button></div>`)}
 const closeSide=()=>{$('#side').classList.remove('open');$('#scrim').classList.remove('show')};
 
 /* ======================= RENDER ======================= */
-const V={panel:vPanel,vender:vVender,tickets:vTickets,piezas:vPiezas,disenos:vDisenos,filamentos:vFilamentos,movimientos:vMovimientos,clientes:vClientes,colaboradores:vColaboradores,gastos:vGastos,ajustes:vAjustes,servicios:vServicios,presupuestos:vPresupuestos};
+const V={panel:vPanel,vender:vVender,tickets:vTickets,piezas:vPiezas,disenos:vDisenos,filamentos:vFilamentos,movimientos:vMovimientos,clientes:vClientes,colaboradores:vColaboradores,gastos:vGastos,ajustes:vAjustes,usuarios:vUsuariosPage,servicios:vServicios,presupuestos:vPresupuestos};
 let rq=0;const render=()=>{if(rq)return;rq=requestAnimationFrame(()=>{rq=0;doRender()})};
 function doRender(){
  const a=document.activeElement,fid=a&&a.id,pos=a&&a.selectionStart,keep=['q','tkq','scan','cash'].includes(fid)?fid:'';if(S.view==='presupuestos'&&a&&a.closest&&a.closest('#calcf'))return;
@@ -1447,7 +1457,8 @@ function doRender(){
  const low=lowList().length,lc=$('#lowc');lc.hidden=!low;lc.textContent=low;$('#pip').hidden=!low;
  $('#bname').innerHTML=esc(S.cfg.name);const who=ME?(ME.name||ME.username):(S.cfg.owner||'Yo');$('#mename').textContent=who;{const a=$('#avt');if(ME&&myAvatar(ME.id)){a.innerHTML=avatarHTML(ME,38);a.style.overflow='hidden'}else a.textContent=(who||'Y')[0].toUpperCase()}
  $('#lmark').innerHTML=logoMark(32);const oj=S.jobs.filter(j=>j.status==='pendiente'||j.status==='curso').length,jc=$('#jobc');jc.hidden=!oj;jc.textContent=oj;$('#sver').textContent=versionText().replace(' · ','\n');
- if(S.view==='ajustes')setTimeout(paintUsers,0);
+ if(S.view==='ajustes'||S.view==='usuarios')setTimeout(paintUsers,0);
+ {const adm=!!(ME&&ME.role==='admin');$('#navusers').hidden=!adm;const pend=IN_ARTIFACT?S.appusers.filter(u=>u.active===false).length:0,pc=$('#penc');pc.hidden=!(adm&&pend);pc.textContent=pend}
  syncCart();themeIcon();paintBarcodes($('#main'));
  if($('#scan')&&scanVal)$('#scan').value=scanVal;
  if(keep){const el=$('#'+keep);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}}
@@ -1468,7 +1479,7 @@ function accountModal(){
  modal(`<div style="display:flex;gap:14px;align-items:center"><span class="av" style="width:72px;height:72px;font-size:28px;overflow:hidden">${avatarHTML(ME,72)}</span><div style="display:grid;gap:6px"><div><h2>${esc(ME.name||ME.username)}</h2><div class="note">@${esc(ME.username)} · ${esc({admin:'Administrador',editor:'Puede editar',lector:'Solo ver'}[ME.role]||ME.role)}</div></div><div class="btns"><span class="btn sf filebtn" style="min-height:36px;padding:6px 12px">${ico('cam')}${myAvatar(ME.id)?'Cambiar foto':'Poner foto o avatar'}<input type="file" accept="image/*" id="avf"></span>${myAvatar(ME.id)?'<button type="button" class="btn rd" id="noav" style="min-height:36px;padding:6px 12px">Quitar</button>':''}</div></div></div>
   <p class="note" style="margin:0">Tu foto es solo tuya. El logo de la empresa (tickets y presupuestos) se cambia en Ajustes → Datos de la empresa.</p>
   <form id="fme3" style="display:grid;gap:12px"><div class="f2"><label>Nombre<input name="name" value="${esc(ME.name||'')}"></label><label>Email${SRV.requireEmail&&!IN_ARTIFACT?'':' (opcional)'}<input name="email" type="email" value="${esc(ME.email||'')}" ${SRV.requireEmail&&!IN_ARTIFACT?'required':''}></label></div>
-  <div class="acts" style="justify-content:space-between"><div class="btns"><button type="button" class="btn gh" id="chpw">Cambiar contraseña</button>${ME.role==='admin'?'<button type="button" class="btn gh" data-go="ajustes">Usuarios y ajustes</button>':''}<button type="button" class="btn rd" id="logout">${ico('out')}Salir</button></div><button class="btn">Guardar</button></div></form>`);
+  <div class="acts" style="justify-content:space-between"><div class="btns"><button type="button" class="btn gh" id="chpw">Cambiar contraseña</button>${ME.role==='admin'?'<button type="button" class="btn gh" data-go="usuarios">Usuarios</button>':''}<button type="button" class="btn rd" id="logout">${ico('out')}Salir</button></div><button class="btn">Guardar</button></div></form>`);
  $('#avf').onchange=e=>{const f=e.target.files[0];if(f)setAvatar(f)};{const n=$('#noav');if(n)n.onclick=()=>setAvatar(null)}
  $('#fme3').onsubmit=async e=>{e.preventDefault();const f=e.target;try{if(IN_ARTIFACT){const em=f.email.value.trim();if(em&&!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(em))throw {message:'El email no es válido'};await patch('appusers',ME.id,{name:f.name.value.trim()||ME.username,email:em});ME={...ME,name:f.name.value.trim()||ME.username,email:em};closeModal();toast('Cuenta guardada');render();return}const r=await api('PATCH','api/me',{name:f.name.value.trim(),email:f.email.value.trim()});ME=r.user;closeModal();toast('Cuenta guardada');render()}catch(err){toast(err.message||'No se pudo guardar')}}}
 $('#meBtn').onclick=accountModal;$('#qscan').onclick=quickScan;
