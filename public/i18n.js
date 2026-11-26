@@ -1431,7 +1431,8 @@ var EN={
 "Duplicar pieza":"Duplicate part",
 "{} (copia)":"{} (copy)",
 "Está todo copiado. Cambia lo que quieras (nombre, color…) y guarda.":"Everything has been copied. Change whatever you want (name, colour…) and save.",
-"**Duplicar una pieza**: con el botón derecho (o dejando el dedo pulsado en el móvil) sobre una pieza, o con el botón «Duplicar» de su ficha. Se abre con todo copiado (foto, categoría, colores, gramos, coste y precio) y el stock a 0: solo cambias lo que quieras, por ejemplo el nombre y el color.":"**Duplicate a part**: right-click a part (or press and hold on mobile), or use the «Duplicate» button in its details. It opens with everything copied (photo, category, colours, grams, cost and price) and stock at 0: you only change what you want, for example the name and colour."
+"**Duplicar una pieza**: con el botón derecho (o dejando el dedo pulsado en el móvil) sobre una pieza, o con el botón «Duplicar» de su ficha. Se abre con todo copiado (foto, categoría, colores, gramos, coste y precio) y el stock a 0: solo cambias lo que quieras, por ejemplo el nombre y el color.":"**Duplicate a part**: right-click a part (or press and hold on mobile), or use the «Duplicate» button in its details. It opens with everything copied (photo, category, colours, grams, cost and price) and stock at 0: you only change what you want, for example the name and colour.",
+"Nuevo **logo de Taller3D Panel**: un cubo impreso capa a capa con la boquilla. Sale en el icono de la app de Android, en la pestaña del navegador y en la pantalla de entrar.":"New **Taller3D Panel logo**: a cube printed layer by layer with the nozzle. It appears on the Android app icon, the browser tab and the sign-in screen."
 };
 var exact=Object.create(null),pats=[];
 function rx(s){return s.replace(/[.*+?^$()|[\]\\]/g,'\\$&').replace(/[{}]/g,function(c){return '\\'+c})}

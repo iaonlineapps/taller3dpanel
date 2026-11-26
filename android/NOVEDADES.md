@@ -1,5 +1,8 @@
 # Novedades de la app Android
 
+## 1.0.3
+- Nuevo icono: el logo de Taller3D Panel (un cubo impreso capa a capa). En los móviles modernos se adapta a la forma de los iconos.
+
 ## 1.0.2
 - La app está en **español e inglés**. Sigue el idioma del móvil, y se cambia en la pantalla de la dirección del servidor, en el menú del botón atrás o en la web (botón ES / EN).
 - La web y la app van juntas: si cambias el idioma en una, cambia en la otra.
