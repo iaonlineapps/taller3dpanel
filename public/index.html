@@ -51,6 +51,10 @@ aside.side{background:var(--side);border-right:1px solid var(--line);position:st
 .res button:hover,.res button.act{background:var(--soft)}
 .res small{color:var(--mute);margin-left:auto;font-size:12px}
 .tb{display:flex;gap:8px;margin-left:auto;align-items:center}
+.vchip{height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--soft);color:var(--mut);font-size:12px;font-weight:600;white-space:nowrap}.vchip:hover{color:var(--pri)}
+@media(max-width:560px){.vchip{display:none}}
+.pfoot{margin:28px 0 8px;text-align:center;font-size:12.5px;color:var(--mut);line-height:1.8}.pfoot a,.pfoot button{color:var(--pri);font-weight:600;background:none;border:0;padding:0;font-size:inherit;min-height:0;cursor:pointer}
+.news h3{font-size:15px;margin:14px 0 6px}.news ul{margin:0;padding-left:20px;display:grid;gap:4px;font-size:14px}
 .ib{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);display:grid;place-items:center;background:var(--card);color:var(--ink);position:relative}
 .ib .pip{position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--exp)}
 .me{display:flex;align-items:center;gap:10px;padding:3px 8px 3px 4px;font-weight:600;font-size:14px;border-radius:999px;color:var(--ink)}.me:hover{background:var(--soft)}
@@ -84,6 +88,8 @@ label{font-size:13px;color:var(--mute);display:grid;gap:5px;font-weight:500}
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
 .kpi{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:start}
+.kpi[data-k]{cursor:pointer;transition:transform .12s,box-shadow .12s}.kpi[data-k]:hover{box-shadow:0 6px 20px rgba(0,0,0,.08);transform:translateY(-1px)}.kpi[data-k]:active{transform:scale(.98)}
+.kpi[data-k] .d::after{content:' ›';opacity:.5}
 .kpi .l{font-size:12.5px;font-weight:600;color:var(--mute)}
 .kpi .v{font-size:clamp(22px,2.2vw,28px);font-weight:800;white-space:nowrap;letter-spacing:-.02em}
 .kpi .ic{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#fff;grid-row:span 2}
@@ -286,6 +292,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
   <div class="srch"><svg class="i"><use href="#i-search"/></svg><input id="gs" placeholder="Buscar pieza, cliente, ticket…  (Ctrl K)" autocomplete="off"><div class="res" id="gres"></div></div>
   <div class="tb">
    <button class="ib" id="qscan" aria-label="Escanear"><svg class="i"><use href="#i-qr"/></svg></button>
+   <button class="vchip" id="vchip" title="Versión y novedades"></button>
    <button class="ib" id="theme" aria-label="Cambiar tema"><svg class="i"><use id="thi" href="#i-moon"/></svg></button>
    <button class="ib hide-m" id="bell" aria-label="Avisos"><svg class="i"><use href="#i-bell"/></svg><span class="pip" id="pip" hidden></span></button>
    <button class="me" id="meBtn" aria-label="Mi cuenta"><div class="av" id="avt">T</div><span id="mename">Mi taller</span></button>
@@ -440,6 +447,24 @@ function totals(a,b){const s=okSales().filter(x=>inR(sDate(x),a,b)),e=S.expenses
  const incS=s.reduce((t,x)=>t+(+x.total||0),0),incJ=j.reduce((t,x)=>t+(+x.price||0),0),expE=e.reduce((t,x)=>t+(+x.amount||0),0),jcost=jc.reduce((t,x)=>t+jobCost(x),0),expJ=jcost+e.filter(x=>x.area==='informatica').reduce((t,x)=>t+(+x.amount||0),0),units=s.reduce((t,x)=>t+(+x.units||0),0);
  const inc=incS+incJ,exp=expE+jcost;
  return {s,e,j,jc,inc,exp,incS,incJ,expJ,exp3d:exp-expJ,net:inc-exp,units,n:s.length,avg:s.length?incS/s.length:0}}
+function kpiGo(k){const [a,b]=k.split(':');
+ if(a==='go'){go(b);return}if(a==='inc'){S.tkf='todos';go('tickets');return}if(a==='low'){S.lowOnly=true;go('piezas');return}
+ if(a==='jobf'){S.jobf=b;if(S.view!=='servicios')go('servicios');else render();setTimeout(()=>{const x=$('#main table');x&&x.scrollIntoView({behavior:'smooth',block:'start'})},60);return}
+ if(a==='garea'){S.garea=b;S.gcat='Todas';go('gastos');return}
+ if(a==='mvf'){S.mvf=b;render();return}
+ if(a==='qsf'){S.qsf=b;render();setTimeout(()=>{const x=$('#main table');x&&x.scrollIntoView({behavior:'smooth',block:'start'})},60);return}
+ if(a==='scroll'){const x=$(b)||$('#main table');x&&x.scrollIntoView({behavior:'smooth',block:'start'});return}
+ if(a==='profit')profitModal()}
+function profitModal(){const {from,to}=period(S.range),T=totals(from,to),rl=RANGES.find(r=>r[0]===S.range)[1];
+ const row=(l,v,go2,cls='')=>`<button class="li" ${go2} style="grid-template-columns:minmax(0,1fr) auto;width:100%;text-align:left"><div><b>${l}</b></div><div style="white-space:nowrap;display:flex;gap:8px;align-items:center"><b class="${cls}">${v}</b><span class="note">›</span></div></button>`;
+ modal(`<div class="ch" style="margin:0"><h2>De dónde sale el beneficio</h2><span class="tag">${esc(rl)}</span></div>
+ <div style="display:grid;gap:6px">
+ ${row('Ventas de piezas ('+T.n+')',money(T.incS),'data-go="tickets"','up')}
+ ${row('Trabajos de informática cobrados ('+T.j.length+')','+'+money(T.incJ),'data-go="servicios"','up')}
+ ${row('Gastos de impresión 3D','−'+money(T.exp3d),'data-go="gastos"','dn')}
+ ${row('Gastos y costes de informática','−'+money(T.expJ),'data-go="gastos"','dn')}
+ <div class="li" style="grid-template-columns:minmax(0,1fr) auto;border-top:2px solid var(--line)"><b>Beneficio neto</b><b class="${T.net<0?'dn':'up'}" style="font-size:20px">${money(T.net)}</b></div></div>
+ <div class="acts"><button class="btn gh" data-close>Cerrar</button></div>`)}
 const pct=(a,b)=>{if(!b)return '';const p=(a-b)/Math.abs(b)*100;return `<b class="${p>=0?'up':'dn'}">${p>=0?'↑':'↓'} ${Math.abs(p).toFixed(1)}%</b>`};
 function buckets(days){const {from,to}=period(days);const span=(to-from)/D;
  let unit=span<=14?'d':span<=120?'w':'m',out=[];
@@ -466,16 +491,16 @@ function vPanel(){
  const gc={};T.e.forEach(e=>gc[e.cat||'Otros']=(gc[e.cat||'Otros']||0)+(+e.amount||0));
  const pr={},fil={};S.prints.filter(x=>inR(x.date,from,to)).forEach(x=>{pr[x.printer||'—']=(pr[x.printer||'—']||0)+(+x.hours||0);fil[x.printer||'—']=(fil[x.printer||'—']||0)+(+x.grams||0)});
  const rl=RANGES.find(r=>r[0]===S.range)[1];
- const kpi=(l,v,icon,bg,d)=>`<div class="card kpi"><div><div class="l">${l}</div><div class="v">${v}</div></div><div class="ic" style="background:${bg}">${ico(icon)}</div><div class="d">${d}</div></div>`;
+ const kpi=(l,v,icon,bg,d,k)=>`<div class="card kpi" ${k?`data-k="${k}" role="button" tabindex="0"`:''}><div><div class="l">${l}</div><div class="v">${v}</div></div><div class="ic" style="background:${bg}">${ico(icon)}</div><div class="d">${d}</div></div>`;
  const vs=' vs periodo anterior',cmp=(a,b,alt)=>P&&b?pct(a,b)+vs:alt;
  return `<div class="ph"><div><h1>Hola${(()=>{const n=ME?(ME.name||ME.username):S.cfg.owner;return n?', '+esc(n):''})()}</h1><div class="sub">Resumen de ${esc(S.cfg.name)} · ${S.range?'últimos '+S.range+' días':'desde el principio'}</div></div>
  <div class="tabs" role="tablist">${RANGES.map(([v,l])=>`<button data-range="${v}" class="${v===S.range?'on':''}">${l}</button>`).join('')}</div></div>
  ${tk.length?`<div class="card tick" aria-label="Piezas y stock"><div class="tr">${[...tk,...tk].map(({p,s})=>`<button class="ti" data-show="${esc(p.id)}"><span class="mini">${photo(p)}</span><b>${esc(p.name)}</b><span>${num(p.stock)} ud</span><span class="${s?'up':'note'}">${s?'↑ '+s+' vendidas':'sin ventas'}</span></button>`).join('')}</div></div>`:''}
  <div class="kpis">
-  ${kpi('Ingresos cobrados',money(T.inc),'trend','#12a150',(()=>{const o=owedSales().reduce((t,s)=>t+(+s.total||0),0)+S.jobs.filter(j=>!j.paid&&(j.status==='listo'||j.status==='entregado')).reduce((t,j)=>t+(+j.price||0),0);return (P&&P.inc?pct(T.inc,P.inc)+vs:`${T.n} ventas`)+(o?` · <button data-go="tickets" data-tkf="deber" class="dn" style="font-weight:700;padding:0;min-height:0;font-size:13px">${money(o)} te deben ›</button>`:'')})())}
-  ${kpi('Gastos',money(T.exp),'wallet','#ef4b4b',cmp(T.exp,P&&P.exp,`${T.e.length} gastos en el periodo`))}
-  ${kpi('Beneficio neto',money(T.net),'cash','#5750f1',cmp(T.net,P&&P.net,'Ingresos menos gastos'))}
-  ${kpi('Piezas en stock',num(stockU),'box','#fb6b2b',low.length?`<b class="dn">${low.length} por reponer</b>`:'<b class="up">Todo en orden</b>')}
+  ${kpi('Ingresos cobrados',money(T.inc),'trend','#12a150',(()=>{const o=owedSales().reduce((t,s)=>t+(+s.total||0),0)+S.jobs.filter(j=>!j.paid&&(j.status==='listo'||j.status==='entregado')).reduce((t,j)=>t+(+j.price||0),0);return (P&&P.inc?pct(T.inc,P.inc)+vs:`${T.n} ventas`)+(o?` · <button data-go="tickets" data-tkf="deber" class="dn" style="font-weight:700;padding:0;min-height:0;font-size:13px">${money(o)} te deben ›</button>`:'')})(),'inc')}
+  ${kpi('Gastos',money(T.exp),'wallet','#ef4b4b',cmp(T.exp,P&&P.exp,`${T.e.length} gastos en el periodo`),'go:gastos')}
+  ${kpi('Beneficio neto',money(T.net),'cash','#5750f1',cmp(T.net,P&&P.net,'Ingresos menos gastos'),'profit')}
+  ${kpi('Piezas en stock',num(stockU),'box','#fb6b2b',low.length?`<b class="dn">${low.length} por reponer</b>`:'<b class="up">Todo en orden</b>',low.length?'low':'go:piezas')}
  </div>
  <div class="g21">
   <div class="card"><div class="ch"><div><div class="note">Beneficio neto (${rl})</div><div class="big">${money(T.net)}</div><div class="note">${money(T.inc)} ingresos · ${money(T.exp)} gastos · ticket medio ${money(T.avg)}</div></div>
@@ -899,8 +924,8 @@ function vMovimientos(){
  const l=S.moves.filter(m=>S.mvf==='todos'||(S.mvf==='in'?m.qty>0:m.qty<0)).sort((a,b)=>b.date-a.date);
  const ins=S.moves.filter(m=>m.qty>0).reduce((t,m)=>t+m.qty,0),outs=S.moves.filter(m=>m.qty<0).reduce((t,m)=>t-m.qty,0);
  return `<div class="ph"><div><h1>Movimientos de stock</h1><div class="sub">Cada entrada (impresiones, ajustes) y salida (ventas) con el stock antes y después</div></div><button class="btn gh" id="csvm">${ico('down')}Exportar (CSV)</button></div>
- <div class="g2"><div class="card kpi" style="background:var(--ink);color:var(--card);border-color:var(--ink)"><div><div class="l" style="color:inherit;opacity:.7">Salidas (ventas y ajustes)</div><div class="v">−${num(outs)} ud</div></div><div class="ic" style="background:var(--exp)">↗</div></div>
- <div class="card kpi" style="background:color-mix(in srgb,var(--inc) 14%,var(--card))"><div><div class="l">Entradas (impresiones y ajustes)</div><div class="v">+${num(ins)} ud</div></div><div class="ic" style="background:var(--inc)">↙</div></div></div>
+ <div class="g2"><div class="card kpi" data-k="mvf:out" role="button" tabindex="0" style="background:var(--ink);color:var(--card);border-color:var(--ink)"><div><div class="l" style="color:inherit;opacity:.7">Salidas (ventas y ajustes)</div><div class="v">−${num(outs)} ud</div></div><div class="ic" style="background:var(--exp)">↗</div></div>
+ <div class="card kpi" data-k="mvf:in" role="button" tabindex="0" style="background:color-mix(in srgb,var(--inc) 14%,var(--card))"><div><div class="l">Entradas (impresiones y ajustes)</div><div class="v">+${num(ins)} ud</div></div><div class="ic" style="background:var(--inc)">↙</div></div></div>
  <div class="card"><div class="ch"><h2>Kardex</h2><div class="tabs">${[['todos','Todos'],['in','Solo entradas'],['out','Solo salidas']].map(([k,t])=>`<button data-mvf="${k}" class="${S.mvf===k?'on':''}">${t}</button>`).join('')}</div></div>
  <div class="lst">${l.slice(0,300).map(m=>`<div class="li" style="grid-template-columns:40px minmax(0,1fr) auto"><div class="th" style="width:40px;height:40px;border-radius:50%;background:${m.qty>=0?'color-mix(in srgb,var(--inc) 15%,transparent)':'var(--soft)'};color:${m.qty>=0?'var(--inc)':'var(--ink)'}">${m.qty>=0?'↙':'↗'}</div><div><b>${esc(m.name)}</b><small>${esc(MVT[m.type]||m.type)}${m.ref?' · '+esc(m.ref):''} · ${fdt(m.date)} · Stock: ${num(m.before)} → ${num(m.after)}</small></div><div class="rt"><b class="${m.qty>=0?'up':'dn'}">${m.qty>0?'+':''}${num(m.qty)} ud</b>${m.amount?`<br><small>${money(m.amount)}</small>`:''}</div></div>`).join('')||'<div class="empty">Sin movimientos todavía</div>'}</div></div>`}
 
@@ -955,10 +980,10 @@ function vGastos(){
  const gc={};T.e.forEach(e=>gc[e.cat||'Otros']=(gc[e.cat||'Otros']||0)+(+e.amount||0));
  const by={};T.e.forEach(e=>{const n=collabName(e.paidBy);by[n]=(by[n]||0)+(+e.amount||0)});
  return `<div class="ph"><div><h1>Gastos</h1><div class="sub">Todo lo que gastas tú y tus colaboradores en el taller</div></div><div class="btns"><div class="tabs">${RANGES.map(([v,t])=>`<button data-range="${v}" class="${v===S.range?'on':''}">${t}</button>`).join('')}</div><button class="btn" id="newg">+ Nuevo gasto</button></div></div>
- <div class="kpis"><div class="card kpi"><div><div class="l">Gastado en el periodo</div><div class="v">${money(T.exp)}</div></div><div class="ic" style="background:#ef4b4b">${ico('wallet')}</div><div class="d">${P&&P.exp?pct(T.exp,P.exp)+' vs periodo anterior':T.e.length+' gastos'}</div></div>
- <div class="card kpi"><div><div class="l">Ingresos del periodo</div><div class="v">${money(T.inc)}</div></div><div class="ic" style="background:#12a150">${ico('trend')}</div><div class="d">${T.n} ventas</div></div>
- <div class="card kpi"><div><div class="l">Beneficio</div><div class="v ${T.net<0?'dn':''}">${money(T.net)}</div></div><div class="ic" style="background:#5750f1">${ico('cash')}</div><div class="d">${T.inc?Math.round(T.net/T.inc*100)+'% de margen':'—'}</div></div>
- <div class="card kpi"><div><div class="l">Pendiente de devolver</div><div class="v ${owe?'dn':''}">${money(owe)}</div></div><div class="ic" style="background:#fb6b2b">${ico('team')}</div><div class="d">A colaboradores</div></div></div>
+ <div class="kpis"><div class="card kpi" data-k="scroll:#glist" role="button" tabindex="0"><div><div class="l">Gastado en el periodo</div><div class="v">${money(T.exp)}</div></div><div class="ic" style="background:#ef4b4b">${ico('wallet')}</div><div class="d">${P&&P.exp?pct(T.exp,P.exp)+' vs periodo anterior':T.e.length+' gastos'}</div></div>
+ <div class="card kpi" data-k="inc" role="button" tabindex="0"><div><div class="l">Ingresos del periodo</div><div class="v">${money(T.inc)}</div></div><div class="ic" style="background:#12a150">${ico('trend')}</div><div class="d">${T.n} ventas</div></div>
+ <div class="card kpi" data-k="profit" role="button" tabindex="0"><div><div class="l">Beneficio</div><div class="v ${T.net<0?'dn':''}">${money(T.net)}</div></div><div class="ic" style="background:#5750f1">${ico('cash')}</div><div class="d">${T.inc?Math.round(T.net/T.inc*100)+'% de margen':'—'}</div></div>
+ <div class="card kpi" data-k="go:colaboradores" role="button" tabindex="0"><div><div class="l">Pendiente de devolver</div><div class="v ${owe?'dn':''}">${money(owe)}</div></div><div class="ic" style="background:#fb6b2b">${ico('team')}</div><div class="d">A colaboradores</div></div></div>
  <div class="g2"><div class="card"><div class="ch"><h2>Por categoría</h2></div>${donut(gc,true)}</div><div class="card"><div class="ch"><h2>Quién ha pagado</h2></div>${bars(by,money,'var(--exp)')}</div></div>
  <div class="card"><div class="ch"><h2>Listado</h2><button class="btn gh" id="csvg">${ico('down')}Exportar (CSV)</button></div>
  <div class="tabs" style="margin-bottom:10px">${[['todas','Todas las áreas'],['3d','Impresión 3D'],['informatica','Informática']].map(([k,t])=>`<button data-garea="${k}" class="${S.garea===k?'on':''}">${t}</button>`).join('')}</div><div class="chips" style="margin-bottom:10px">${['Todas',...GCATS].map(c=>`<button class="chip ${c===S.gcat?'on':''}" data-gcat="${esc(c)}">${esc(c)}</button>`).join('')}</div>
@@ -1150,10 +1175,10 @@ function vServicios(){
  const rl=RANGES.find(r=>r[0]===S.range)[1];
  return `<div class="ph"><div><h1>Servicio informático</h1><div class="sub">Trabajos de ordenadores y móviles para clientes y amigos: lo que cobras, lo que te cuesta y lo pendiente</div></div>
  <div class="btns"><div class="tabs">${RANGES.map(([v,t])=>`<button data-range="${v}" class="${v===S.range?'on':''}">${t}</button>`).join('')}</div><button class="btn" id="newj">+ Nuevo trabajo</button></div></div>
- <div class="kpis"><div class="card kpi"><div><div class="l">Cobrado (${rl})</div><div class="v">${money(T.incJ)}</div></div><div class="ic" style="background:#12a150">${ico('trend')}</div><div class="d">${T.j.length} trabajos cobrados</div></div>
- <div class="card kpi"><div><div class="l">Costes (${rl})</div><div class="v">${money(T.expJ)}</div></div><div class="ic" style="background:#ef4b4b">${ico('wallet')}</div><div class="d">Piezas, licencias y gastos de informática</div></div>
- <div class="card kpi"><div><div class="l">Beneficio (${rl})</div><div class="v ${T.incJ-T.expJ<0?'dn':''}">${money(T.incJ-T.expJ)}</div></div><div class="ic" style="background:#5750f1">${ico('cash')}</div><div class="d">${num(per.reduce((t,j)=>t+(+j.hours||0),0),1)} h de trabajo</div></div>
- <div class="card kpi"><div><div class="l">Pendiente de cobrar</div><div class="v ${unpaid.length?'dn':''}">${money(unpaid.reduce((t,j)=>t+(+j.price||0),0))}</div></div><div class="ic" style="background:#fb6b2b">${ico('pc')}</div><div class="d">${open.length} trabajos abiertos</div></div></div>
+ <div class="kpis"><div class="card kpi" data-k="jobf:cobrados" role="button" tabindex="0"><div><div class="l">Cobrado (${rl})</div><div class="v">${money(T.incJ)}</div></div><div class="ic" style="background:#12a150">${ico('trend')}</div><div class="d">${T.j.length} trabajos cobrados</div></div>
+ <div class="card kpi" data-k="garea:informatica" role="button" tabindex="0"><div><div class="l">Costes (${rl})</div><div class="v">${money(T.expJ)}</div></div><div class="ic" style="background:#ef4b4b">${ico('wallet')}</div><div class="d">Piezas, licencias y gastos de informática</div></div>
+ <div class="card kpi" data-k="profit" role="button" tabindex="0"><div><div class="l">Beneficio (${rl})</div><div class="v ${T.incJ-T.expJ<0?'dn':''}">${money(T.incJ-T.expJ)}</div></div><div class="ic" style="background:#5750f1">${ico('cash')}</div><div class="d">${num(per.reduce((t,j)=>t+(+j.hours||0),0),1)} h de trabajo</div></div>
+ <div class="card kpi" data-k="jobf:cobrar" role="button" tabindex="0"><div><div class="l">Pendiente de cobrar</div><div class="v ${unpaid.length?'dn':''}">${money(unpaid.reduce((t,j)=>t+(+j.price||0),0))}</div></div><div class="ic" style="background:#fb6b2b">${ico('pc')}</div><div class="d">${open.length} trabajos abiertos</div></div></div>
  <div class="g21"><div class="card"><div class="ch"><h2>Trabajos</h2><div class="tabs">${[['abiertos','Abiertos'],['cobrar','Por cobrar'],['cobrados','Cobrados'],['todos','Todos']].map(([k,t])=>`<button data-jobf="${k}" class="${S.jobf===k?'on':''}">${t}</button>`).join('')}</div></div>
  ${usedCats.length>1?`<div class="chips" style="margin-bottom:10px">${['Todas',...jcats().map(c=>c.n).filter(n=>usedCats.includes(n)),...usedCats.filter(n=>!jcats().some(c=>c.n===n))].map(c=>`<button class="chip ${(S.jcat||'Todas')===c?'on':''}" data-jcat="${esc(c)}">${esc(c)}</button>`).join('')}</div>`:''}
  <div class="scroll"><table class="stack"><thead><tr><th>Nº</th><th>Fecha</th><th>Cliente</th><th>Trabajo</th><th>Estado</th><th class="n">Cobro</th><th class="n">Beneficio</th></tr></thead><tbody>
@@ -1367,12 +1392,12 @@ function vPresupuestos(){
  const head=`<div class="ph"><div><h1>Calculadora y presupuestos</h1><div class="sub">Calcula lo que te cuesta una impresión, ponle precio y envía el presupuesto</div></div><div class="btns"><div class="tabs"><button data-qtab="calc" class="${tab==='calc'?'on':''}">${ico('calc')} Calculadora</button><button data-qtab="list" class="${tab==='list'?'on':''}">${ico('rcpt')} Presupuestos</button></div><button class="btn" id="newq">+ Presupuesto</button></div></div>`;
  if(tab==='calc')return head+vCalc();
  const qs=S.quotes.slice().sort((a,b)=>b.date-a.date),open=qs.filter(q=>q.status==='borrador'||q.status==='enviado'),acc=qs.filter(q=>q.status==='aceptado'),dec=qs.filter(q=>q.status==='aceptado'||q.status==='rechazado');
- return head+`<div class="kpis"><div class="card kpi"><div><div class="l">Abiertos</div><div class="v">${open.length}</div></div><div class="ic" style="background:#e0a100">${ico('rcpt')}</div><div class="d">${money(open.reduce((t,q)=>t+qTotal(q),0))} en juego</div></div>
- <div class="card kpi"><div><div class="l">Aceptados</div><div class="v">${money(acc.reduce((t,q)=>t+qTotal(q),0))}</div></div><div class="ic" style="background:#12a150">${ico('trend')}</div><div class="d">${acc.length} presupuestos</div></div>
- <div class="card kpi"><div><div class="l">Tasa de aceptación</div><div class="v">${dec.length?Math.round(acc.length/dec.length*100):0}%</div></div><div class="ic" style="background:#5750f1">${ico('cash')}</div><div class="d">De los ya respondidos</div></div>
- <div class="card kpi"><div><div class="l">Total presupuestado</div><div class="v">${money(qs.reduce((t,q)=>t+qTotal(q),0))}</div></div><div class="ic" style="background:#fb6b2b">${ico('calc')}</div><div class="d">${qs.length} presupuestos</div></div></div>
+ return head+`<div class="kpis"><div class="card kpi" data-k="qsf:open" role="button" tabindex="0"><div><div class="l">Abiertos</div><div class="v">${open.length}</div></div><div class="ic" style="background:#e0a100">${ico('rcpt')}</div><div class="d">${money(open.reduce((t,q)=>t+qTotal(q),0))} en juego</div></div>
+ <div class="card kpi" data-k="qsf:acc" role="button" tabindex="0"><div><div class="l">Aceptados</div><div class="v">${money(acc.reduce((t,q)=>t+qTotal(q),0))}</div></div><div class="ic" style="background:#12a150">${ico('trend')}</div><div class="d">${acc.length} presupuestos</div></div>
+ <div class="card kpi" data-k="qsf:dec" role="button" tabindex="0"><div><div class="l">Tasa de aceptación</div><div class="v">${dec.length?Math.round(acc.length/dec.length*100):0}%</div></div><div class="ic" style="background:#5750f1">${ico('cash')}</div><div class="d">De los ya respondidos</div></div>
+ <div class="card kpi" data-k="qsf:all" role="button" tabindex="0"><div><div class="l">Total presupuestado</div><div class="v">${money(qs.reduce((t,q)=>t+qTotal(q),0))}</div></div><div class="ic" style="background:#fb6b2b">${ico('calc')}</div><div class="d">${qs.length} presupuestos</div></div></div>
  <div class="card"><div class="scroll"><table class="stack"><thead><tr><th>Nº</th><th>Fecha</th><th>Cliente</th><th>Concepto</th><th>Estado</th><th class="n">Total</th></tr></thead><tbody>
- ${qs.map(q=>`<tr class="ck" data-vq="${esc(q.id)}"><td><b>${qnum(q.num)}</b></td><td>${fdate(q.date)}</td><td>${esc(q.customerName||'—')}</td><td>${esc(q.title||(q.lines||[]).map(l=>l.d).join(', '))}</td><td><span class="tag ${(QST[q.status]||['',''])[1]}">${esc((QST[q.status]||[q.status])[0])}</span></td><td class="n"><b>${money(qTotal(q))}</b></td></tr>`).join('')||'<tr><td colspan="6" class="empty">Aún no hay presupuestos. Usa la calculadora o pulsa «+ Presupuesto».</td></tr>'}</tbody></table></div></div>`}
+ ${(S.qsf&&S.qsf!=='all'?{open,acc,dec}[S.qsf]||qs:qs).map(q=>`<tr class="ck" data-vq="${esc(q.id)}"><td><b>${qnum(q.num)}</b></td><td>${fdate(q.date)}</td><td>${esc(q.customerName||'—')}</td><td>${esc(q.title||(q.lines||[]).map(l=>l.d).join(', '))}</td><td><span class="tag ${(QST[q.status]||['',''])[1]}">${esc((QST[q.status]||[q.status])[0])}</span></td><td class="n"><b>${money(qTotal(q))}</b></td></tr>`).join('')||'<tr><td colspan="6" class="empty">Aún no hay presupuestos. Usa la calculadora o pulsa «+ Presupuesto».</td></tr>'}</tbody></table></div></div>`}
 function editQuote(id,pre={}){
  const q0=S.quotes.find(x=>x.id===id),q={date:Date.now(),customerId:'',title:'',lines:[{d:'',q:1,u:0}],disc:0,valid:15,notes:'',status:'borrador',...(q0||{}),...pre};let L=(q.lines||[]).map(l=>({...l}));
  const lines=()=>L.map((l,i)=>`<div style="display:grid;grid-template-columns:minmax(0,1fr) 70px 100px 40px;gap:6px;align-items:center"><input data-qi="${i}" data-f="d" value="${esc(l.d)}" placeholder="Concepto"><input data-qi="${i}" data-f="q" type="number" min="0" step="1" value="${esc(l.q)}" aria-label="Cantidad"><input data-qi="${i}" data-f="u" type="number" min="0" step="0.01" value="${esc(l.u)}" aria-label="Precio"><button type="button" class="btn rd" data-qdel="${i}" style="padding:0;min-height:44px" aria-label="Quitar línea">×</button></div>`).join('');
@@ -1567,6 +1592,23 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
 /* ======================= AJUSTES ======================= */
 const WEB_VERSION='1.0.0';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
+const REPO_URL='https://github.com/pctecnikk/taller3dpanel',APK_URL=REPO_URL+'/releases?q=android&expanded=true';
+const webVer=()=>SRV.version||WEB_VERSION;
+/* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
+const NEWS=[
+ ['1.0.0',['Primera versión: panel, ventas con lector QR, tickets, piezas y stock con foto, diseños, filamentos, movimientos, calculadora con STL/3MF y presupuestos.',
+  'Clientes, colaboradores, gastos, servicio informático con categorías y precio habitual, y usuarios con permisos.',
+  '**Granja de impresoras** (opcional, en Ajustes): QR por impresora y control en directo de las Bambu Lab en modo LAN.',
+  '**Cambiar de usuario** con un toque, **foto de cada impresora** y **boquillas** 0,2 / 0,4 / 0,6 / 0,8 con su tipo.',
+  'Las tarjetas de resumen (ingresos, gastos, beneficio, piezas…) se pueden tocar para entrar.']]];
+const newer=(a,b)=>{const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<3;i++)if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0);return false};
+const mdl=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+function showNews(since){const l=since?NEWS.filter(([v])=>newer(v,since)):NEWS;if(!l.length)return;
+ modal(`<div class="ch" style="margin:0"><h2>${since?'Taller3D Panel se ha actualizado a la '+esc(webVer()):'Novedades de Taller3D Panel'}</h2><button class="btn gh" data-close>Cerrar</button></div>
+ <div class="news">${l.map(([v,it])=>`<h3>Versión ${esc(v)}${v===webVer()?' <span class="tag">la tuya</span>':''}</h3><ul>${it.map(i=>`<li>${mdl(i)}</li>`).join('')}</ul>`).join('')}</div>
+ <p class="note" style="margin:0">Web ${esc(webVer())} · ${appVersion()?'App Android '+esc(appVersion()):`<a href="${APK_URL}" target="_blank" rel="noopener">Descargar la app Android</a>`}</p>`)}
+function newsIfUpdated(){let seen='';try{seen=localStorage.getItem('t3d-visto')||'';localStorage.setItem('t3d-visto',webVer())}catch(e){}if(seen&&newer(webVer(),seen))setTimeout(()=>showNews(seen),600)}
+const footHTML=()=>`<footer class="pfoot">Taller3D Panel · Web ${esc(webVer())} · ${appVersion()?'App Android '+esc(appVersion()):`<a href="${APK_URL}" target="_blank" rel="noopener">App Android</a>`} · <button type="button" id="footnews">Novedades</button></footer>`;
 const versionText=()=>`Taller3D Panel ${SRV.version||WEB_VERSION}`+(appVersion()?` · App Android ${appVersion()}`:'');
 const compLines=()=>{const c=S.cfg;return [c.legal&&c.legal!==c.name?c.legal:'',c.nif?'NIF/CIF: '+c.nif:'',c.addr,c.city,c.phone?'Tel. '+c.phone:'',c.email,c.web].filter(Boolean)};
 function taxRows(t){const v=+S.cfg.vat||0;if(!v)return '';const base=S.cfg.vatIncl===false?t:t/(1+v/100),iva=S.cfg.vatIncl===false?t*v/100:t-base;return `<div class="r"><span>Base imponible</span><span>${base.toFixed(2)}</span></div><div class="r"><span>IVA ${num(v,2)}%${S.cfg.vatIncl===false?'':' (incluido)'}</span><span>${iva.toFixed(2)}</span></div>`}
@@ -1644,7 +1686,7 @@ let rq=0;const render=()=>{if(rq)return;rq=requestAnimationFrame(()=>{rq=0;doRen
 function doRender(){
  const a=document.activeElement,fid=a&&a.id,pos=a&&a.selectionStart,keep=['q','tkq','scan','cash','fmq'].includes(fid)?fid:'';if(S.view==='presupuestos'&&a&&a.closest&&a.closest('#calcf'))return;
  const scanVal=$('#scan')?.value||'';
- $('#main').innerHTML=V[S.view]();
+ $('#main').innerHTML=V[S.view]()+footHTML();{const fn=$('#footnews');if(fn)fn.onclick=()=>showNews()}$('#vchip').textContent='v'+webVer();if(ME&&!window.__newsChk){window.__newsChk=1;newsIfUpdated()}
  document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
  const low=lowList().length,lc=$('#lowc');lc.hidden=!low;lc.textContent=low;$('#pip').hidden=!low;
  $('#bname').innerHTML=esc(S.cfg.name);const who=ME?(ME.name||ME.username):(S.cfg.owner||'Yo');$('#mename').textContent=who;{const a=$('#avt');if(ME&&myAvatar(ME.id)){a.innerHTML=avatarHTML(ME,38);a.style.overflow='hidden'}else a.textContent=(who||'Y')[0].toUpperCase()}
@@ -1671,16 +1713,17 @@ function accountModal(){
  if(!ME){showLogin();return}
  modal(`<div style="display:flex;gap:14px;align-items:center"><span class="av" style="width:72px;height:72px;font-size:28px;overflow:hidden">${avatarHTML(ME,72)}</span><div style="display:grid;gap:6px"><div><h2>${esc(ME.name||ME.username)}</h2><div class="note">@${esc(ME.username)} · ${esc({admin:'Administrador',editor:'Puede editar',lector:'Solo ver'}[ME.role]||ME.role)}</div></div><div class="btns"><span class="btn sf filebtn" style="min-height:36px;padding:6px 12px">${ico('cam')}${myAvatar(ME.id)?'Cambiar foto':'Poner foto o avatar'}<input type="file" accept="image/*" id="avf"></span>${myAvatar(ME.id)?'<button type="button" class="btn rd" id="noav" style="min-height:36px;padding:6px 12px">Quitar</button>':''}</div></div></div>
   <div style="display:grid;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Cambiar de usuario</h3><button type="button" class="btn gh" id="addacc">+ Añadir cuenta</button></div><div id="accl" style="display:grid;gap:8px"><div class="note">Cargando…</div></div></div>
+  <p class="note" style="margin:0"><b>Web ${esc(webVer())}</b> · ${appVersion()?'<b>App Android '+esc(appVersion())+'</b>':`<a href="${APK_URL}" target="_blank" rel="noopener">App de Android</a>`} · <a href="#" id="accnews">Novedades</a></p>
   <p class="note" style="margin:0">Tu foto es solo tuya. El logo de la empresa (tickets y presupuestos) se cambia en Ajustes → Datos de la empresa.</p>
   <form id="fme3" style="display:grid;gap:12px"><div class="f2"><label>Nombre<input name="name" value="${esc(ME.name||'')}"></label><label>Email${SRV.requireEmail&&!IN_ARTIFACT?'':' (opcional)'}<input name="email" type="email" value="${esc(ME.email||'')}" ${SRV.requireEmail&&!IN_ARTIFACT?'required':''}></label></div>
   <div class="acts" style="justify-content:space-between"><div class="btns"><button type="button" class="btn gh" id="chpw">Cambiar contraseña</button>${ME.role==='admin'?'<button type="button" class="btn gh" data-go="usuarios">Usuarios</button>':''}<button type="button" class="btn rd" id="logout">${ico('out')}Salir</button></div><button class="btn">Guardar</button></div></form>`);
- $('#addacc').onclick=addAccount;
+ $('#addacc').onclick=addAccount;$('#accnews').onclick=e=>{e.preventDefault();showNews()};
  deviceAccounts().then(l=>{const b=$('#accl');if(!b)return;const o=l.filter(a=>!a.current);
   b.innerHTML=o.length?o.map(accRow).join('')+(l.length>1?'<button type="button" class="btn gh" id="logoutall" style="justify-self:start">Salir de todas las cuentas de este dispositivo</button>':''):'<div class="note">Solo tienes esta cuenta abierta aquí. Con «+ Añadir cuenta» entras con otra y luego cambias entre ellas con un toque, sin volver a poner la contraseña.</div>';
   const la=$('#logoutall');if(la)la.onclick=()=>confirmBox('¿Cerrar la sesión de todas las cuentas en este dispositivo?',async()=>{if(IN_ARTIFACT){accsSet([]);sessSet(null);ME=null;closeModal();$('#login').dataset.mode='login';showLogin();return}await api('POST','api/logout',{all:true}).catch(()=>{});location.reload()})});
  $('#avf').onchange=e=>{const f=e.target.files[0];if(f)setAvatar(f)};{const n=$('#noav');if(n)n.onclick=()=>setAvatar(null)}
  $('#fme3').onsubmit=async e=>{e.preventDefault();const f=e.target;try{if(IN_ARTIFACT){const em=f.email.value.trim();if(em&&!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(em))throw {message:'El email no es válido'};await patch('appusers',ME.id,{name:f.name.value.trim()||ME.username,email:em});ME={...ME,name:f.name.value.trim()||ME.username,email:em};closeModal();toast('Cuenta guardada');render();return}const r=await api('PATCH','api/me',{name:f.name.value.trim(),email:f.email.value.trim()});ME=r.user;closeModal();toast('Cuenta guardada');render()}catch(err){toast(err.message||'No se pudo guardar')}}}
-$('#meBtn').onclick=accountModal;$('#qscan').onclick=quickScan;
+$('#meBtn').onclick=accountModal;$('#vchip').onclick=()=>showNews();$('#qscan').onclick=quickScan;
 $('#burger').onclick=()=>{$('#side').classList.add('open');$('#scrim').classList.add('show')};$('#scrim').onclick=closeSide;
 $('#bell').onclick=()=>{S.lowOnly=true;go('piezas')};
 $('#mcart').onclick=()=>{if(S.cart.length)$('#ticket')?.classList.toggle('open')};
@@ -1707,7 +1750,8 @@ document.addEventListener('submit',async e=>{const f=e.target,id=f.id;if(!['fcfg
   toast('Guardado')}catch(_){}});
 document.addEventListener('click',async e=>{
  if(e.target.id==='ov'){closeModal();return}
- const t=e.target.closest('button,tr,.sm[data-low]');if(!t)return;const d=t.dataset;
+ const t=e.target.closest('button,tr,.sm[data-low],.kpi[data-k]');if(!t)return;const d=t.dataset;
+ if(d.k&&t.classList.contains('kpi')){kpiGo(d.k);return}
  if('close' in d){closeModal();return}
  if(d.v){go(d.v);return}if(d.go){if(d.tkf)S.tkf=d.tkf;go(d.go);return}
  if(d.add||d.inc)addCart(d.add||d.inc,1);else if(d.dec)addCart(d.dec,-1);
