@@ -13,10 +13,20 @@ function varint(n) { const b = []; do { let d = n % 128; n = Math.floor(n / 128)
 const str = s => { const b = Buffer.from(s, 'utf8'); const l = Buffer.alloc(2); l.writeUInt16BE(b.length); return Buffer.concat([l, b]); };
 function packet(type, body) { return Buffer.concat([Buffer.from([type]), varint(body.length), body]); }
 
+// Las X1 / P1 mandan el AMS por partes (solo lo que cambia de cada AMS o de cada hueco), así que
+// las listas con "id" se mezclan por id en vez de sustituirse enteras. Si no, una actualización
+// de humedad borraba los colores de los huecos.
+function byId(arr) { return Array.isArray(arr) && arr.length && arr.every(x => x && typeof x === 'object' && x.id != null); }
 function deepMerge(a, b) {
   for (const k of Object.keys(b || {})) {
     const v = b[k];
-    if (v && typeof v === 'object' && !Array.isArray(v) && a[k] && typeof a[k] === 'object' && !Array.isArray(a[k])) deepMerge(a[k], v);
+    if (byId(v) && byId(a[k])) {
+      for (const item of v) {
+        const cur = a[k].find(x => String(x.id) === String(item.id));
+        if (cur) deepMerge(cur, item); else a[k].push(item);
+      }
+      a[k].sort((x, y) => +x.id - +y.id);
+    } else if (v && typeof v === 'object' && !Array.isArray(v) && a[k] && typeof a[k] === 'object' && !Array.isArray(a[k])) deepMerge(a[k], v);
     else a[k] = v;
   }
   return a;
