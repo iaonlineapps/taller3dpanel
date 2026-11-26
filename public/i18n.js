@@ -1484,6 +1484,7 @@ var EN={
 "{} de {} mm. {}":"{}, {} mm. {}",
 "Guardar a deber {}":"Save on credit {}",
 "Cambiado al editar":"Changed when editing",
+"Las **fotos de las piezas** ya se ven bien en la barra que se mueve arriba del Panel (antes salían cortadas).":"The **part photos** now show properly in the moving bar at the top of the Dashboard (they used to be cut off).",
 "Archivo de la pieza":"Part file",
 "Sube el STL, 3MF o STEP desde el ordenador o el móvil. Se guarda con la pieza y te relleno los gramos y las horas.":"Upload the STL, 3MF or STEP from your computer or phone. It is saved with the part and I fill in the grams and hours for you.",
 "Subir archivo":"Upload file",
