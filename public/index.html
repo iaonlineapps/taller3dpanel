@@ -794,7 +794,7 @@ function editProduct(id,pre={}){
  <div class="f3"><label>Precio (${esc(S.cfg.currency)})<input name="price" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(p.price)}"></label><label>Coste<input name="cost" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(p.cost)}"></label><label>Código QR / barras<input name="code" value="${esc(p.code)}"></label></div>
  <div class="f3"><label>Stock<input name="stock" type="number" step="1" min="0" inputmode="numeric" value="${esc(p.stock)}"></label><label>Aviso si baja de<input name="min" type="number" step="1" min="0" value="${esc(p.min)}"></label><label>Impresora<select name="printer"><option value="">—</option>${sel(p.printer,fleet().map(f=>[f.alias,f.alias]))}</select></label></div>
  <div class="matbox"><div class="mathd"><b>Filamentos de la pieza</b><span class="note">Un color por fila. Si es a dos colores (AMS), añade otro.</span></div>
-  <div id="matl"></div><datalist id="mats">${['PLA','PETG','TPU','ABS','ASA','PC','PA','Resina'].map(m=>`<option value="${m}">`).join('')}</datalist>
+  <div id="matl"></div>
   <button type="button" class="btn sf" id="matadd" style="justify-self:start">+ Añadir otro color o material</button></div>
  <div class="matbox"><div class="mathd"><b>Archivo de la pieza</b><span class="note">Sube el STL, 3MF o STEP desde el ordenador o el móvil. Se guarda con la pieza y te relleno los gramos y las horas.</span></div>
   <div id="p3dbox"></div>
@@ -808,9 +808,9 @@ function editProduct(id,pre={}){
  const spOpts=v=>`<option value="">Otro (lo escribo yo)</option>${S.spools.map(s=>`<option value="${esc(s.id)}" ${s.id===v?'selected':''}>${esc(spoolName(s))}${+s.priceKg?' · '+money(s.priceKg)+'/kg':''}</option>`).join('')}`;
  const sw=m=>`<span class="msw" style="background:${esc(colorHex(m)||'transparent')}"></span>`;
  const paintMats=()=>{$('#matl').innerHTML=mats.map((m,i)=>`<div class="mrow">${sw(m)}<label class="mfil">${mats.length>1?'Color '+(i+1):'Filamento'}<select data-mi="${i}" data-mk="spool">${spOpts(m.spool)}</select></label><label class="mg">Gramos<input data-mi="${i}" data-mk="grams" type="number" step="any" min="0" inputmode="decimal" value="${esc(m.grams)}" placeholder="0"></label>${mats.length>1?`<button type="button" class="btn rd mdel" data-mdel="${i}" aria-label="Quitar este color">✕</button>`:''}
-   ${m.spool?'':`<div class="mother"><label>Material<input data-mi="${i}" data-mk="material" list="mats" value="${esc(m.material)}"></label><label>Color<input data-mi="${i}" data-mk="color" value="${esc(m.color)}"></label><label>Precio /kg<input data-mi="${i}" data-mk="priceKg" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(m.priceKg)}" placeholder="${esc(num(spoolPk(m.material),2))}"></label></div>`}</div>`).join('');
+   ${m.spool?'':`<div class="mother"><label>Material${m._custom?`<input data-mi="${i}" data-mk="material" value="${esc(m.material)}" placeholder="Escribe el material">`:`<select data-mi="${i}" data-mk="material">${matOpts(m.material)}</select>`}</label><label>Color<input data-mi="${i}" data-mk="color" value="${esc(m.color)}"></label><label>Precio /kg<input data-mi="${i}" data-mk="priceKg" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(m.priceKg)}" placeholder="${esc(num(spoolPk(m.material),2))}"></label></div>`}</div>`).join('');
   $('#matl').querySelectorAll('[data-mi]').forEach(el=>{const ev=el.tagName==='SELECT'?'onchange':'oninput';el[ev]=()=>{const m=mats[+el.dataset.mi];m[el.dataset.mk]=el.value;
-   if(el.dataset.mk==='color'){const d=el.closest('.mrow').querySelector('.msw');if(d)d.style.background=colorHex(m)||'transparent'}if(el.dataset.mk==='spool'){const sp=S.spools.find(s=>s.id===el.value);if(sp){m.material=sp.material||'';m.color=sp.color||'';m.priceKg=''}paintMats()}paintCost()}});
+   if(el.dataset.mk==='material'&&el.value==='__otro'){m.material='';m._custom=true;paintMats();const n=$('#matl').querySelector(`input[data-mi="${el.dataset.mi}"][data-mk="material"]`);if(n)n.focus();return}if(el.dataset.mk==='color'){const d=el.closest('.mrow').querySelector('.msw');if(d)d.style.background=colorHex(m)||'transparent'}if(el.dataset.mk==='spool'){const sp=S.spools.find(s=>s.id===el.value);if(sp){m.material=sp.material||'';m.color=sp.color||'';m.priceKg=''}paintMats()}paintCost()}});
   $('#matl').querySelectorAll('[data-mdel]').forEach(b=>b.onclick=()=>{mats.splice(+b.dataset.mdel,1);paintMats();paintCost()})};
  const paintCost=()=>{const r=pieceCost(mats,f.hours.value,f.printer.value),g=mats.reduce((t,m)=>t+(+m.grams||0),0);
   const pd=$('#pdots');if(pd)pd.innerHTML=dots({mats})||'';
@@ -977,7 +977,7 @@ function vFilamentos(){
 function editSpool(id,pre={}){const s=Object.assign({brand:'Genérico',line:'',material:'PLA',color:'',size:1000,left:1000,priceKg:'',min:150,hex:'#5750f1',density:1.24,tNozzle:'',tBed:'',diameter:1.75,code:'',url:'',notes:''},S.spools.find(x=>x.id===id)||{},pre);
  if(pre.size&&!id&&pre.left==null)s.left=pre.size;
  modal(`<div class="ch" style="margin:0"><h2>${id?'Bobina':'Nueva bobina'}</h2>${id?'':'<button class="btn sf" id="spcat">Elegir del catálogo</button>'}</div><form id="fs" style="display:grid;gap:12px">
- <div class="f3"><label>Marca<input name="brand" list="fbr" value="${esc(s.brand)}"><datalist id="fbr">${FBRANDS.map(b=>`<option value="${esc(b)}">`).join('')}</datalist></label><label>Tipo / línea<input name="line" value="${esc(s.line)}" placeholder="PLA Matte, PETG HF…"></label><label>Material<select name="material">${sel(s.material,[...new Set([...Object.keys(DENS),'PET','PVA','HIPS','PVB','PPA','PPS','PP',s.material].filter(Boolean))].map(k=>[k,k]))}</select></label></div>
+ <div class="f3"><label>Marca<input name="brand" list="fbr" value="${esc(s.brand)}"><datalist id="fbr">${FBRANDS.map(b=>`<option value="${esc(b)}">`).join('')}</datalist></label><label>Tipo / línea<input name="line" value="${esc(s.line)}" placeholder="PLA Matte, PETG HF…"></label><label>Material<select name="material" data-matsel>${matOpts(s.material)}</select></label></div>
  <div class="f3"><label>Color<input name="color" value="${esc(s.color)}"></label><label>Tono<input name="hex" type="color" value="${esc(/^#[0-9a-f]{6}$/i.test(s.hex||'')?s.hex:'#888888')}" style="padding:4px"></label><label>Diámetro (mm)<select name="diameter">${sel(String(s.diameter),[['1.75','1,75'],['2.85','2,85']])}</select></label></div>
  <div class="chips" id="sw">${SWATCH.map(([n,c])=>`<button type="button" class="chip" data-sw="${c}" data-swn="${esc(n)}" style="display:flex;gap:6px;align-items:center"><i style="width:14px;height:14px;border-radius:50%;background:${c};border:1px solid var(--line)"></i>${esc(n)}</button>`).join('')}</div>
  <div class="f3"><label>Tamaño (g)<input name="size" type="number" min="1" value="${esc(s.size)}"></label><label>Quedan (g)<input name="left" type="number" min="0" value="${esc(s.left)}"></label><label>Precio por kg<input name="priceKg" type="number" step="0.01" min="0" value="${esc(s.priceKg)}"></label></div>
@@ -1466,7 +1466,19 @@ const PCAT=[
  ['Formlabs','Form 4','resin','',90,0,'Resina'],['Elegoo','Saturn 4 Ultra','resin','',70,0,'Resina'],['Elegoo','Mars 5 Ultra','resin','',60,0,'Resina'],['Anycubic','Photon Mono M7 Pro','resin','',70,0,'Resina'],['Creality','Halot-Mage','resin','',70,0,'Resina'],
  ['Otra','Personalizada','enc','',150,20,'Pon tú los datos']];
 const PBRANDS=[...new Set(PCAT.map(p=>p[0]))];
-const DENS={PLA:1.24,PETG:1.27,ABS:1.04,ASA:1.07,TPU:1.21,PC:1.2,PA:1.14,Resina:1.1};
+/* Tipos de material (lo que venden Bambu Lab, eSUN, Elegoo, Smart Materials 3D y Winkle), con su densidad aproximada en g/cm³ */
+const MATGROUPS=[
+ ['Los más usados',[['PLA',1.24,'PLA (normal)'],['PLA Matte',1.31,'PLA Mate'],['PLA Silk',1.32,'PLA Seda (Silk)'],['PLA HD',1.24,'PLA HD (alta definición)'],['PLA+',1.23,'PLA+ / PLA Pro'],['PLA Recycled',1.24,'PLA Reciclado'],['PETG',1.27],['PETG-CF',1.25,'PETG-CF (fibra de carbono)'],['PETG Recycled',1.27,'PETG Reciclado'],['TPU',1.21,'TPU 95A'],['ASA',1.07],['ABS',1.04]]],
+ ['Más PLA',[['PLA Tough',1.26,'PLA Tough (resistente)'],['PLA HS',1.24,'PLA alta velocidad (Rapid, HS)'],['PLA Metal',1.25,'PLA Metalizado'],['PLA Marble',1.22,'PLA Mármol'],['PLA Wood',1.21,'PLA Madera'],['PLA Sparkle',1.25,'PLA Purpurina (Sparkle, Glitter)'],['PLA Galaxy',1.25],['PLA Glow',1.32,'PLA Brilla en la oscuridad'],['PLA Translucent',1.24,'PLA Translúcido'],['PLA Aero',1.21,'PLA Aero (ligero)'],['PLA-CF',1.22,'PLA-CF (fibra de carbono)']]],
+ ['Más PETG, ABS y ASA',[['PETG HF',1.28,'PETG alta velocidad (HF, Rapid)'],['PETG Translucent',1.27,'PETG Translúcido'],['ABS+',1.04],['ABS-GF',1.08,'ABS-GF (fibra de vidrio)'],['ASA-CF',1.05,'ASA-CF (fibra de carbono)'],['ASA Aero',0.95,'ASA Aero (ligero)']]],
+ ['Flexibles',[['TPU 90A',1.20],['TPU 85A',1.19],['TPU AMS',1.22,'TPU para AMS'],['TPE',1.15]]],
+ ['Soporte',[['PVA',1.23,'PVA (soluble en agua)'],['HIPS',1.04],['Support PLA',1.3,'Soporte para PLA / PETG'],['Support PA',1.2,'Soporte para PA / PET']]],
+ ['Técnicos (poco comunes)',[['PC',1.2,'PC (policarbonato)'],['PC FR',1.19,'PC ignífugo (FR)'],['PA',1.14,'PA (Nylon)'],['PA-CF',1.13,'PA-CF (Nylon con fibra de carbono)'],['PA-GF',1.21,'PA-GF (Nylon con fibra de vidrio)'],['PAHT-CF',1.06],['PPA-CF',1.18],['PPS-CF',1.26],['PET-CF',1.29,'PET-CF (fibra de carbono)'],['PP',0.9,'PP (polipropileno)'],['PVB',1.08]]],
+ ['Resina',[['Resina',1.1]]]];
+const DENS=Object.fromEntries(MATGROUPS.flatMap(g=>g[1].map(m=>[m[0],m[1]])));
+/* Desplegable de material con grupos y «Otro (escribir)»; si el valor guardado no está en la lista, sale arriba */
+function matOpts(v){const known=v&&!(v in DENS);return `${known?`<option value="${esc(v)}" selected>${esc(v)}</option>`:''}${MATGROUPS.map(([g,l])=>`<optgroup label="${esc(g)}">${l.map(m=>`<option value="${esc(m[0])}" ${m[0]===v?'selected':''}>${esc(m[2]||m[0])}</option>`).join('')}</optgroup>`).join('')}<option value="__otro">✎ Otro (escribir)</option>`}
+document.addEventListener('change',e=>{const sl=e.target;if(!sl.matches||!sl.matches('select[data-matsel]')||sl.value!=='__otro')return;e.stopImmediatePropagation();const i=document.createElement('input');i.name=sl.name;i.placeholder='Escribe el material';i.setAttribute('aria-label','Material');sl.replaceWith(i);i.focus()},true);
 /* foto de la impresora (si tiene) o el dibujo del modelo */
 const prPhoto=f=>{if(!f)return '';if(okImg(f.photo))return f.photo;if(f.fleetId){const p=fleet().find(x=>x.id===f.fleetId);if(p&&okImg(p.photo))return p.photo}return ''};
 const prPic=(f,k)=>{const ph=prPhoto(f);return ph?`<img src="${ph}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block">`:printerArt(k||(f&&f.k)||'enc')};
@@ -1794,7 +1806,7 @@ function vCalc(){
   <label>Nombre de la pieza o trabajo<input name="name" value="${esc(c.name||(m?m.name.replace(/\.(stl|3mf)$/i,''):''))}" placeholder="Ej. Llavero con nombre"></label>
   <div class="f3"><label>Impresora<select name="printer">${fleet().map(f=>`<option value="${esc(f.id)}" ${f.id===c.printer?'selected':''}>${esc(f.alias)}</option>`).join('')}</select></label>
   <label>Filamento<select name="spool"><option value="">Otro / genérico</option>${S.spools.map(s=>`<option value="${esc(s.id)}" ${s.id===c.spool?'selected':''}>${esc([s.brand,s.line||s.material,s.color].filter(Boolean).join(' '))}</option>`).join('')}</select></label>
-  <label>Material<select name="material">${sel(c.material,Object.keys(DENS).map(k=>[k,k]))}</select></label></div>
+  <label>Material<select name="material" data-matsel>${matOpts(c.material)}</select></label></div>
   <div class="f3"><label>Precio del filamento (/kg)<input name="priceKg" type="number" step="0.01" min="0" value="${esc(c.priceKg)}"></label><label>Gramos por pieza<input name="grams" type="number" step="any" min="0" value="${esc(c.grams)}" placeholder="De Bambu Studio"></label><label>Horas por pieza<input name="hours" type="number" step="any" min="0" value="${esc(c.hours)}" placeholder="Ej. 1.5"></label></div>
   <div class="f3"><label>Cantidad de piezas<input name="qty" type="number" min="1" step="1" value="${esc(c.qty)}"></label><label>Desperdicio (%)<input name="waste" type="number" min="0" step="1" value="${esc(c.waste)}"></label><label>Fallos (%)<input name="fail" type="number" min="0" step="1" value="${esc(c.fail)}"></label></div>
   <div class="f3"><label>Tu trabajo (min/pieza)<input name="laborMin" type="number" min="0" step="1" value="${esc(c.laborMin)}"></label><label>Tu hora vale<input name="laborRate" type="number" min="0" step="0.5" value="${esc(c.laborRate)}"></label><label>Extras por pieza<input name="extras" type="number" min="0" step="0.01" value="${esc(c.extras)}" placeholder="Anilla, caja…"></label></div>
@@ -2043,7 +2055,7 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.14';
+const WEB_VERSION='1.0.15';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/pctecnikk/taller3dpanel',APK_URL='app/Taller3DPanel.apk';
 /* La APK viaja con la web (public/app/): version.json dice cuál es la última. Si abres la web desde una app
@@ -2056,6 +2068,7 @@ async function appUpdateCheck(){const mine=appVersion();if(!mine)return;let v=''
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.15',['La lista de **materiales** ya tiene todos los tipos que venden Bambu Lab, eSUN, Elegoo, Smart Materials 3D y Winkle: PLA HD, PLA Mate, PLA Seda (Silk), PLA+, PLA reciclado, PLA-CF, PETG reciclado, PETG-CF, ABS-GF, ASA, TPU, Nylon, PVA… ordenados por grupos. Si falta alguno, elige «Otro (escribir)». Sale al crear o editar una pieza, en Filamentos y en la Calculadora.']],
  ['1.0.14',['Las **fotos de las piezas** ya se ven bien en la barra que se mueve arriba del Panel (antes salían cortadas).']],
  ['1.0.13',['**Ventas de un colaborador**: si la guardas como cobrada (efectivo, Bizum, tarjeta…), es que él ya ha cobrado al cliente. Se queda su parte, te da la tuya y no queda nada pendiente.',
   'Si la guardas **«A deber»** (un encargo sin pagar), en su ficha sale **«Te debe»** con tu parte. Cuando te pague, pulsa «Cobrar ahora» en el ticket. Con un colaborador ya no hace falta elegir cliente para dejarla a deber.']],
