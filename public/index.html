@@ -9,7 +9,7 @@
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<script src="i18n.js?v=1.0.9"></script>
+<script src="i18n.js?v=1.0.10"></script>
 <script>window.T=window.T||(s=>s);window.TL=window.TL||(s=>s);window.T3D_LANG=window.T3D_LANG||'es';window.T3D_LOCALE=window.T3D_LOCALE||T3D_LOCALE;window.setLang=window.setLang||(()=>{})</script>
 <script src="vendor/qrcode.js"></script>
 <script src="vendor/JsBarcode.all.min.js"></script>
@@ -372,6 +372,12 @@ const status=(ok,txt)=>{$('#dot').className='dot'+(ok?' ok':'');$('#stt').textCo
 const ESTADOS={idea:'Por diseñar',diseno:'Diseñando',listo:'En catálogo'};
 const catalog=()=>S.products.filter(p=>(p.estado||'listo')==='listo');
 const okSales=()=>S.sales.filter(s=>s.status!=='anulado'&&s.status!=='pendiente');
+/* Margen del colaborador: lo que se lleva él de cada pieza que vende. myPart(s) = tu parte de la venta */
+const myPart=s=>(+s.total||0)-(+s.commission||0);
+const collabOf=id=>id?S.collabs.find(c=>c.id===id):null;
+const cutUnit=(c,price)=>{if(!c||!(+c.margin>0))return 0;const v=c.marginType==='pct'?price*c.margin/100:+c.margin;return +Math.max(v,0).toFixed(2)};
+const linePrice=l=>{const c=collabOf(S.seller);return +((+l.price||0)+(c&&c.marginMode==='suma'&&!l.custom?cutUnit(c,+l.price||0):0)).toFixed(2)};
+const marginLabel=c=>!c||!(+c.margin>0)?'':c.marginType==='pct'?num(c.margin,1)+' %':money(c.margin)+' '+T('por pieza');
 const owedSales=()=>S.sales.filter(s=>s.status==='pendiente');
 const sDate=s=>s.paidAt||s.date;
 const lowList=()=>catalog().filter(p=>(+p.stock||0)<=(+p.min||0));
@@ -477,9 +483,9 @@ function askNumber(msg,def){return new Promise(ok=>{
 function period(days){const now=Date.now();if(!days){const all=[...S.sales.map(s=>s.date),...S.expenses.map(s=>s.date),...S.jobs.map(s=>s.date)];const first=all.length?Math.min(...all):now-30*D;return {from:day0(first),to:now,prevFrom:0,prevTo:0}}const from=day0(now)-(days-1)*D;return {from,to:now,prevFrom:from-days*D,prevTo:from}}
 const inR=(t,a,b)=>t>=a&&t<b+1;
 function totals(a,b){const s=okSales().filter(x=>inR(sDate(x),a,b)),e=S.expenses.filter(x=>inR(x.date,a,b)),j=S.jobs.filter(x=>x.paid&&inR(x.payDate||x.date,a,b)),jc=S.jobs.filter(x=>inR(x.date,a,b));
- const incS=s.reduce((t,x)=>t+(+x.total||0),0),incJ=j.reduce((t,x)=>t+(+x.price||0),0),expE=e.reduce((t,x)=>t+(+x.amount||0),0),jcost=jc.reduce((t,x)=>t+jobCost(x),0),expJ=jcost+e.filter(x=>x.area==='informatica').reduce((t,x)=>t+(+x.amount||0),0),units=s.reduce((t,x)=>t+(+x.units||0),0);
+ const incS=s.reduce((t,x)=>t+myPart(x),0),comm=s.reduce((t,x)=>t+(+x.commission||0),0),incJ=j.reduce((t,x)=>t+(+x.price||0),0),expE=e.reduce((t,x)=>t+(+x.amount||0),0),jcost=jc.reduce((t,x)=>t+jobCost(x),0),expJ=jcost+e.filter(x=>x.area==='informatica').reduce((t,x)=>t+(+x.amount||0),0),units=s.reduce((t,x)=>t+(+x.units||0),0);
  const inc=incS+incJ,exp=expE+jcost;
- return {s,e,j,jc,inc,exp,incS,incJ,expJ,exp3d:exp-expJ,net:inc-exp,units,n:s.length,avg:s.length?incS/s.length:0}}
+ return {s,e,j,jc,inc,exp,incS,comm,incJ,expJ,exp3d:exp-expJ,net:inc-exp,units,n:s.length,avg:s.length?incS/s.length:0}}
 function kpiGo(k){const [a,b]=k.split(':');
  if(a==='go'){go(b);return}if(a==='inc'){S.tkf='todos';go('tickets');return}if(a==='low'){S.lowOnly=true;go('piezas');return}
  if(a==='jobf'){S.jobf=b;if(S.view!=='servicios')go('servicios');else render();setTimeout(()=>{const x=$('#main table');x&&x.scrollIntoView({behavior:'smooth',block:'start'})},60);return}
@@ -493,6 +499,7 @@ function profitModal(){const {from,to}=period(S.range),T=totals(from,to),rl=RANG
  modal(`<div class="ch" style="margin:0"><h2>De dónde sale el beneficio</h2><span class="tag">${esc(rl)}</span></div>
  <div style="display:grid;gap:6px">
  ${row('Ventas de piezas ('+T.n+')',money(T.incS),'data-go="tickets"','up')}
+ ${T.comm?`<div class="note" style="padding:0 14px 4px"><span>Ya descontado el margen de tus colaboradores:</span> <b>${money(T.comm)}</b></div>`:''}
  ${row('Trabajos de informática cobrados ('+T.j.length+')','+'+money(T.incJ),'data-go="servicios"','up')}
  ${row('Gastos de impresión 3D','−'+money(T.exp3d),'data-go="gastos"','dn')}
  ${row('Gastos y costes de informática','−'+money(T.expJ),'data-go="gastos"','dn')}
@@ -506,7 +513,7 @@ function buckets(days){const {from,to}=period(days);const span=(to-from)/D;
  else{const d=new Date(from);d.setDate(1);while(+d<=to){const a=+d;d.setMonth(d.getMonth()+1);out.push({a,b:+d-1,l:new Date(a).toLocaleDateString(T3D_LOCALE,{month:'short',year:'2-digit'})})}}
  out.forEach(k=>{k.inc=0;k.exp=0});
  const put=(t,v,f)=>{const k=out.find(k=>t>=k.a&&t<=k.b);if(k)k[f]+=v};
- okSales().forEach(s=>put(sDate(s),+s.total||0,'inc'));S.jobs.forEach(j=>{if(j.paid)put(j.payDate||j.date,+j.price||0,'inc');put(j.date,jobCost(j),'exp')});S.expenses.forEach(e=>put(e.date,+e.amount||0,'exp'));return out}
+ okSales().forEach(s=>put(sDate(s),myPart(s),'inc'));S.jobs.forEach(j=>{if(j.paid)put(j.payDate||j.date,+j.price||0,'inc');put(j.date,jobCost(j),'exp')});S.expenses.forEach(e=>put(e.date,+e.amount||0,'exp'));return out}
 function soldBy(pid,from){return okSales().filter(s=>s.date>=from).reduce((t,s)=>t+(s.items||[]).filter(i=>i.pid===pid).reduce((a,i)=>a+i.qty,0),0)}
 function spark(pid,days=30){const from=day0(Date.now())-(days-1)*D,v=new Array(days).fill(0);okSales().forEach(s=>{if(s.date<from)return;const k=Math.floor((day0(s.date)-from)/D);(s.items||[]).forEach(i=>{if(i.pid===pid&&k>=0&&k<days)v[k]+=i.qty})});return v}
 function sparkSVG(v){const m=Math.max(1,...v),W=96,H=30,pts=v.map((y,i)=>[i/(v.length-1)*W,H-3-(y/m)*(H-6)]);const half=v.slice(-15).reduce((a,b)=>a+b,0)>=v.slice(0,15).reduce((a,b)=>a+b,0);const c=half?'var(--inc)':'var(--exp)';
@@ -572,7 +579,7 @@ function whoList(T){
  if(S.who==='clientes'){const m={};T.s.forEach(s=>{const k=s.customerId||'_';m[k]=m[k]||{n:s.customerId?s.customerName:'Sin cliente (mostrador)',t:0,c:0,id:s.customerId};m[k].t+=+s.total||0;m[k].c++});T.j.forEach(j=>{const k=j.customerId||'_';m[k]=m[k]||{n:j.customerId?j.customerName:'Sin cliente (mostrador)',t:0,c:0,id:j.customerId};m[k].t+=+j.price||0;m[k].c++});
   const l=Object.values(m).sort((a,b)=>b.t-a.t).slice(0,6);
   return `<div class="lst">${l.length?l.map(x=>`<button class="li" ${x.id?`data-ec="${esc(x.id)}"`:''}><div class="th" style="background:var(--pri2);color:var(--pri)">${esc((x.n||'?')[0])}</div><div><b>${esc(x.n)}</b><small>${x.c} compra${x.c>1?'s':''}</small></div><div class="rt"><b>${money(x.t)}</b></div></button>`).join(''):'<div class="empty">Sin compras en este periodo</div>'}</div>`}
- const rows=[{id:'',name:S.cfg.owner||'Yo'},...S.collabs].map(c=>{const g=T.e.filter(e=>(e.paidBy||'')===c.id).reduce((t,e)=>t+(+e.amount||0),0),v=T.s.filter(s=>(s.sellerId||'')===c.id).reduce((t,s)=>t+(+s.total||0),0),owe=c.id?S.expenses.filter(e=>e.paidBy===c.id&&!e.settled).reduce((t,e)=>t+(+e.amount||0),0):0;return {...c,g,v,owe}});
+ const rows=[{id:'',name:S.cfg.owner||'Yo'},...S.collabs].map(c=>{const g=T.e.filter(e=>(e.paidBy||'')===c.id).reduce((t,e)=>t+(+e.amount||0),0),v=T.s.filter(s=>(s.sellerId||'')===c.id).reduce((t,s)=>t+(+s.total||0),0),owe=c.id?S.expenses.filter(e=>e.paidBy===c.id&&!e.settled).reduce((t,e)=>t+(+e.amount||0),0)+collabStats(c.id).due:0;return {...c,g,v,owe}});
  return `<div class="lst">${rows.map(c=>`<button class="li" ${c.id?`data-eb="${esc(c.id)}"`:'data-go="gastos"'}><div class="th" style="background:${c.id?'color-mix(in srgb,var(--or) 18%,transparent)':'var(--pri2)'};color:${c.id?'var(--or)':'var(--pri)'}">${esc((c.name||'?')[0])}</div><div><b>${esc(c.name)}</b><small>Vendido ${money(c.v)}${c.owe?` · <span class="dn">le debes ${money(c.owe)}</span>`:''}</small></div><div class="rt"><b class="dn">−${money(c.g)}</b><br><small>gastado</small></div></button>`).join('')}</div>`;
 }
 function donut(o,exp){
@@ -622,11 +629,12 @@ function vVender(){const list=filtered();
   <div class="grid">${list.length?list.map(p=>{const off=(+p.stock||0)<=0;return `<button class="it ${off?'off':''}" data-add="${esc(p.id)}" ${off?'disabled':''}><div class="ph2">${photo(p)}${stockTag(p)}</div><div class="bd"><b>${esc(p.name)}${dots(p)}</b><span class="mt">${esc(p.code||'')}</span><div class="pr"><span>${money(p.price)}</span><i class="plus" aria-hidden="true">+</i></div></div></button>`}).join(''):`<div class="card empty" style="grid-column:1/-1">No hay piezas para vender. Créalas en «Piezas y stock».</div>`}</div>
  </section><aside class="card ticket" id="ticket">${ticket()}</aside></div>`}
 function ticket(){
- const tot=S.cart.reduce((s,l)=>s+l.qty*l.price,0),units=S.cart.reduce((s,l)=>s+l.qty,0),cash=+S.cash||0;
+ const tot=S.cart.reduce((s,l)=>s+l.qty*linePrice(l),0),units=S.cart.reduce((s,l)=>s+l.qty,0),cash=+S.cash||0,sc=collabOf(S.seller),cut=cartCut();
  return `<div class="ch" style="margin:0"><div><h2>Ticket actual</h2><div class="note">${units} ${units===1?'unidad':'unidades'} · ${tnum(nextNum())}</div></div>${S.cart.length?'<button class="btn rd" id="clr" style="min-height:36px;padding:6px 12px">Vaciar</button>':''}</div>
- <div class="lines">${S.cart.length?S.cart.map(l=>`<div class="ln"><div><div class="n">${esc(l.name)}</div><div class="u">${money(l.price)} c/u</div></div><div class="qty"><button data-dec="${esc(l.id)}" aria-label="Quitar uno">−</button><span>${l.qty}</span><button data-inc="${esc(l.id)}" aria-label="Añadir uno">+</button></div><div class="t">${money(l.qty*l.price)}</div></div>`).join(''):'<div class="empty">Escanea o toca una pieza</div>'}</div>
+ <div class="lines">${S.cart.length?S.cart.map(l=>`<div class="ln"><div><div class="n">${esc(l.name)}</div><div class="u">${money(linePrice(l))} c/u</div></div><div class="qty"><button data-dec="${esc(l.id)}" aria-label="Quitar uno">−</button><span>${l.qty}</span><button data-inc="${esc(l.id)}" aria-label="Añadir uno">+</button></div><div class="t">${money(l.qty*linePrice(l))}</div></div>`).join(''):'<div class="empty">Escanea o toca una pieza</div>'}</div>
  <div class="f2"><div style="display:grid;gap:5px"><span class="note" style="font-weight:500">Cliente</span><div style="display:flex;gap:6px"><select id="cust">${custOpts(S.cust)}</select><button type="button" class="btn sf" id="quickc2" style="padding:0 14px" aria-label="Nuevo cliente">+</button></div></div>
  <label>Vendido por<select id="seller">${sel(S.seller,[['',S.cfg.owner||'Yo'],...S.collabs.map(c=>[c.id,c.name])])}</select></label></div>
+ ${sc&&+sc.margin>0&&S.cart.length?`<div class="note" style="background:color-mix(in srgb,var(--or) 12%,var(--card));border-radius:12px;padding:10px 12px"><span>Para ${esc(sc.name)}</span>: <b>${money(cut)}</b> · <span>para ti</span>: <b>${money(tot-cut)}</b><br><span>Su margen: {}</span></div>`.replace('{}',esc(marginLabel(sc))):''}
  <div class="pay">${PAYS_POS.map(([m,i])=>`<button data-pay="${m}" class="${m===S.pay?'on':''}">${ico(i)}${m}</button>`).join('')}</div>
  ${S.pay==='Efectivo'&&S.cart.length?`<div class="f2" style="align-items:end"><label>Efectivo recibido<input id="cash" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(S.cash)}" placeholder="${tot.toFixed(2)}"></label><div><div class="note">Cambio a devolver</div><b style="font-size:20px" class="${cash&&cash<tot?'dn':'up'}" id="chg">${cash?money(cash-tot):'—'}</b></div></div>`:''}
  ${S.pay==='A deber'?`<div class="note" style="background:color-mix(in srgb,var(--warn) 12%,var(--card));border-radius:12px;padding:10px 12px">La venta queda <b>pendiente de cobro</b>: las piezas salen del stock pero no cuenta como ingreso hasta que pulses «Cobrar» en Tickets.</div>`:''}
@@ -634,7 +642,7 @@ function ticket(){
  <button class="btn big" id="cobrar" ${S.cart.length?'':'disabled'} style="${S.pay==='A deber'?'background:var(--warn)':''}">${S.pay==='A deber'?'Guardar a deber ':'Cobrar '}${money(tot)}</button>`}
 function syncCart(){
  const tk=$('#ticket');if(tk){const o=tk.classList.contains('open');tk.innerHTML=ticket();tk.classList.toggle('open',o&&S.cart.length>0)}
- const n=S.cart.reduce((s,l)=>s+l.qty,0),tot=S.cart.reduce((s,l)=>s+l.qty*l.price,0);
+ const n=S.cart.reduce((s,l)=>s+l.qty,0),tot=S.cart.reduce((s,l)=>s+l.qty*linePrice(l),0);
  $('#mcn').textContent=n?`Ver ticket · ${n} ud`:'Ticket vacío';$('#mct').textContent=money(tot);$('#mcart').style.visibility=S.view==='vender'?'visible':'hidden';
 }
 function addCart(id,d=1){
@@ -644,13 +652,14 @@ function addCart(id,d=1){
  if(!l){l={id,name:p.name,price:+p.price||0,cost:+p.cost||0,cat:p.cat||'',qty:0};S.cart.push(l)}
  l.qty+=d;if(l.qty<=0)S.cart=S.cart.filter(x=>x!==l);if(d>0)toast('Añadido: '+p.name+(d>1?' ×'+d:''));syncCart();
 }
+function cartCut(){const c=collabOf(S.seller);return +S.cart.reduce((t,l)=>t+l.qty*Math.min(cutUnit(c,+l.price||0),linePrice(l)),0).toFixed(2)}
 async function cobrar(){
- if(!S.cart.length)return;if(ME&&ME.role==='lector'){toast('Tu usuario solo puede ver, no cobrar');return}const tot=+S.cart.reduce((s,l)=>s+l.qty*l.price,0).toFixed(2),cash=S.pay==='Efectivo'?(+S.cash||tot):0;
+ if(!S.cart.length)return;if(ME&&ME.role==='lector'){toast('Tu usuario solo puede ver, no cobrar');return}const tot=+S.cart.reduce((s,l)=>s+l.qty*linePrice(l),0).toFixed(2),cash=S.pay==='Efectivo'?(+S.cash||tot):0;
  if(S.pay==='Efectivo'&&cash<tot){beep(false);toast('El efectivo recibido es menor que el total');return}
  if(S.pay==='A deber'&&!S.cust){beep(false);toast('Elige quién te lo debe (o crea el cliente)');quickClient();return}
  const c=S.customers.find(x=>x.id===S.cust);
- const items=S.cart.map(l=>({pid:l.custom?'':l.id,name:l.name,cat:l.cat,qty:l.qty,price:l.price,cost:l.cost}));
- const sale={num:nextNum(),date:Date.now(),items,total:tot,units:items.reduce((s,i)=>s+i.qty,0),method:S.pay,cash,change:S.pay==='Efectivo'?+(cash-tot).toFixed(2):0,customerId:c?c.id:'',customerName:c?c.name:'',sellerId:S.seller,sellerName:collabName(S.seller),status:S.pay==='A deber'?'pendiente':'pagado'};if(S.pay==='A deber'){sale.method='';sale.cash=0;sale.change=0}
+ const sc=collabOf(S.seller),items=S.cart.map(l=>{const it={pid:l.custom?'':l.id,name:l.name,cat:l.cat,qty:l.qty,price:linePrice(l),cost:l.cost},u=Math.min(cutUnit(sc,+l.price||0),it.price);if(u>0)it.commission=u;return it}),cut=cartCut();
+ const sale={num:nextNum(),date:Date.now(),items,total:tot,units:items.reduce((s,i)=>s+i.qty,0),method:S.pay,cash,change:S.pay==='Efectivo'?+(cash-tot).toFixed(2):0,customerId:c?c.id:'',customerName:c?c.name:'',sellerId:S.seller,sellerName:collabName(S.seller),...(cut>0?{commission:cut,commissionPaid:false}:{}),status:S.pay==='A deber'?'pendiente':'pagado'};if(S.pay==='A deber'){sale.method='';sale.cash=0;sale.change=0}
  const b=$('#cobrar');if(b)b.disabled=true;
  try{const id=await put('sales','',sale);
   for(const i of items){const p=S.products.find(x=>x.id===i.pid);if(p)await stockMove(p,-i.qty,'venta','Ticket '+tnum(sale.num),{amount:i.qty*i.price})}
@@ -675,7 +684,7 @@ function receiptActions(s){const wa='https://wa.me/'+(((S.customers.find(c=>c.id
 function payTicket(id){const s=S.sales.find(x=>x.id===id);if(!s)return;
  modal(`<h2>Cobrar ${tnum(s.num)}</h2><p style="margin:0">${esc(s.customerName||'Cliente')} te debe <b>${money(s.total)}</b> desde el ${fdate(s.date)}.</p><div class="pay">${PAYS.map(([m,i])=>`<button data-payas="${m}">${ico(i)}${m}</button>`).join('')}</div><div class="acts"><button class="btn gh" data-close>Cancelar</button></div>`);
  $('#dlg').onclick=async e=>{const b=e.target.closest('[data-payas]');if(!b)return;$('#dlg').onclick=null;await patch('sales',id,{status:'pagado',method:b.dataset.payas,paidAt:Date.now()});closeModal();beep();toast('Cobrado: '+money(s.total));render()}}
-function receiptModal(s,fresh){modal(`<div class="ch" style="margin:0"><h2>${fresh?(s.status==='pendiente'?'🕒 Venta guardada a deber':'✅ Venta cobrada'):'Ticket '+tnum(s.num)}</h2><button class="btn gh" data-close>${fresh?'Nueva venta':'Cerrar'}</button></div>${receipt(s)}${receiptActions(s)}`);paintBarcodes($('#dlg'))}
+function receiptModal(s,fresh){modal(`<div class="ch" style="margin:0"><h2>${fresh?(s.status==='pendiente'?'🕒 Venta guardada a deber':'✅ Venta cobrada'):'Ticket '+tnum(s.num)}</h2><button class="btn gh" data-close>${fresh?'Nueva venta':'Cerrar'}</button></div>${receipt(s)}${+s.commission>0?`<div class="note" style="background:color-mix(in srgb,var(--or) 12%,var(--card));border-radius:12px;padding:10px 12px"><span>Para ${esc(s.sellerName||'')}</span>: <b>${money(s.commission)}</b> · <span>para ti</span>: <b>${money(myPart(s))}</b> · ${s.commissionPaid?'<span class="tag g">Pagado</span>':'<span class="tag y">Pendiente de pagarle</span>'}</div>`:''}${receiptActions(s)}`);paintBarcodes($('#dlg'))}
 function vTickets(){
  const q=S.tkq.toLowerCase(),l=S.sales.filter(s=>(S.tkf!=='deber'||s.status==='pendiente')&&(!q||[tnum(s.num),s.customerName,s.method,s.sellerName,...(s.items||[]).map(i=>i.name)].some(v=>String(v||'').toLowerCase().includes(q)))).sort((a,b)=>b.date-a.date);
  const owed=owedSales(),owedT=owed.reduce((t,s)=>t+(+s.total||0),0);
@@ -1318,25 +1327,34 @@ function editCustomer(id){const c=S.customers.find(x=>x.id===id)||{name:'',phone
  const dc=$('#delc');if(dc)dc.onclick=()=>confirmBox('¿Borrar a '+c.name+'? Sus tickets se conservan.',async()=>{await del('customers',id)})}
 
 /* ======================= COLABORADORES ======================= */
-function collabStats(id){const ex=S.expenses.filter(e=>(e.paidBy||'')===id),sl=okSales().filter(s=>(s.sellerId||'')===id);
- return {spent:ex.reduce((t,e)=>t+(+e.amount||0),0),owe:ex.filter(e=>!e.settled).reduce((t,e)=>t+(+e.amount||0),0),sold:sl.reduce((t,s)=>t+(+s.total||0),0),n:sl.length,ex}}
+function collabStats(id){const ex=S.expenses.filter(e=>(e.paidBy||'')===id),sl=okSales().filter(s=>(s.sellerId||'')===id),cm=sl.filter(s=>+s.commission>0);
+ return {spent:ex.reduce((t,e)=>t+(+e.amount||0),0),owe:ex.filter(e=>!e.settled).reduce((t,e)=>t+(+e.amount||0),0),sold:sl.reduce((t,s)=>t+(+s.total||0),0),n:sl.length,ex,sl,cm,
+  earned:cm.reduce((t,s)=>t+(+s.commission||0),0),due:cm.filter(s=>!s.commissionPaid).reduce((t,s)=>t+(+s.commission||0),0)}}
 function vColaboradores(){
  const me=collabStats('');
- return `<div class="ph"><div><h1>Colaboradores</h1><div class="sub">Lo que gasta cada uno, lo que vende y lo que tienes pendiente de devolverle</div></div><button class="btn" id="newb">+ Nuevo colaborador</button></div>
+ return `<div class="ph"><div><h1>Colaboradores</h1><div class="sub">Lo que gasta cada uno, lo que vende, su margen por venta y lo que tienes pendiente de pagarle</div></div><button class="btn" id="newb">+ Nuevo colaborador</button></div>
  <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">
  <div class="card" style="display:flex;flex-direction:column;gap:12px"><div style="display:flex;gap:12px;align-items:center"><span class="av">${esc((S.cfg.owner||'Y')[0])}</span><div><b>${esc(S.cfg.owner||'Yo')}</b><div class="note">Tú</div></div></div>
   <div class="f2"><div><div class="note">Has gastado</div><b class="dn" style="font-size:20px">${money(me.spent)}</b></div><div><div class="note">Has vendido</div><b class="up" style="font-size:20px">${money(me.sold)}</b></div></div></div>
- ${S.collabs.map(c=>{const s=collabStats(c.id);return `<button class="card" data-eb="${esc(c.id)}" style="text-align:left;display:flex;flex-direction:column;gap:12px"><div style="display:flex;gap:12px;align-items:center"><span class="av" style="background:var(--or)">${esc((c.name||'?')[0])}</span><div><b>${esc(c.name)}</b><div class="note">${esc(c.role||'Colaborador')}</div></div>${s.owe?`<span class="tag r" style="margin-left:auto">Le debes ${money(s.owe)}</span>`:'<span class="tag g" style="margin-left:auto">Al día</span>'}</div>
-  <div class="f2"><div><div class="note">Ha gastado</div><b class="dn" style="font-size:20px">${money(s.spent)}</b></div><div><div class="note">Ha vendido (${s.n})</div><b class="up" style="font-size:20px">${money(s.sold)}</b></div></div></button>`}).join('')}</div>
+ ${S.collabs.map(c=>{const s=collabStats(c.id);return `<button class="card" data-eb="${esc(c.id)}" style="text-align:left;display:flex;flex-direction:column;gap:12px"><div style="display:flex;gap:12px;align-items:center"><span class="av" style="background:var(--or)">${esc((c.name||'?')[0])}</span><div><b>${esc(c.name)}</b><div class="note">${esc(c.role||'Colaborador')}</div></div>${s.owe+s.due?`<span class="tag r" style="margin-left:auto">Le debes ${money(s.owe+s.due)}</span>`:'<span class="tag g" style="margin-left:auto">Al día</span>'}</div>
+  <div class="f2"><div><div class="note">Ha gastado</div><b class="dn" style="font-size:20px">${money(s.spent)}</b></div><div><div class="note">Ha vendido (${s.n})</div><b class="up" style="font-size:20px">${money(s.sold)}</b></div></div>
+  ${+c.margin>0||s.earned?`<div class="f2" style="border-top:1px solid var(--line);padding-top:10px"><div><div class="note">Su margen ganado</div><b style="font-size:20px;color:var(--or)">${money(s.earned)}</b></div><div><div class="note">Pendiente de pagarle</div><b class="${s.due?'dn':'up'}" style="font-size:20px">${money(s.due)}</b></div></div><div class="note">${+c.margin>0?`<span>Su margen: {}</span>`.replace('{}',esc(marginLabel(c))):'Sin margen'}</div>`:''}</button>`}).join('')}</div>
  ${S.collabs.length?'':'<div class="card empty">Añade a las personas que te ayudan: podrás apuntar los gastos que pagan ellos y las ventas que hacen.</div>'}`}
-function editCollab(id){const c=S.collabs.find(x=>x.id===id)||{name:'',role:'',phone:'',notes:''},st=id?collabStats(id):null;
- modal(`<h2>${id?esc(c.name):'Nuevo colaborador'}</h2>${st?`<div class="sum" style="grid-template-columns:repeat(3,1fr)"><div class="sm" style="border-left-color:var(--exp)"><div class="l">Ha gastado</div><div class="v">${money(st.spent)}</div></div><div class="sm" style="border-left-color:var(--warn)"><div class="l">Le debes</div><div class="v">${money(st.owe)}</div></div><div class="sm" style="border-left-color:var(--inc)"><div class="l">Ha vendido</div><div class="v">${money(st.sold)}</div></div></div>
+function editCollab(id){const c=S.collabs.find(x=>x.id===id)||{name:'',role:'',phone:'',notes:'',margin:1,marginType:'eur',marginMode:'dentro'},st=id?collabStats(id):null;
+ modal(`<h2>${id?esc(c.name):'Nuevo colaborador'}</h2>${st?`<div class="sum" style="grid-template-columns:repeat(3,1fr)"><div class="sm" style="border-left-color:var(--exp)"><div class="l">Ha gastado</div><div class="v">${money(st.spent)}</div></div><div class="sm" style="border-left-color:var(--warn)"><div class="l">Gastos por devolverle</div><div class="v">${money(st.owe)}</div></div><div class="sm" style="border-left-color:var(--inc)"><div class="l">Ha vendido</div><div class="v">${money(st.sold)}</div></div></div>
  ${st.owe?`<button class="btn sf" id="settle">Marcar todo como devuelto (${money(st.owe)})</button>`:''}
+ ${st.cm.length?`<div class="sum" style="grid-template-columns:repeat(2,1fr)"><div class="sm" style="border-left-color:var(--or)"><div class="l">Su margen ganado</div><div class="v">${money(st.earned)}</div></div><div class="sm" style="border-left-color:var(--warn)"><div class="l">Pendiente de pagarle</div><div class="v">${money(st.due)}</div></div></div>
+ ${st.due?`<button class="btn" id="paycm">Marcar su margen como pagado (${money(st.due)})</button>`:''}
+ <div><h3>Sus ventas con margen</h3><div class="lst">${st.cm.sort((a,b)=>b.date-a.date).slice(0,30).map(s=>`<button class="li" data-tkm="${esc(s.id)}"><div class="th" style="background:color-mix(in srgb,var(--or) 16%,transparent);color:var(--or)">${esc(String(s.units||''))}</div><div><b>${esc((s.items||[]).map(i=>i.name+(i.qty>1?' ×'+i.qty:'')).join(', '))}</b><small>${fdate(s.date)} · ${tnum(s.num)} · ${money(s.total)}</small></div><div class="rt"><b style="color:var(--or)">${money(s.commission)}</b><br>${s.commissionPaid?'<span class="tag g">Pagado</span>':'<span class="tag y">Pendiente</span>'}</div></button>`).join('')}</div></div>`:''}
  ${st.ex.length?`<div><h3>Sus gastos</h3><table>${st.ex.sort((a,b)=>b.date-a.date).slice(0,10).map(e=>`<tr><td>${fdate(e.date)}</td><td>${esc(e.concept)}</td><td class="n">${money(e.amount)}</td><td>${e.settled?'<span class="tag g">Devuelto</span>':'<span class="tag y">Pendiente</span>'}</td></tr>`).join('')}</table></div>`:''}`:''}
  <form id="fb" style="display:grid;gap:12px"><div class="f2"><label>Nombre<input name="name" required value="${esc(c.name)}"></label><label>Función<input name="role" value="${esc(c.role)}" placeholder="Diseño, postprocesado, ventas…"></label></div>
  <div class="f2"><label>Teléfono<input name="phone" type="tel" value="${esc(c.phone)}"></label><label>Notas<input name="notes" value="${esc(c.notes)}"></label></div>
+ <div class="card" style="padding:12px;display:grid;gap:10px;background:color-mix(in srgb,var(--or) 7%,var(--card))"><b>Su margen por venta</b><div class="note">Lo que se lleva él de cada pieza que vende. Al ponerle como «Vendido por» en una venta, ese dinero se le apunta a él y no cuenta como beneficio tuyo. Pon 0 si no se lleva nada.</div>
+ <div class="f3"><label>Margen<input name="margin" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(c.margin??0)}"></label><label>En<select name="marginType">${sel(c.marginType||'eur',[['eur','€ por pieza'],['pct','% del precio']])}</select></label><label>El precio del ticket<select name="marginMode">${sel(c.marginMode||'dentro',[['dentro','Ya lo incluye'],['suma','Se le suma su margen']])}</select></label></div>
+ <div class="note">«Ya lo incluye»: la pieza está a 5 € en el ticket; él se lleva 1 € y tú 4 €. «Se le suma»: la pieza está a 4 €, el ticket sale a 5 € y él se lleva 1 €.</div></div>
  <div class="acts">${id?'<button type="button" class="btn rd" id="delb" style="margin-right:auto">Borrar</button>':''}<button type="button" class="btn gh" data-close>Cancelar</button><button class="btn">Guardar</button></div></form>`,!!id);
- const f=$('#fb');f.onsubmit=async e=>{e.preventDefault();await put('collabs',id,{name:f.name.value.trim(),role:f.role.value.trim(),phone:f.phone.value.trim(),notes:f.notes.value.trim()});closeModal();toast('Colaborador guardado')};
+ const f=$('#fb');f.onsubmit=async e=>{e.preventDefault();await put('collabs',id,{name:f.name.value.trim(),role:f.role.value.trim(),phone:f.phone.value.trim(),notes:f.notes.value.trim(),margin:Math.max(0,+f.margin.value||0),marginType:f.marginType.value,marginMode:f.marginMode.value});closeModal();toast('Colaborador guardado')};
+ const pc=$('#paycm');if(pc)pc.onclick=()=>confirmBox('¿Ya le has pagado a '+c.name+' su margen de '+money(st.due)+'?',async()=>{const now=Date.now();for(const s of st.cm.filter(s=>!s.commissionPaid))await patch('sales',s.id,{commissionPaid:true,commissionPaidAt:now});toast('Margen marcado como pagado')});
  const sb=$('#settle');if(sb)sb.onclick=async()=>{sb.disabled=true;for(const e of st.ex.filter(e=>!e.settled))await patch('expenses',e.id,{settled:true});closeModal();toast('Gastos marcados como devueltos')};
  const db_=$('#delb');if(db_)db_.onclick=()=>confirmBox('¿Borrar a '+c.name+'? Sus gastos y ventas se conservan.',async()=>{await del('collabs',id)})}
 
@@ -1978,7 +1996,7 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.9';
+const WEB_VERSION='1.0.10';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/pctecnikk/taller3dpanel',APK_URL='app/Taller3DPanel.apk';
 /* La APK viaja con la web (public/app/): version.json dice cuál es la última. Si abres la web desde una app
@@ -1991,6 +2009,9 @@ async function appUpdateCheck(){const mine=appVersion();if(!mine)return;let v=''
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.10',['**Margen de los colaboradores**: en cada colaborador pones lo que se lleva por cada pieza que vende (por ejemplo **1 € por pieza**, o un %). Al ponerle como «Vendido por» en una venta, ese dinero se le apunta a él y tu beneficio cuenta solo tu parte.',
+  'Elige si el precio del ticket **ya incluye su margen** (la pieza a 5 €: 1 € para él y 4 € para ti) o **se le suma** (la pieza a 4 € y el ticket sale a 5 €).',
+  'En «Colaboradores» ves lo que ha ganado cada uno, lo que tienes **pendiente de pagarle** y sus ventas. Cuando le pagues, pulsa «Marcar su margen como pagado».']],
  ['1.0.9',['La web y la app tienen **cada una su color de logo**: la **web en verde** («Taller3D Panel Web») y la **app de Android en índigo**, para distinguirlas.',
   'La **app de Android avisa sola cuando hay una versión nueva**: al abrirla sale «Hay una actualización» y con «Actualizar» se descarga y se instala encima. La APK viene con la web, así que siempre está la última.']],
  ['1.0.8',['Puedes **subir el archivo de la pieza** (STL, 3MF o STEP) desde el ordenador o el móvil, en «Nueva pieza» o «Editar». Se guarda con la pieza, lo descargas desde su ficha y te rellena solo los gramos y las horas (exactos si es un 3MF laminado en Bambu Studio).']],
@@ -2159,9 +2180,9 @@ $('#mcart').onclick=()=>{if(S.cart.length)$('#ticket')?.classList.toggle('open')
 document.addEventListener('input',e=>{const t=e.target;
  if(t.closest&&t.closest('#calcf')){calcRead();paintCalc();return}
  if(t.id==='q'){S.q=t.value;render()}else if(t.id==='fmq'){S.fmq=t.value;render()}else if(t.id==='tkq'){S.tkq=t.value;render()}
- else if(t.id==='cash'){S.cash=t.value;const tot=S.cart.reduce((s,l)=>s+l.qty*l.price,0),c=+t.value||0,el=$('#chg');if(el){el.textContent=c?money(c-tot):'—';el.className=c&&c<tot?'dn':'up'}}});
+ else if(t.id==='cash'){S.cash=t.value;const tot=S.cart.reduce((s,l)=>s+l.qty*linePrice(l),0),c=+t.value||0,el=$('#chg');if(el){el.textContent=c?money(c-tot):'—';el.className=c&&c<tot?'dn':'up'}}});
 document.addEventListener('change',e=>{const t=e.target;
- if(t.id==='cust')S.cust=t.value;else if(t.id==='seller')S.seller=t.value;
+ if(t.id==='cust')S.cust=t.value;else if(t.id==='seller'){S.seller=t.value;syncCart()}
  else if(t.id==='smode'){S.scanMode=t.value;$('#scan')?.focus()}else if(t.id==='obeep')S.beep=t.checked;else if(t.id==='oqty')S.askQty=t.checked;
  else if(t.id==='qrimg'){closeModal();decodeImage(t.files[0]);t.value=''}
  else if(t.closest&&t.closest('#calcf')){if(t.name==='spool'){const sp=S.spools.find(s=>s.id===t.value);if(sp){const f=$('#calcf');if(sp.priceKg)f.priceKg.value=sp.priceKg;if(DENS[sp.material])f.material.value=sp.material}}calcRead();if(t.name==='printer'||t.name==='material'||t.name==='supp'){if(lastModel&&!lastModel.sliced&&lastModel.vol){const pr=fleet().find(x=>x.id===S.calc.printer)||PDEF,es=estimate(lastModel,pr,DENS[S.calc.material],S.calc.supp);S.calc.grams=+es.grams.toFixed(1);S.calc.hours=+es.hours.toFixed(2);const f=$('#calcf');f.grams.value=S.calc.grams;f.hours.value=S.calc.hours}}paintCalc()}
