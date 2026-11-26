@@ -193,6 +193,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
 .mrow{display:grid;grid-template-columns:auto minmax(0,1fr) 110px auto;gap:10px;align-items:end}.msw{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);margin-bottom:12px}.mdel{min-height:46px;padding:0 14px}
 .mother{grid-column:2/-1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.costbox{display:grid;gap:8px}
 @media(max-width:600px){.mrow{grid-template-columns:auto minmax(0,1fr) auto;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}.mrow:last-child{border-bottom:0}.mfil{grid-column:2/-1}.mg{grid-column:2}.mdel{grid-column:3}.mother{grid-column:1/-1;grid-template-columns:1fr 1fr}}
+.cdots{display:inline-flex;gap:3px;vertical-align:middle;margin-left:6px}.cdots i{width:11px;height:11px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);display:block}.cdots.big i{width:16px;height:16px}#pdots .cdots{margin-left:2px}
 /* Diseños */
 .board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
 .col{background:var(--soft);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px}
@@ -522,7 +523,7 @@ function vPanel(){
  const vs=' vs periodo anterior',cmp=(a,b,alt)=>P&&b?pct(a,b)+vs:alt;
  return `<div class="ph"><div><h1>Hola${(()=>{const n=ME?(ME.name||ME.username):S.cfg.owner;return n?', '+esc(n):''})()}</h1><div class="sub">Resumen de ${esc(S.cfg.name)} · ${S.range?'últimos '+S.range+' días':'desde el principio'}</div></div>
  <div class="tabs" role="tablist">${RANGES.map(([v,l])=>`<button data-range="${v}" class="${v===S.range?'on':''}">${l}</button>`).join('')}</div></div>
- ${tk.length?`<div class="card tick" aria-label="Piezas y stock"><div class="tr">${[...tk,...tk].map(({p,s})=>`<button class="ti" data-show="${esc(p.id)}"><span class="mini">${photo(p)}</span><b>${esc(p.name)}</b><span>${num(p.stock)} ud</span><span class="${s?'up':'note'}">${s?'↑ '+s+' vendidas':'sin ventas'}</span></button>`).join('')}</div></div>`:''}
+ ${tk.length?`<div class="card tick" aria-label="Piezas y stock"><div class="tr">${[...tk,...tk].map(({p,s})=>`<button class="ti" data-show="${esc(p.id)}"><span class="mini">${photo(p)}</span><b>${esc(p.name)}${dots(p)}</b><span>${num(p.stock)} ud</span><span class="${s?'up':'note'}">${s?'↑ '+s+' vendidas':'sin ventas'}</span></button>`).join('')}</div></div>`:''}
  <div class="kpis">
   ${kpi('Ingresos cobrados',money(T.inc),'trend','#12a150',(()=>{const o=owedSales().reduce((t,s)=>t+(+s.total||0),0)+S.jobs.filter(j=>!j.paid&&(j.status==='listo'||j.status==='entregado')).reduce((t,j)=>t+(+j.price||0),0);return (P&&P.inc?pct(T.inc,P.inc)+vs:`${T.n} ventas`)+(o?` · <button data-go="tickets" data-tkf="deber" class="dn" style="font-weight:700;padding:0;min-height:0;font-size:13px">${money(o)} te deben ›</button>`:'')})(),'inc')}
   ${kpi('Gastos',money(T.exp),'wallet','#ef4b4b',cmp(T.exp,P&&P.exp,`${T.e.length} gastos en el periodo`),'go:gastos')}
@@ -534,14 +535,14 @@ function vPanel(){
    <div class="leg"><span><i style="background:var(--inc)"></i>Ingresos</span><span><i style="background:var(--exp)"></i>Gastos</span></div></div>
    <div class="fig" id="fig"><svg id="chart" role="img" aria-label="Ingresos y gastos"></svg><div class="tip" id="tip"></div></div></div>
   <div class="card"><div class="ch"><h2>Piezas más vendidas</h2><span class="tag">${rl}</span></div>
-   <div class="lst">${top.length?top.map(({p,u,r})=>`<button class="li" data-show="${esc(p.id)}"><div class="th">${photo(p)}</div><div><b>${esc(p.name)}</b><small>${num(u)} vendidas · ${num(p.stock)} en stock</small></div><div class="rt"><b>${money(r)}</b><br><small>${esc(p.cat||'')}</small></div></button>`).join(''):'<div class="empty">Aún no hay ventas en este periodo</div>'}</div>
+   <div class="lst">${top.length?top.map(({p,u,r})=>`<button class="li" data-show="${esc(p.id)}"><div class="th">${photo(p)}</div><div><b>${esc(p.name)}${dots(p)}</b><small>${num(u)} vendidas · ${num(p.stock)} en stock</small></div><div class="rt"><b>${money(r)}</b><br><small>${esc(p.cat||'')}</small></div></button>`).join(''):'<div class="empty">Aún no hay ventas en este periodo</div>'}</div>
    <button class="btn gh" data-go="vender" style="width:100%;margin-top:8px">+ Nueva venta</button></div>
  </div>
  <div class="g12">
   <div class="card"><div class="ch"><h2>Quién gasta</h2><div class="tabs">${[['clientes','Clientes'],['colab','Colaboradores']].map(([k,l])=>`<button data-who="${k}" class="${S.who===k?'on':''}">${l}</button>`).join('')}</div></div>${whoList(T)}</div>
   <div class="card"><div class="ch"><h2>Inventario</h2><button class="btn gh" data-go="piezas">Ver todo ↗</button></div>
    <div class="scroll"><table class="stack"><thead><tr><th>Pieza</th><th>Ventas 30 días</th><th class="n">Precio</th><th class="n">Stock</th><th class="n">Ingresos 30 d</th></tr></thead><tbody>
-   ${tk.slice(0,6).map(({p,s})=>`<tr class="ck" data-show="${esc(p.id)}"><td><div class="pc"><span class="th">${photo(p)}</span><div><b>${esc(p.name)}</b><div class="note">${esc(p.code||'')}</div></div></div></td><td>${sparkSVG(spark(p.id))}</td><td class="n">${money(p.price)}</td><td class="n">${stockTag(p)}</td><td class="n"><b>${money(s*(+p.price||0))}</b></td></tr>`).join('')||'<tr><td colspan="5" class="empty">Sin piezas todavía</td></tr>'}</tbody></table></div></div>
+   ${tk.slice(0,6).map(({p,s})=>`<tr class="ck" data-show="${esc(p.id)}"><td><div class="pc"><span class="th">${photo(p)}</span><div><b>${esc(p.name)}${dots(p)}</b><div class="note">${esc(p.code||'')}</div></div></div></td><td>${sparkSVG(spark(p.id))}</td><td class="n">${money(p.price)}</td><td class="n">${stockTag(p)}</td><td class="n"><b>${money(s*(+p.price||0))}</b></td></tr>`).join('')||'<tr><td colspan="5" class="empty">Sin piezas todavía</td></tr>'}</tbody></table></div></div>
  </div>
  <div class="g2">
   <div class="card"><div class="ch"><h2>Ventas por categoría</h2></div>${donut(cat)}</div>
@@ -554,7 +555,7 @@ function vPanel(){
  <div class="g2">
   <div class="card"><div class="ch"><h2>Uso de impresoras</h2><span class="tag">${rl}</span></div>${bars(pr,v=>num(v,1)+' h')}<div style="height:12px"></div>${bars(fil,v=>num(v)+' g de filamento','var(--or)')}</div>
   <div class="card"><div class="ch"><h2>Por reponer</h2><span class="tag ${low.length?'y':'g'}">${low.length} piezas</span></div>
-   <div class="lst">${low.length?low.slice(0,6).map(p=>`<button class="li" data-show="${esc(p.id)}"><div class="th">${photo(p)}</div><div><b>${esc(p.name)}</b><small>Mínimo ${num(p.min)} · ${esc(p.printer||'')}</small></div><div class="rt">${stockTag(p)}</div></button>`).join(''):'<div class="empty">Todo el stock está por encima del mínimo</div>'}</div>
+   <div class="lst">${low.length?low.slice(0,6).map(p=>`<button class="li" data-show="${esc(p.id)}"><div class="th">${photo(p)}</div><div><b>${esc(p.name)}${dots(p)}</b><small>Mínimo ${num(p.min)} · ${esc(p.printer||'')}</small></div><div class="rt">${stockTag(p)}</div></button>`).join(''):'<div class="empty">Todo el stock está por encima del mínimo</div>'}</div>
    ${spoolLow()}</div>
  </div>`;
 }
@@ -613,7 +614,7 @@ function vVender(){const list=filtered();
  return `<div class="ph"><div><h1>Nueva venta</h1><div class="sub">Escanea o toca una pieza para añadirla al ticket</div></div><div class="btns"><button class="btn sf" id="quickp">+ Pieza rápida</button><button class="btn gh" id="quickc">+ Cliente nuevo</button></div></div>
  <div class="pos"><section style="display:flex;flex-direction:column;gap:14px">${scanBox()}
   <input id="q" placeholder="Buscar por nombre, categoría o código…" value="${esc(S.q)}" autocomplete="off">${catChips()}
-  <div class="grid">${list.length?list.map(p=>{const off=(+p.stock||0)<=0;return `<button class="it ${off?'off':''}" data-add="${esc(p.id)}" ${off?'disabled':''}><div class="ph2">${photo(p)}${stockTag(p)}</div><div class="bd"><b>${esc(p.name)}</b><span class="mt">${esc(p.code||'')}</span><div class="pr"><span>${money(p.price)}</span><i class="plus" aria-hidden="true">+</i></div></div></button>`}).join(''):`<div class="card empty" style="grid-column:1/-1">No hay piezas para vender. Créalas en «Piezas y stock».</div>`}</div>
+  <div class="grid">${list.length?list.map(p=>{const off=(+p.stock||0)<=0;return `<button class="it ${off?'off':''}" data-add="${esc(p.id)}" ${off?'disabled':''}><div class="ph2">${photo(p)}${stockTag(p)}</div><div class="bd"><b>${esc(p.name)}${dots(p)}</b><span class="mt">${esc(p.code||'')}</span><div class="pr"><span>${money(p.price)}</span><i class="plus" aria-hidden="true">+</i></div></div></button>`}).join(''):`<div class="card empty" style="grid-column:1/-1">No hay piezas para vender. Créalas en «Piezas y stock».</div>`}</div>
  </section><aside class="card ticket" id="ticket">${ticket()}</aside></div>`}
 function ticket(){
  const tot=S.cart.reduce((s,l)=>s+l.qty*l.price,0),units=S.cart.reduce((s,l)=>s+l.qty,0),cash=+S.cash||0;
@@ -695,16 +696,16 @@ function vPiezas(){
  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><input id="q" placeholder="Buscar pieza, código, material o color…" value="${esc(S.q)}" autocomplete="off" style="flex:1 1 240px">
  <div class="tabs"><button data-lay="galeria" class="${S.layout==='galeria'?'on':''}">Galería</button><button data-lay="lista" class="${S.layout==='lista'?'on':''}">Lista</button></div></div>${catChips()}
  ${!list.length?`<div class="card empty">${all.length?'Ninguna pieza coincide.':'Aún no hay piezas. Pulsa «+ Nueva pieza» o termina un diseño.'}</div>`:
- S.layout==='galeria'?`<div class="grid">${list.map(p=>`<button class="it" data-show="${esc(p.id)}"><div class="ph2">${photo(p)}${stockTag(p)}</div><div class="bd"><b>${esc(p.name)}</b><div class="mt">${esc([p.material,p.color].filter(Boolean).join(' · ')||p.cat)}</div><div class="pr"><span>${money(p.price)}</span><span class="note">${esc(p.code||'')}</span></div></div></button>`).join('')}</div>`
+ S.layout==='galeria'?`<div class="grid">${list.map(p=>`<button class="it" data-show="${esc(p.id)}"><div class="ph2">${photo(p)}${stockTag(p)}</div><div class="bd"><b>${esc(p.name)}${dots(p)}</b><div class="mt">${esc([p.material,p.color].filter(Boolean).join(' · ')||p.cat)}</div><div class="pr"><span>${money(p.price)}</span><span class="note">${esc(p.code||'')}</span></div></div></button>`).join('')}</div>`
  :`<div class="card"><div class="scroll"><table class="stack"><thead><tr><th>Pieza</th><th>Código</th><th>Material</th><th>Ventas 30 días</th><th class="n">Precio</th><th class="n">Coste</th><th class="n">Stock</th></tr></thead><tbody>
-  ${list.map(p=>`<tr class="ck" data-show="${esc(p.id)}"><td><div class="pc"><span class="th">${photo(p)}</span><b>${esc(p.name)}</b></div></td><td>${esc(p.code)}</td><td>${esc([p.material,p.color].filter(Boolean).join(' '))}</td><td>${sparkSVG(spark(p.id))}</td><td class="n">${money(p.price)}</td><td class="n">${money(p.cost)}</td><td class="n">${stockTag(p)}</td></tr>`).join('')}</tbody></table></div></div>`}`}
+  ${list.map(p=>`<tr class="ck" data-show="${esc(p.id)}"><td><div class="pc"><span class="th">${photo(p)}</span><b>${esc(p.name)}${dots(p)}</b></div></td><td>${esc(p.code)}</td><td>${esc([p.material,p.color].filter(Boolean).join(' '))}</td><td>${sparkSVG(spark(p.id))}</td><td class="n">${money(p.price)}</td><td class="n">${money(p.cost)}</td><td class="n">${stockTag(p)}</td></tr>`).join('')}</tbody></table></div></div>`}`}
 function showProduct(id){
  const p=S.products.find(x=>x.id===id);if(!p)return;if((p.estado||'listo')!=='listo')return designCard(id);
  const sold=okSales().reduce((s,v)=>s+(v.items||[]).filter(i=>i.pid===id).reduce((a,i)=>a+i.qty,0),0),printed=S.prints.filter(x=>x.pid===id).reduce((s,x)=>s+(+x.qty||0),0);
  const mv=S.moves.filter(m=>m.pid===id).sort((a,b)=>b.date-a.date).slice(0,5);
  modal(`<div class="det"><div style="display:flex;flex-direction:column;gap:12px"><div class="ph2" style="border-radius:16px">${photo(p)}${stockTag(p)}</div>
   <div class="codes"><img src="${qrURL(p.code||p.id)}" alt="Código QR"><div style="flex:1"><b>${esc(p.code||'Sin código')}</b><svg class="bc" data-code="${esc(p.code||p.id)}" style="height:44px;width:100%"></svg></div></div></div>
-  <div style="display:flex;flex-direction:column;gap:12px"><div><span class="tag">${esc(p.cat||'Otros')}</span><h2 style="font-size:24px;margin-top:8px">${esc(p.name)}</h2></div>
+  <div style="display:flex;flex-direction:column;gap:12px"><div><span class="tag">${esc(p.cat||'Otros')}</span><h2 style="font-size:24px;margin-top:8px">${esc(p.name)}${dots(p,1)}</h2></div>
   <div class="big">${money(p.price)}</div>
   <dl class="specs"><dt>Stock</dt><dd>${num(p.stock)} ud · aviso en ${num(p.min)}</dd><dt>Coste</dt><dd>${money(p.cost)} · margen ${money((+p.price||0)-(+p.cost||0))}</dd>
   ${p.material||p.color?`<dt>Material</dt><dd>${esc(matsText(p))}</dd>`:''}${p.grams?`<dt>Filamento</dt><dd>${num(p.grams)} g / pieza</dd>`:''}${p.hours?`<dt>Impresión</dt><dd>${num(p.hours,1)} h / pieza</dd>`:''}
@@ -733,7 +734,7 @@ function editProduct(id,pre={}){
  modal(`<h2>${id?'Editar pieza':p.estado==='listo'?'Nueva pieza':'Nueva idea de diseño'}</h2><form id="fp" style="display:grid;gap:12px">
  <div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:center"><div class="ph2" id="fph" style="border-radius:14px">${photo(p)}</div>
   <div class="btns"><span class="btn sf filebtn">${p.photo?'Cambiar foto':'Añadir foto'}<input type="file" accept="image/*" id="pfile"></span>${p.photo?'<button type="button" class="btn rd" id="nophoto">Quitar</button>':''}</div></div>
- <label>Nombre<input name="name" required value="${esc(p.name)}"></label>
+ <label><span>Nombre <span id="pdots"></span></span><input name="name" required value="${esc(p.name)}"></label>
  <div class="f2"><label>Categoría<input name="cat" list="cats" value="${esc(p.cat)}" placeholder="Llaveros 3D, Navidad…"><datalist id="cats">${allCats().map(c=>`<option value="${esc(c)}">`).join('')}</datalist></label><label>Estado<select name="estado">${sel(p.estado||'listo',Object.entries(ESTADOS))}</select></label></div>
  <div class="f3"><label>Precio (${esc(S.cfg.currency)})<input name="price" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(p.price)}"></label><label>Coste<input name="cost" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(p.cost)}"></label><label>Código QR / barras<input name="code" value="${esc(p.code)}"></label></div>
  <div class="f3"><label>Stock${id?' (usa «Ajustar»)':''}<input name="stock" type="number" step="1" min="0" value="${esc(p.stock)}" ${id?'readonly':''}></label><label>Aviso si baja de<input name="min" type="number" step="1" min="0" value="${esc(p.min)}"></label><label>Impresora<select name="printer"><option value="">—</option>${sel(p.printer,fleet().map(f=>[f.alias,f.alias]))}</select></label></div>
@@ -753,6 +754,7 @@ function editProduct(id,pre={}){
    if(el.dataset.mk==='spool'){const sp=S.spools.find(s=>s.id===el.value);if(sp){m.material=sp.material||'';m.color=sp.color||'';m.priceKg=''}paintMats()}paintCost()}});
   $('#matl').querySelectorAll('[data-mdel]').forEach(b=>b.onclick=()=>{mats.splice(+b.dataset.mdel,1);paintMats();paintCost()})};
  const paintCost=()=>{const r=pieceCost(mats,f.hours.value,f.printer.value),g=mats.reduce((t,m)=>t+(+m.grams||0),0);
+  const pd=$('#pdots');if(pd)pd.innerHTML=dots({mats})||'';
   if(!manual)f.cost.value=g||+f.hours.value?r.total.toFixed(2):'';
     $('#costbox').innerHTML=!g&&!+f.hours.value?`<span class="note">Pon los gramos (y las horas) y te calculo el coste solo.</span>`
    :`<div class="note"><b>Coste ${money(r.total)}</b> ${manual?'(has escrito otro a mano)':'(calculado solo)'}${g?' · '+num(g,1)+' g en total':''}: filamento ${money(r.mat)} · luz ${money(r.energy)} · máquina ${money(r.wear)} · fallos ${money(r.fail)}</div>
@@ -769,6 +771,14 @@ function editProduct(id,pre={}){
   try{const nid=await put('products',id,d);if(!id&&d.stock&&nid){const np={...d,id:nid,stock:0};await stockMove(np,d.stock,'ajuste','Stock inicial')}closeModal();toast('Pieza guardada')}catch(_){$('#savep').disabled=false}};
  const dp=$('#delp');if(dp)dp.onclick=()=>confirmBox('¿Borrar «'+p.name+'»? Los tickets y movimientos pasados se conservan.',async()=>{await del('products',id);toast('Pieza borrada')});
 }
+/* Color de la pieza: puntos con el tono de cada bobina, o por el nombre del color si se escribió a mano */
+const CNAMES={rojo:'#d62828',red:'#d62828',granate:'#7a1f2b',burdeos:'#6d1a2a',verde:'#2e9b48',green:'#2e9b48',azul:'#1f5fbf',blue:'#1f5fbf',celeste:'#6cc4ee',turquesa:'#1fb5a8',cian:'#18b4d8',amarillo:'#f2c30f',yellow:'#f2c30f',naranja:'#f07b1a',orange:'#f07b1a',negro:'#1d1d1f',black:'#1d1d1f',blanco:'#f6f6f4',white:'#f6f6f4',gris:'#8a8d91',grey:'#8a8d91',gray:'#8a8d91',rosa:'#ee7fb2',pink:'#ee7fb2',morado:'#7b3fb0',lila:'#b49ad8',violeta:'#8a4fc8',purple:'#7b3fb0',marron:'#7a4a2a','marrón':'#7a4a2a',brown:'#7a4a2a',beige:'#d9c6a5',crema:'#efe3c6',dorado:'#c9a227',oro:'#c9a227',gold:'#c9a227',plateado:'#b8bcc2',plata:'#b8bcc2',silver:'#b8bcc2',bronce:'#a0672e',cobre:'#b5651d',madera:'#a5754a',wood:'#a5754a',transparente:'transparent',natural:'#eee9dc'};
+function colorHex(m){const sp=m.spool&&S.spools.find(s=>s.id===m.spool);if(sp&&/^#[0-9a-f]{6}$/i.test(sp.hex||''))return sp.hex;
+ const c=String(m.color||'').trim().toLowerCase();if(/^#[0-9a-f]{6}$/.test(c))return c;const w=c.normalize('NFD').replace(/[̀-ͯ]/g,'').split(/[\s,/-]+/);
+ for(const x of w)if(CNAMES[x])return CNAMES[x];for(const k in CNAMES)if(c.includes(k))return CNAMES[k];return ''}
+function dots(p,big){const ms=Array.isArray(p.mats)&&p.mats.length?p.mats:String(p.color||'').split('+').map(c=>({color:c.trim()})).filter(m=>m.color);
+ const l=ms.map(m=>({h:colorHex(m),n:m.color||(m.spool&&(S.spools.find(s=>s.id===m.spool)||{}).color)||''})).filter(x=>x.h);if(!l.length)return '';
+ const n=l.map(x=>x.n).filter(Boolean).join(' + ');return `<span class="cdots${big?' big':''}" title="${esc(n)}" aria-label="${esc(n)}" role="img">${l.map(x=>`<i style="background:${x.h==='transparent'?'repeating-linear-gradient(45deg,#ddd 0 3px,#fff 3px 6px)':x.h}"></i>`).join('')}</span>`}
 function matsSave(mats){const l=mats.map(m=>{const sp=m.spool&&S.spools.find(s=>s.id===m.spool);return {spool:sp?sp.id:'',material:String(sp?sp.material:m.material||'').trim(),color:String(sp?sp.color:m.color||'').trim(),grams:+m.grams||0,priceKg:sp?0:(+m.priceKg||0)}}).filter(m=>m.grams||m.material||m.color||m.spool);
  const u=a=>[...new Set(a.filter(Boolean))].join(' + ');return {mats:l,material:u(l.map(m=>m.material)),color:u(l.map(m=>m.color)),grams:+l.reduce((t,m)=>t+m.grams,0).toFixed(1)}}
 const matsText=p=>Array.isArray(p.mats)&&p.mats.length>1?p.mats.map(m=>[m.material,m.color].filter(Boolean).join(' ')+(m.grams?` (${num(m.grams)} g)`:'')).join(' + '):[p.material,p.color].filter(Boolean).join(' · ');
@@ -828,12 +838,12 @@ async function igPost(id){const p=S.products.find(x=>x.id===id);if(!p)return;
 /* ======================= DISEÑOS ======================= */
 function vDisenos(){
  const g=k=>S.products.filter(p=>(p.estado||'listo')===k).sort((a,b)=>(b.created||0)-(a.created||0));
- const col=(k,t,c)=>{const l=g(k);return `<div class="col"><h2>${t}<span class="tag ${c}">${l.length}</span></h2>${l.slice(0,k==='listo'?6:99).map(p=>`<button class="dz" data-dz="${esc(p.id)}"><div class="ph2">${photo(p)}</div><div><b>${esc(p.name)}</b><span class="note">${esc(p.cat||'')}${p.file?' · '+esc(p.file):''}</span></div></button>`).join('')||'<div class="empty">Nada aquí</div>'}${k==='listo'&&l.length>6?`<button class="btn gh" data-go="piezas">Ver las ${l.length} piezas</button>`:''}</div>`};
+ const col=(k,t,c)=>{const l=g(k);return `<div class="col"><h2>${t}<span class="tag ${c}">${l.length}</span></h2>${l.slice(0,k==='listo'?6:99).map(p=>`<button class="dz" data-dz="${esc(p.id)}"><div class="ph2">${photo(p)}</div><div><b>${esc(p.name)}${dots(p)}</b><span class="note">${esc(p.cat||'')}${p.file?' · '+esc(p.file):''}</span></div></button>`).join('')||'<div class="empty">Nada aquí</div>'}${k==='listo'&&l.length>6?`<button class="btn gh" data-go="piezas">Ver las ${l.length} piezas</button>`:''}</div>`};
  return `<div class="ph"><div><h1>Diseños 3D</h1><div class="sub">Ideas por diseñar, modelos en marcha y piezas terminadas</div></div><button class="btn" id="newd">+ Nueva idea</button></div>
  <div class="board">${col('idea','Por diseñar','')}${col('diseno','Diseñando','y')}${col('listo','Hechos (en stock)','g')}</div>`}
 function designCard(id){const p=S.products.find(x=>x.id===id);if(!p)return;if((p.estado||'listo')==='listo')return showProduct(id);
  const nx=p.estado==='idea'?['diseno','Empezar a diseñar']:['listo','Terminado: pasar a stock'];
- modal(`<div class="det"><div class="ph2" style="border-radius:16px">${photo(p)}</div><div style="display:flex;flex-direction:column;gap:10px"><span class="tag ${p.estado==='diseno'?'y':''}" style="align-self:start">${ESTADOS[p.estado]}</span><h2 style="font-size:22px">${esc(p.name)}</h2>
+ modal(`<div class="det"><div class="ph2" style="border-radius:16px">${photo(p)}</div><div style="display:flex;flex-direction:column;gap:10px"><span class="tag ${p.estado==='diseno'?'y':''}" style="align-self:start">${ESTADOS[p.estado]}</span><h2 style="font-size:22px">${esc(p.name)}${dots(p,1)}</h2>
  <dl class="specs"><dt>Categoría</dt><dd>${esc(p.cat||'—')}</dd>${p.file?`<dt>Archivo</dt><dd>${esc(p.file)}</dd>`:''}${p.price?`<dt>Precio previsto</dt><dd>${money(p.price)}</dd>`:''}${p.material?`<dt>Material</dt><dd>${esc(matsText(p))}</dd>`:''}</dl>${p.notes?`<div class="note">${esc(p.notes)}</div>`:''}</div></div>
  <div class="acts"><button class="btn gh" data-edit="${esc(id)}" style="margin-right:auto">Editar</button><button class="btn" id="nx">${nx[1]}</button></div>`,true);
  $('#nx').onclick=async()=>{await patch('products',id,{estado:nx[0]});closeModal();render();toast(nx[0]==='listo'?'¡Ya está en tu stock!':'Movido a «Diseñando»')}}
@@ -1918,12 +1928,13 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.2';
+const WEB_VERSION='1.0.3';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/pctecnikk/taller3dpanel',APK_URL=REPO_URL+'/releases?q=android&expanded=true';
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.3',['Junto al **nombre de cada pieza** salen unos **puntos con su color** (o sus colores, si es a dos colores). Así distingues de un vistazo la bola de Navidad roja de la verde, en el formulario, la ficha, la lista, la caja y Diseños.']],
  ['1.0.2',['Al añadir o editar una pieza, el **coste se calcula solo** con los gramos y el precio por kg de tu filamento, más la luz, el desgaste de la impresora y los fallos. Si lo prefieres, puedes escribirlo a mano.',
   'Una pieza puede tener **varios colores o materiales** (por ejemplo a dos colores con el AMS), cada uno con sus gramos. El coste los suma todos.',
   'Te propone un **precio de venta** con tu margen, y al registrar una impresión descuenta cada color de su bobina.']],
