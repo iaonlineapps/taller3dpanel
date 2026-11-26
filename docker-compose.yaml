@@ -1,0 +1,25 @@
+services:
+  taller3d-panel:
+    build: .
+    image: taller3d-panel:latest
+    container_name: taller3d-panel
+    restart: unless-stopped
+    user: "${PUID:-1000}:${PGID:-1000}"
+    ports:
+      - "${PORT:-8095}:8095"
+    environment:
+      - TZ=${TZ:-Europe/Madrid}
+      - ADMIN_USER=${ADMIN_USER:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - ALLOW_REGISTER=${ALLOW_REGISTER:-1}
+      - REQUIRE_EMAIL=${REQUIRE_EMAIL:-1}
+      - TRUST_PROXY=${TRUST_PROXY:-0}
+    volumes:
+      # Todos los datos: la base de datos taller3d.db (piezas, ventas, clientes, fotos, ajustes...)
+      - ${DATA_DIR:-./data}:/data
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"

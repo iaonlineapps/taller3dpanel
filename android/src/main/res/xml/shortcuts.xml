@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="server" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/shortcut_server">
+        <intent android:action="io.github.pctecnikk.taller3dpanel.CHANGE_SERVER" android:targetPackage="io.github.pctecnikk.taller3dpanel" android:targetClass="io.github.pctecnikk.taller3dpanel.MainActivity" />
+    </shortcut>
+</shortcuts>

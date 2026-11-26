@@ -1,0 +1,67 @@
+# Compila la app de Android (sin Android Studio ni Gradle, con las herramientas del SDK que trae
+# el runner de GitHub) y la publica como Release "android-vX.Y.Z" cada vez que cambia la app.
+# La version sale de android/src/main/AndroidManifest.xml (versionName / versionCode).
+#
+# Firma: para que las actualizaciones se instalen encima, la APK se firma siempre con la misma clave.
+# Guárdala en Settings > Secrets and variables > Actions:
+#   ANDROID_KEYSTORE_B64 (el .jks en base64), ANDROID_KS_PASS y ANDROID_KEY_ALIAS
+name: Publicar app Android
+
+on:
+  push:
+    branches: [main]
+    paths: ["android/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Herramientas del SDK de Android
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          echo "$BT" >> "$GITHUB_PATH"
+          echo "ANDROID_JAR=$(ls -d "$ANDROID_HOME"/platforms/android-3[4-9]/android.jar | sort -V | head -1)" >> "$GITHUB_ENV"
+      - name: Compilar y firmar
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS_S: ${{ secrets.ANDROID_KS_PASS }}
+          KEY_ALIAS_S: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            export KEYSTORE="$RUNNER_TEMP/release.jks" KS_PASS="$KS_PASS_S" KEY_ALIAS="$KEY_ALIAS_S"
+          else
+            echo "::warning::Sin clave de firma en los secretos: se usa una clave de prueba y las actualizaciones no se instalarán encima"
+          fi
+          bash android/build.sh
+      - name: Crear la Release con la APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=$(grep -o 'versionName="[^"]*"' android/src/main/AndroidManifest.xml | cut -d'"' -f2)
+          TAG="android-v$V"
+          {
+            echo "> ⚠️ **Primero necesitas tu propio servidor Taller3D Panel instalado** (en una Raspberry Pi o cualquier ordenador con Docker). La app solo sirve para entrar en él desde el móvil. Cómo instalarlo: https://github.com/${{ github.repository }}#instalar"
+            echo
+            echo "App de Taller3D Panel para Android. Descarga **Taller3DPanel.apk** aquí abajo (en *Assets*), ábrela en el móvil y toca **Instalar**. Si Android pregunta, permite instalar apps de este origen."
+            echo
+            echo "## Novedades de la $V"
+            awk -v v="## $V" '$0==v{f=1;next} /^## /{f=0} f' android/NOVEDADES.md
+            echo
+            echo "Necesita Android 7 o más nuevo. La primera vez pide la dirección de tu servidor (en casa, por ejemplo \`192.168.1.50:8095\`)."
+          } > notas.md
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" android/dist/Taller3DPanel.apk --clobber
+            gh release edit "$TAG" --notes-file notas.md
+          else
+            gh release create "$TAG" android/dist/Taller3DPanel.apk --target "$GITHUB_SHA" --title "App Android $V" --notes-file notas.md
+          fi

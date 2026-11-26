@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cada persona tiene su propio servidor en casa, casi siempre con http:// y una IP local,
+     asi que se permite http. Se confia en los certificados del sistema y en los que instale
+     el usuario (por si su servidor usa uno propio). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

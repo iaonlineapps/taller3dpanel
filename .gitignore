@@ -1,0 +1,8 @@
+.env
+data/
+node_modules/
+*.zip
+android/build/
+android/.cache/
+*.jks
+*.keystore
