@@ -128,6 +128,22 @@ function auth(req) {
 // Cuentas recordadas en este dispositivo (para cambiar de usuario rápido): cookie t3dk con las
 // sesiones abiertas en este navegador. t3d es la sesión activa.
 const MAX_ACCOUNTS = 8;
+// Archivos 3D de las piezas (STL, 3MF, STEP…): van en la carpeta de datos, en files/, no dentro de la base de datos
+const FILES = path.join(DATA, 'files');
+fs.mkdirSync(FILES, { recursive: true });
+const MAX_FILE = 300 * 1024 * 1024;
+const FILE_EXT = /\.(stl|3mf|step|stp|obj|gcode|bgcode|zip|f3d|scad|blend)$/i;
+const fileMeta = id => { try { return JSON.parse(fs.readFileSync(path.join(FILES, id + '.json'), 'utf8')); } catch { return null; } };
+function saveUpload(req, id) {
+  return new Promise((ok, ko) => {
+    const tmp = path.join(FILES, id + '.part'); const out = fs.createWriteStream(tmp); let n = 0, failed = false;
+    const fail = e => { if (failed) return; failed = true; out.destroy(); fs.rm(tmp, { force: true }, () => {}); ko(e); };
+    req.on('data', c => { n += c.length; if (n > MAX_FILE) { fail(httpErr(413, 'El archivo es demasiado grande (máximo 300 MB)')); req.destroy(); } });
+    req.on('error', fail); out.on('error', fail);
+    out.on('finish', () => { if (failed) return; if (!n) return fail(httpErr(400, 'El archivo está vacío')); fs.rename(tmp, path.join(FILES, id), e => e ? fail(e) : ok(n)); });
+    req.pipe(out);
+  });
+}
 const ck = (req, name, val) => `${name}=${val}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${val ? SESSION_DAYS * 86400 : 0}${isHttps(req) ? '; Secure' : ''}`;
 function deviceTokens(req) { const c = cookies(req); return [...new Set([c.t3d || '', ...String(c.t3dk || '').split('.')])].filter(t => /^[A-Za-z0-9_-]{20,64}$/.test(t)).slice(0, MAX_ACCOUNTS + 1); }
 function deviceAccounts(req) {
@@ -355,6 +371,27 @@ const server = http.createServer(async (req, res) => {
         q.putDoc.run(col, id, JSON.stringify(d), Date.now(), me.id); broadcast({ col, id, data: d }); if (col === 'farm') farmSync(); return send(res, 200, { ok: true });
       }
       if (M === 'DELETE') { q.delDoc.run(col, id); broadcast({ col, id, data: null }); if (col === 'farm') { delSecret.run(id); farmSync(); } return send(res, 200, { ok: true }); }
+    }
+    if (p === '/api/files' && M === 'POST') {
+      if (!canWrite(me)) return send(res, 403, { error: 'Tu usuario solo puede ver, no cambiar datos' });
+      const name = String(url.searchParams.get('name') || 'pieza.stl').replace(/[\\/:*?"<>|\0-\x1f]/g, '_').trim().slice(0, 120);
+      if (!FILE_EXT.test(name)) return send(res, 400, { error: 'Sube un archivo .stl, .3mf o .step' });
+      const id = crypto.randomBytes(12).toString('base64url'); const size = await saveUpload(req, id);
+      const meta = { id, name, size, date: Date.now(), user: me.id };
+      fs.writeFileSync(path.join(FILES, id + '.json'), JSON.stringify(meta)); return send(res, 200, meta);
+    }
+    m = p.match(/^\/api\/files\/([A-Za-z0-9_-]{16})$/);
+    if (m) {
+      const id = m[1], meta = fileMeta(id), f = path.join(FILES, id);
+      if (!meta || !fs.existsSync(f)) return send(res, 404, { error: 'El archivo ya no está' });
+      if (M === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': fs.statSync(f).size, 'Cache-Control': 'private, max-age=3600', 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(meta.name)}`, ...SEC });
+        return fs.createReadStream(f).pipe(res);
+      }
+      if (M === 'DELETE') {
+        if (!canWrite(me)) return send(res, 403, { error: 'Tu usuario solo puede ver, no cambiar datos' });
+        fs.rmSync(f, { force: true }); fs.rmSync(path.join(FILES, id + '.json'), { force: true }); return send(res, 200, { ok: true });
+      }
     }
     if (p === '/api/backup' && M === 'GET') {
       if (me.role !== 'admin') return send(res, 403, { error: 'Solo administradores' });

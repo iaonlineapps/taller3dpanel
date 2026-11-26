@@ -197,6 +197,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
 @media(max-width:600px){.mrow{grid-template-columns:auto minmax(0,1fr) auto;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}.mrow:last-child{border-bottom:0}.mfil{grid-column:2/-1}.mg{grid-column:2}.mdel{grid-column:3}.mother{grid-column:1/-1;grid-template-columns:1fr 1fr}}
 .cdots{display:inline-flex;gap:3px;vertical-align:middle;margin-left:6px}.cdots i{width:11px;height:11px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);display:block}.cdots.big i{width:16px;height:16px}#pdots .cdots{margin-left:2px}
 .ctxm{position:fixed;z-index:200;min-width:190px;max-width:280px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.18);padding:6px;display:grid}.ctxm button{all:unset;cursor:pointer;padding:11px 12px;border-radius:8px;font-size:15px}.ctxm button:hover,.ctxm button:focus-visible{background:var(--soft)}.ctxh{padding:8px 12px 6px;font-size:13px;color:var(--mute);border-bottom:1px solid var(--line);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fchip{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card)}.fchip b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fchip .btn{min-height:40px;padding:0 14px}.filebtn.busy{opacity:.6;pointer-events:none}.fcn{min-width:0;flex:1}.fchip a.btn{text-decoration:none}@media(max-width:600px){.fchip{flex-wrap:wrap}.fcn{flex:1 1 calc(100% - 40px)}.fchip a.btn{flex:1;justify-content:center}}
 /* Diseños */
 .board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
 .col{background:var(--soft);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px}
@@ -713,7 +714,7 @@ function showProduct(id){
   <div class="big">${money(p.price)}</div>
   <dl class="specs"><dt>Stock</dt><dd>${num(p.stock)} ud · aviso en ${num(p.min)}</dd><dt>Coste</dt><dd>${money(p.cost)} · margen ${money((+p.price||0)-(+p.cost||0))}</dd>
   ${p.material||p.color?`<dt>Material</dt><dd>${esc(matsText(p))}</dd>`:''}${p.grams?`<dt>Filamento</dt><dd>${num(p.grams)} g / pieza</dd>`:''}${p.hours?`<dt>Impresión</dt><dd>${num(p.hours,1)} h / pieza</dd>`:''}
-  ${p.printer?`<dt>Impresora</dt><dd>${esc(p.printer)}</dd>`:''}<dt>Histórico</dt><dd>${num(sold)} vendidas · ${num(printed)} impresas</dd>${p.file?`<dt>Archivo</dt><dd>${esc(p.file)}</dd>`:''}</dl>
+  ${p.printer?`<dt>Impresora</dt><dd>${esc(p.printer)}</dd>`:''}<dt>Histórico</dt><dd>${num(sold)} vendidas · ${num(printed)} impresas</dd>${p.file?`<dt>${p.fileName?'Enlace':'Archivo'}</dt><dd>${linkOrText(p.file)}</dd>`:''}</dl>${p.fileName?fileChip({id:p.fileId,name:p.fileName,size:p.fileSize}):''}
   ${p.notes?`<div class="note">${esc(p.notes)}</div>`:''}
   ${mv.length?`<div><h3 style="margin-bottom:4px">Últimos movimientos</h3>${mv.map(m=>`<div class="note" style="display:flex;justify-content:space-between;gap:8px"><span>${fdate(m.date)} · ${esc(MVT[m.type]||m.type)}</span><b class="${m.qty>=0?'up':'dn'}">${m.qty>0?'+':''}${m.qty}</b></div>`).join('')}</div>`:''}
  </div></div>
@@ -745,7 +746,11 @@ function editProduct(id,pre={}){
  <div class="matbox"><div class="mathd"><b>Filamentos de la pieza</b><span class="note">Un color por fila. Si es a dos colores (AMS), añade otro.</span></div>
   <div id="matl"></div><datalist id="mats">${['PLA','PETG','TPU','ABS','ASA','PC','PA','Resina'].map(m=>`<option value="${m}">`).join('')}</datalist>
   <button type="button" class="btn sf" id="matadd" style="justify-self:start">+ Añadir otro color o material</button></div>
- <div class="f2"><label>Horas / pieza<input name="hours" type="number" step="any" min="0" value="${esc(p.hours)}"></label><label>Archivo (STL, enlace…)<input name="file" value="${esc(p.file)}"></label></div>
+ <div class="matbox"><div class="mathd"><b>Archivo de la pieza</b><span class="note">Sube el STL, 3MF o STEP desde el ordenador o el móvil. Se guarda con la pieza y te relleno los gramos y las horas.</span></div>
+  <div id="p3dbox"></div>
+  <div class="btns" style="align-items:center"><span class="btn sf filebtn" id="p3dbtn">${ico('box')}<span id="p3dlbl">Subir archivo</span><input type="file" id="p3d" accept=".stl,.3mf,.step,.stp"></span><span class="note" id="p3dst" aria-live="polite"></span></div>
+  <label>O un enlace (MakerWorld, Printables…) o una nota<input name="file" value="${esc(p.file)}" placeholder="https://…"></label></div>
+ <div class="f2"><label>Horas / pieza<input name="hours" type="number" step="any" min="0" value="${esc(p.hours)}"></label><div></div></div>
  <div class="costbox" id="costbox"></div>
  <label>Notas<textarea name="notes" rows="2">${esc(p.notes)}</textarea></label>
  <div class="acts">${id?'<button type="button" class="btn rd" id="delp" style="margin-right:auto">Borrar</button>':''}<button type="button" class="btn gh" data-close>Cancelar</button><button class="btn" id="savep">Guardar</button></div></form>`);
@@ -767,14 +772,29 @@ function editProduct(id,pre={}){
  $('#matadd').onclick=()=>{const last=mats[mats.length-1]||{};mats.push({spool:'',material:last.material||'PLA',color:'',grams:'',priceKg:''});paintMats();paintCost();const s=$('#matl').lastElementChild.querySelector('select');if(s)s.focus()};
  f.cost.oninput=()=>{manual=f.cost.value!=='';paintCost()};f.hours.oninput=paintCost;f.printer.onchange=paintCost;f.price.oninput=paintCost;
  paintMats();paintCost();
+ let pf=p.fileId?{id:p.fileId,name:p.fileName||'',size:p.fileSize||0}:null;const oldFid=p.fileId||'';
+ const paintPF=()=>{$('#p3dbox').innerHTML=pf?fileChip(pf,true):'';$('#p3dlbl').textContent=pf?'Cambiar archivo':'Subir archivo';const q=$('#p3dq');if(q)q.onclick=()=>{pf=null;paintPF()}};paintPF();
+ $('#p3d').onchange=async e=>{const fl=e.target.files[0];e.target.value='';if(!fl)return;const st=$('#p3dst'),bt=$('#p3dbtn');
+  if(!/\.(stl|3mf|step|stp)$/i.test(fl.name)){toast('Sube un archivo .stl, .3mf o .step');return}
+  bt.classList.add('busy');st.textContent='Leyendo el archivo…';
+  const an=analyzeModel(fl).then(m=>{const pr=fleet().find(x=>x.alias===f.printer.value)||fleet()[0]||PDEF;let how;
+   if(m.sliced){const fil=(m.fil||[]).filter(x=>x.g>0),lc=v=>String(v||'').toLowerCase().slice(0,7);
+    if(fil.length>1)mats=fil.map(x=>{const sp=S.spools.find(s=>lc(s.hex)===lc(x.color)&&(!x.type||String(s.material).toLowerCase()===x.type.toLowerCase()));return {spool:sp?sp.id:'',material:sp?sp.material:x.type,color:sp?sp.color:'',grams:+x.g.toFixed(1),priceKg:''}});
+    else if(mats.length===1)mats[0].grams=+m.grams.toFixed(1);
+    f.hours.value=+m.hours.toFixed(2);how='exactos de Bambu Studio'}
+   else{const e=estimate(m,pr,DENS[(mats[0]||{}).material]||1.24,false);if(mats.length===1)mats[0].grams=+e.grams.toFixed(1);if(e.hours)f.hours.value=+e.hours.toFixed(2);how='estimados con tu impresora'}
+   paintMats();paintCost();return how}).catch(()=>null);
+  let up=null;if(!IN_ARTIFACT){try{up=await uploadFile(fl,pc=>{st.textContent=pc<100?'Subiendo… '+pc+' %':'Guardando…'})}catch(err){bt.classList.remove('busy');st.textContent='';toast(err.message||'No se pudo subir el archivo');return}}
+  pf=up||{id:'',name:fl.name,size:fl.size};paintPF();const how=await an;bt.classList.remove('busy');
+  st.textContent=how?'Gramos y horas rellenados ('+how+')':'Archivo guardado';if(!f.name.value.trim())f.name.value=fl.name.replace(/(\.gcode)?\.(stl|3mf|step|stp)$/i,'').replace(/[_-]+/g,' ')};
  $('#pfile').onchange=async e=>{const fl=e.target.files[0];if(!fl)return;try{ph=await shrink(fl);$('#fph').innerHTML=`<img src="${ph}" alt="">`}catch(_){toast('No se pudo leer la foto')}};
  const np=$('#nophoto');if(np)np.onclick=()=>{ph='';$('#fph').innerHTML=photo({cat:f.cat.value})};
  f.onsubmit=async e=>{e.preventDefault();$('#savep').disabled=true;
   const code=f.code.value.trim();if(code&&S.products.some(x=>x.id!==id&&String(x.code).toLowerCase()===code.toLowerCase())){toast('Ese código ya lo usa otra pieza');$('#savep').disabled=false;return}
-  const d={name:f.name.value.trim(),cat:f.cat.value.trim()||'Otros',estado:f.estado.value,price:+f.price.value||0,cost:+f.cost.value||0,code,stock:id?(+p.stock||0):Math.max(0,Math.round(+f.stock.value||0)),min:Math.round(+f.min.value||0),printer:f.printer.value,...matsSave(mats),costManual:manual,hours:+f.hours.value||0,file:f.file.value.trim(),notes:f.notes.value.trim(),photo:ph,created:p.created||Date.now(),fav:!!p.fav};
+  const d={name:f.name.value.trim(),cat:f.cat.value.trim()||'Otros',estado:f.estado.value,price:+f.price.value||0,cost:+f.cost.value||0,code,stock:id?(+p.stock||0):Math.max(0,Math.round(+f.stock.value||0)),min:Math.round(+f.min.value||0),printer:f.printer.value,...matsSave(mats),costManual:manual,hours:+f.hours.value||0,file:f.file.value.trim(),fileId:pf&&pf.id||'',fileName:pf?pf.name:'',fileSize:pf?pf.size:0,notes:f.notes.value.trim(),photo:ph,created:p.created||Date.now(),fav:!!p.fav};
   try{const nid=await put('products',id,d);if(!id&&d.stock&&nid){const np={...d,id:nid,stock:0};await stockMove(np,d.stock,'ajuste','Stock inicial')}
-   const ns=Math.max(0,Math.round(+f.stock.value||0));if(id&&ns!==(+p.stock||0))await stockMove({...d,id},ns-(+p.stock||0),'ajuste','Cambiado al editar');closeModal();toast('Pieza guardada')}catch(_){$('#savep').disabled=false}};
- const dp=$('#delp');if(dp)dp.onclick=()=>confirmBox('¿Borrar «'+p.name+'»? Los tickets y movimientos pasados se conservan.',async()=>{await del('products',id);toast('Pieza borrada')});
+   const ns=Math.max(0,Math.round(+f.stock.value||0));if(id&&ns!==(+p.stock||0))await stockMove({...d,id},ns-(+p.stock||0),'ajuste','Cambiado al editar');if(id&&oldFid&&oldFid!==d.fileId)dropFile(oldFid,id);closeModal();toast('Pieza guardada')}catch(_){$('#savep').disabled=false}};
+ const dp=$('#delp');if(dp)dp.onclick=()=>confirmBox('¿Borrar «'+p.name+'»? Los tickets y movimientos pasados se conservan.',async()=>{await del('products',id);if(p.fileId)dropFile(p.fileId,id);toast('Pieza borrada')});
 }
 /* Color de la pieza: puntos con el tono de cada bobina, o por el nombre del color si se escribió a mano */
 const CNAMES={rojo:'#d62828',red:'#d62828',granate:'#7a1f2b',burdeos:'#6d1a2a',verde:'#2e9b48',green:'#2e9b48',azul:'#1f5fbf',blue:'#1f5fbf',celeste:'#6cc4ee',turquesa:'#1fb5a8',cian:'#18b4d8',amarillo:'#f2c30f',yellow:'#f2c30f',naranja:'#f07b1a',orange:'#f07b1a',negro:'#1d1d1f',black:'#1d1d1f',blanco:'#f6f6f4',white:'#f6f6f4',gris:'#8a8d91',grey:'#8a8d91',gray:'#8a8d91',rosa:'#ee7fb2',pink:'#ee7fb2',morado:'#7b3fb0',lila:'#b49ad8',violeta:'#8a4fc8',purple:'#7b3fb0',marron:'#7a4a2a','marrón':'#7a4a2a',brown:'#7a4a2a',beige:'#d9c6a5',crema:'#efe3c6',dorado:'#c9a227',oro:'#c9a227',gold:'#c9a227',plateado:'#b8bcc2',plata:'#b8bcc2',silver:'#b8bcc2',bronce:'#a0672e',cobre:'#b5651d',madera:'#a5754a',wood:'#a5754a',transparente:'transparent',natural:'#eee9dc'};
@@ -784,6 +804,15 @@ function colorHex(m){const sp=m.spool&&S.spools.find(s=>s.id===m.spool);if(sp&&/
 function dots(p,big){const ms=Array.isArray(p.mats)&&p.mats.length?p.mats:String(p.color||'').split('+').map(c=>({color:c.trim()})).filter(m=>m.color);
  const l=ms.map(m=>({h:colorHex(m),n:m.color||(m.spool&&(S.spools.find(s=>s.id===m.spool)||{}).color)||''})).filter(x=>x.h);if(!l.length)return '';
  const n=l.map(x=>x.n).filter(Boolean).join(' + ');return `<span class="cdots${big?' big':''}" title="${esc(n)}" aria-label="${esc(n)}" role="img">${l.map(x=>`<i style="background:${x.h==='transparent'?'repeating-linear-gradient(45deg,#ddd 0 3px,#fff 3px 6px)':x.h}"></i>`).join('')}</span>`}
+/* Archivo 3D de la pieza: se sube al servidor (carpeta de datos, files/) y se descarga desde la ficha */
+const linkOrText=v=>/^https?:\/\/\S+$/i.test(v)?`<a href="${esc(v)}" target="_blank" rel="noopener">${esc(v.replace(/^https?:\/\/(www\.)?/,'').slice(0,48))}</a>`:esc(v);
+const fsize=n=>n>=1048576?num(n/1048576,1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
+function uploadFile(file,prog){return new Promise((ok,ko)=>{const x=new XMLHttpRequest();x.open('POST','api/files?name='+encodeURIComponent(file.name));x.setRequestHeader('Content-Type','application/octet-stream');
+ x.upload.onprogress=e=>{if(e.lengthComputable&&prog)prog(Math.round(e.loaded/e.total*100))};
+ x.onload=()=>{let j={};try{j=JSON.parse(x.responseText)}catch(_){}x.status===200&&j.id?ok(j):ko(new Error(j.error||(x.status===413?'El archivo es demasiado grande (máximo 300 MB)':'No se pudo subir el archivo')))};
+ x.onerror=()=>ko(new Error('No se pudo subir el archivo'));x.send(file)})}
+function dropFile(fid,exceptId){if(!fid||IN_ARTIFACT||S.products.some(q=>q.id!==exceptId&&q.fileId===fid))return;fetch('api/files/'+encodeURIComponent(fid),{method:'DELETE',credentials:'same-origin'}).catch(()=>{})}
+const fileChip=(pf,rm)=>`<div class="fchip">${ico('box')}<div class="fcn"><b>${esc(pf.name)}</b><div class="note">${pf.size?fsize(pf.size):''}${pf.id?'':(pf.size?' · ':'')+'solo el nombre (esta versión no guarda archivos)'}</div></div>${pf.id?`<a class="btn gh" href="api/files/${esc(pf.id)}" download="${esc(pf.name)}">Descargar</a>`:''}${rm?'<button type="button" class="btn rd" id="p3dq" aria-label="Quitar el archivo">✕</button>':''}</div>`;
 function dupProduct(id){const p=S.products.find(x=>x.id===id);if(!p)return;closeCtx();closeModal();
  const c=JSON.parse(JSON.stringify(p));delete c.id;Object.assign(c,{name:p.name+' (copia)',code:nextCode(),stock:0,fav:false,created:Date.now(),dupOf:id});
  setTimeout(()=>editProduct('',c),30)}
@@ -863,7 +892,7 @@ function vDisenos(){
 function designCard(id){const p=S.products.find(x=>x.id===id);if(!p)return;if((p.estado||'listo')==='listo')return showProduct(id);
  const nx=p.estado==='idea'?['diseno','Empezar a diseñar']:['listo','Terminado: pasar a stock'];
  modal(`<div class="det"><div class="ph2" style="border-radius:16px">${photo(p)}</div><div style="display:flex;flex-direction:column;gap:10px"><span class="tag ${p.estado==='diseno'?'y':''}" style="align-self:start">${ESTADOS[p.estado]}</span><h2 style="font-size:22px">${esc(p.name)}${dots(p,1)}</h2>
- <dl class="specs"><dt>Categoría</dt><dd>${esc(p.cat||'—')}</dd>${p.file?`<dt>Archivo</dt><dd>${esc(p.file)}</dd>`:''}${p.price?`<dt>Precio previsto</dt><dd>${money(p.price)}</dd>`:''}${p.material?`<dt>Material</dt><dd>${esc(matsText(p))}</dd>`:''}</dl>${p.notes?`<div class="note">${esc(p.notes)}</div>`:''}</div></div>
+ <dl class="specs"><dt>Categoría</dt><dd>${esc(p.cat||'—')}</dd>${p.file?`<dt>${p.fileName?'Enlace':'Archivo'}</dt><dd>${linkOrText(p.file)}</dd>`:''}${p.price?`<dt>Precio previsto</dt><dd>${money(p.price)}</dd>`:''}${p.material?`<dt>Material</dt><dd>${esc(matsText(p))}</dd>`:''}</dl>${p.fileName?fileChip({id:p.fileId,name:p.fileName,size:p.fileSize}):''}${p.notes?`<div class="note">${esc(p.notes)}</div>`:''}</div></div>
  <div class="acts"><button class="btn gh" data-edit="${esc(id)}">Editar</button><button class="btn gh" data-dup="${esc(id)}" style="margin-right:auto">Duplicar</button><button class="btn" id="nx">${nx[1]}</button></div>`,true);
  $('#nx').onclick=async()=>{await patch('products',id,{estado:nx[0]});closeModal();render();toast(nx[0]==='listo'?'¡Ya está en tu stock!':'Movido a «Diseñando»')}}
 
@@ -1948,12 +1977,13 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.7';
+const WEB_VERSION='1.0.8';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/pctecnikk/taller3dpanel',APK_URL=REPO_URL+'/releases?q=android&expanded=true';
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.8',['Puedes **subir el archivo de la pieza** (STL, 3MF o STEP) desde el ordenador o el móvil, en «Nueva pieza» o «Editar». Se guarda con la pieza, lo descargas desde su ficha y te rellena solo los gramos y las horas (exactos si es un 3MF laminado en Bambu Studio).']],
  ['1.0.7',['Nuevo **logo de Taller3D Panel**: un cubo impreso capa a capa con la boquilla. Sale en el icono de la app de Android, en la pestaña del navegador y en la pantalla de entrar.']],
  ['1.0.6',['La app ya está en **dos idiomas: español e inglés**. Cámbialo con el botón **ES / EN** de arriba, en la pantalla de entrar o en Ajustes → Idioma.',
   'Las fechas, los números, los tickets que copias o mandas por WhatsApp y los CSV también salen en el idioma elegido.']],
