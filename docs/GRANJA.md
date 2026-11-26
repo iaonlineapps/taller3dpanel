@@ -98,6 +98,29 @@ En la pantalla de la impresora:
 
 Modelos: X1 Carbon, X1E, P1P, P1S, P2S, A1, A1 mini, H2D y H2S (todas usan el mismo sistema).
 
+## 3 bis. Sin modo LAN: nube de Bambu (solo ver)
+
+Si tus impresoras están con Wi-Fi normal (modo nube, como vienen de fábrica) y no quieres pasarlas a
+«Solo LAN», la app puede **ver** su estado a través de tu cuenta de Bambu Lab:
+
+1. En la app: **Granja → ☁ Nube Bambu**. Pon el email y la contraseña de tu cuenta Bambu Lab.
+2. Te llega un **código por email**: escríbelo.
+3. Salen tus impresoras: **«Añadir a la granja»** (como nueva o vinculada a una que ya tengas).
+
+Lo que se ve es el estado, el %, el tiempo que queda, la capa, las temperaturas, los colores del AMS y la
+boquilla. También queda el historial (empezó, terminó, falló). **No se puede controlar**: para pausar o
+parar sigue usando Bambu Handy o Bambu Studio. Bambu permite a programas de terceros leer el estado con
+moderación; las órdenes van por Bambu Connect.
+
+Cómo lo hace la app, para no molestar a Bambu:
+- Una sola conexión por cuenta.
+- Solo escucha lo que mandan las impresoras.
+- Pide el estado completo una vez al conectar.
+- Si la sesión caduca, intenta renovarla una vez y si no, te pide volver a entrar (no reintenta en bucle).
+
+La contraseña no se guarda; la sesión se guarda solo en tu servidor. No funciona si tu cuenta tiene la
+verificación en dos pasos con app de autenticación (con código por email sí).
+
 ## 4. Añadir las impresoras en la app
 
 1. **Ajustes → Granja de impresoras → Activada.** En el menú aparece **«Granja»**.
@@ -117,6 +140,8 @@ Modelos: X1 Carbon, X1E, P1P, P1S, P2S, A1, A1 mini, H2D y H2S (todas usan el mi
    se abre su ficha:
    - con el lector USB o Bluetooth;
    - con la cámara del móvil (abre la app directamente en esa impresora).
+
+**Modo taller.** Botón «Modo taller» de la granja (o del menú): pantalla reducida para una tablet o el móvil, con una tarjeta grande por impresora, la cola de piezas por imprimir y botones grandes de «Terminada» (suma al stock) y «Falló».
 
 **Historial y estadísticas.** El servidor apunta solo, aunque nadie tenga la web abierta:
 - cuándo se enciende o se apaga cada impresora;

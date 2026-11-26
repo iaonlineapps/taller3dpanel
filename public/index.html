@@ -858,7 +858,7 @@ function farmState(f){const l=farmLive(f.id);
  if(l&&l.online){const s=LIVEST[l.state]||[l.state||'Conectada','var(--pri)'];return {t:s[0],c:s[1],live:true,l}}
  const m=FST[f.status||'libre']||FST.libre;return {t:m[0],c:m[1],live:false,l}}
 const fmtMin=m=>m==null?'':m>=60?Math.floor(m/60)+' h '+String(m%60).padStart(2,'0')+' min':m+' min';
-async function fetchFarmLive(){if(IN_ARTIFACT)return;try{const r=await api('GET','api/farm/live');S.farmEnabled=!!r.enabled;S.farmLive=r.printers||{};render();paintFarmModal()}catch(e){}}
+async function fetchFarmLive(){if(IN_ARTIFACT)return;try{const r=await api('GET','api/farm/live');S.farmEnabled=!!r.enabled;S.farmCloud=r.cloud||null;S.farmLive=r.printers||{};render();paintFarmModal()}catch(e){}}
 function onFarmLive(m){if(!m||!m.id)return;S.farmLive[m.id]={...(S.farmLive[m.id]||{hasAccess:true}),live:m.live};if(S.view==='granja'||S.view==='taller')render();paintFarmModal()}
 function farmTrays(l){return (l&&l.trays||[]).map(t=>`<span title="${esc(t.type)}${t.remain!=null&&t.remain>=0?' · '+t.remain+'%':''}" style="display:inline-flex;align-items:center;gap:4px;font-size:12px"><i style="width:14px;height:14px;border-radius:50%;background:${/^#[0-9a-f]{6}$/i.test(t.color)?t.color:'#888'};border:1px solid var(--line)"></i>${esc(t.type||'?')}</span>`).join(' ')}
 const FMF=[['todas','Todas'],['trabajando','Trabajando'],['libres','Libres'],['aviso','Con aviso']];
@@ -869,7 +869,7 @@ function vGranja(){
  const l=idx.map(i=>all[i]),st=idx.map(i=>stAll[i]);
  const busy=stAll.filter(s=>/Imprimiendo|Preparando|pausa/.test(s.t)).length,free=stAll.filter(s=>s.t==='Libre'||s.t==='Terminada').length,bad=stAll.filter(s=>/Averiada|Fallida|Mantenimiento/.test(s.t)).length,lan=all.filter(f=>f.lan).length;
  return `<div class="ph"><div><h1>Granja de impresoras</h1><div class="sub">Cada impresora con su QR: escanéalo para ver qué está haciendo, cambiar su estado o controlarla</div></div>
- <div class="btns"><button class="btn gh" id="kgo">Modo taller</button><button class="btn gh" id="fmlab">${ico('qr')}Etiquetas QR</button><button class="btn gh" id="bulkfm">+ Varias</button><button class="btn" id="newfm">+ Añadir impresora</button></div></div>
+ <div class="btns">${IN_ARTIFACT?'':`<button class="btn gh" id="bcloud">${S.farmCloud?'☁ Nube Bambu ✓':'☁ Nube Bambu'}</button>`}<button class="btn gh" id="kgo">Modo taller</button><button class="btn gh" id="fmlab">${ico('qr')}Etiquetas QR</button><button class="btn gh" id="bulkfm">+ Varias</button><button class="btn" id="newfm">+ Añadir impresora</button></div></div>
  <div class="sum"><div class="sm"><div class="l">Impresoras</div><div class="v">${all.length}</div></div><div class="sm" style="border-left-color:var(--pri)"><div class="l">Trabajando</div><div class="v">${busy}</div></div><div class="sm" style="border-left-color:var(--inc)"><div class="l">Libres</div><div class="v">${free}</div></div><div class="sm" style="border-left-color:var(--exp)"><div class="l">Paradas o con aviso</div><div class="v ${bad?'dn':''}">${bad}</div></div></div>
  ${DEMO?`<p class="note" style="margin:0;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--ink)"><b>Demo:</b> estas 10 impresoras son simuladas y van rápido (1 segundo = 1 minuto). Terminan, fallan y empiezan trabajos solas; puedes pausarlas, pararlas, cambiar la luz o la velocidad. Nada se conecta a impresoras reales.</p>`:IN_ARTIFACT?`<p class="note" style="margin:0">Aquí llevas el estado de cada impresora a mano. El control en directo de las Bambu Lab por LAN (progreso, temperaturas, pausar, parar…) funciona en la versión instalada en tu red (Docker o servidor de casa).</p>`
   :lan&&!S.farmEnabled?`<p class="note" style="margin:0">El control LAN está desactivado en este servidor (FARM_LAN=0).</p>`:''}
@@ -880,7 +880,7 @@ function vGranja(){
   ${pct!=null&&/Imprimiendo|pausa|Preparando/.test(s.t)?`<div class="bar"><div class="h"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(lv.file||'Imprimiendo')}</span><span>${pct}%</span></div><div class="trk"><i style="width:${pct}%"></i></div></div><div class="note">Quedan ${fmtMin(lv.remaining)}${lv.layers?' · capa '+lv.layer+'/'+lv.layers:''}</div>`
    :f.job&&f.status==='imprimiendo'?`<div class="note">${ico('clock')} ${esc(f.job)}${f.since?' · desde '+fdt(f.since):''}</div>`:''}
   ${lv&&lv.online?`<div class="note">Boquilla ${num(lv.nozzle||0)}°${lv.nozzleT?'/'+num(lv.nozzleT)+'°':''} · Cama ${num(lv.bed||0)}°${lv.chamber?' · Cámara '+num(lv.chamber)+'°':''}</div>${lv.trays&&lv.trays.length?`<div style="display:flex;gap:8px;flex-wrap:wrap">${farmTrays(lv)}</div>`:''}`
-   :f.lan&&(!IN_ARTIFACT||DEMO)?`<div class="note" style="color:var(--exp)">${esc(lv&&lv.error||(S.farmLive[f.id]&&S.farmLive[f.id].hasAccess?'Conectando…':'Falta el código de acceso LAN'))}</div>`:''}
+   :(f.lan||f.cloud)&&(!IN_ARTIFACT||DEMO)?`<div class="note" style="color:var(--exp)">${esc(lv&&lv.error||(f.cloud?(S.farmCloud?'Esperando datos de la nube…':'Conecta tu cuenta en «Nube Bambu»'):S.farmLive[f.id]&&S.farmLive[f.id].hasAccess?'Conectando…':'Falta el código de acceso LAN'))}</div>`:''}
   </button>`}).join(''):`<div class="card empty" style="grid-column:1/-1">${all.length?'Ninguna impresora coincide.':'Añade tus impresoras. A cada una se le da un código (IMP-0001, IMP-0002…) con su QR para pegarlo en la máquina.'}</div>`}</div>
  ${all.length?(()=>{const {from}=period(S.range),rl=RANGES.find(x=>x[0]===S.range)[1],tot=farmStats('',from||0);
   return `<div class="g21"><div class="card"><div class="ch"><h2>Estadísticas</h2><div class="tabs">${RANGES.map(([v,t])=>`<button data-range="${v}" class="${v===S.range?'on':''}">${t}</button>`).join('')}</div></div>
@@ -909,10 +909,10 @@ function farmDetail(id){const f=S.farm.find(x=>x.id===id);if(!f)return;S.fmOpen=
   if(p){closeModal();registerPrint(p.id)}else{toast('Impresora libre');farmDetail(id)}};
 }
 function paintFarmModal(){const box=$('#fmlive');if(!box||!$('#ov').classList.contains('show'))return;const f=S.farm.find(x=>x.id===S.fmOpen);if(!f)return;
- if(!f.lan){box.innerHTML='';return}
+ if(!f.lan&&!f.cloud){box.innerHTML='';return}
  if(IN_ARTIFACT&&!DEMO){box.innerHTML='<div class="note">Control LAN disponible en la versión instalada en tu red.</div>';return}
- const st=S.farmLive[f.id]||{},l=st.live,adm=ME&&ME.role==='admin',ro=ME&&ME.role==='lector';
- if(!l||!l.online){box.innerHTML=`<div class="card" style="padding:12px;display:grid;gap:6px"><b>Sin conexión en directo</b><div class="note">${esc(l&&l.error||(st.hasAccess?'Conectando con la impresora…':'Falta guardar el código de acceso LAN (Editar).'))}</div></div>`;return}
+ const st=S.farmLive[f.id]||{},l=st.live,adm=ME&&ME.role==='admin',ro=ME&&ME.role==='lector'||!!f.cloud;
+ if(!l||!l.online){box.innerHTML=`<div class="card" style="padding:12px;display:grid;gap:6px"><b>Sin conexión en directo</b><div class="note">${esc(l&&l.error||(f.cloud?(S.farmCloud?'Esperando datos de la nube de Bambu…':'Entra con tu cuenta en «Nube Bambu» (botón de la granja).'):st.hasAccess?'Conectando con la impresora…':'Falta guardar el código de acceso LAN (Editar).'))}</div></div>`;return}
  l.percent=l.percent==null?null:Math.max(0,Math.min(100,l.percent));const s=LIVEST[l.state]||[l.state,'var(--pri)'],run=l.state==='RUNNING'||l.state==='PREPARE',pau=l.state==='PAUSE';
  box.innerHTML=`<div class="card" style="padding:14px;display:grid;gap:10px"><div style="display:flex;justify-content:space-between;align-items:center"><b style="color:${s[1]}">● ${esc(s[0])}</b><span class="note">${l.wifi?'Wi-Fi '+esc(l.wifi):''}</span></div>
   ${l.percent!=null&&(run||pau)?`<div class="bar"><div class="h"><span>${esc(l.file||'')}</span><span>${l.percent}%</span></div><div class="trk"><i style="width:${l.percent}%"></i></div></div><div class="note">Quedan ${fmtMin(l.remaining)}${l.layers?' · capa '+l.layer+' de '+l.layers:''}</div>`:''}
@@ -920,7 +920,7 @@ function paintFarmModal(){const box=$('#fmlive');if(!box||!$('#ov').classList.co
   <div class="note">Boquilla ${num(l.nozzle||0)}° / ${num(l.nozzleT||0)}° · Cama ${num(l.bed||0)}° / ${num(l.bedT||0)}°${l.chamber?' · Cámara '+num(l.chamber)+'°':''}</div>
   ${l.trays&&l.trays.length?`<div style="display:flex;gap:10px;flex-wrap:wrap">${farmTrays(l)}</div>`:''}
   ${l.errors||l.printError?`<div class="note" style="color:var(--exp)">La impresora tiene ${l.errors||1} aviso(s): míralo en su pantalla o en Bambu Studio.</div>`:''}
-  ${ro?'':`<div class="btns">${run?'<button class="btn sf" data-fmc="pause">Pausar</button>':''}${pau?'<button class="btn" data-fmc="resume">Reanudar</button>':''}${run||pau?'<button class="btn rd" data-fmc="stop">Parar</button>':''}
+  ${f.cloud?'<div class="note">Nube de Bambu: solo ver. Para pausar o parar usa Bambu Handy.</div>':''}${ro?'':`<div class="btns">${run?'<button class="btn sf" data-fmc="pause">Pausar</button>':''}${pau?'<button class="btn" data-fmc="resume">Reanudar</button>':''}${run||pau?'<button class="btn rd" data-fmc="stop">Parar</button>':''}
   <button class="btn gh" data-fmc="light" data-fmv="${l.light?0:1}">${l.light?'Apagar luz':'Encender luz'}</button>
   ${run||pau?`<select id="fmspd" style="width:auto">${[1,2,3,4].map(v=>`<option value="${v}" ${+l.speed===v?'selected':''}>${SPEEDS[v]}</option>`).join('')}</select>`:''}</div>`}</div>`;
  const sp=$('#fmspd');if(sp)sp.onchange=()=>farmCmd(f.id,'speed',+sp.value);void adm}
@@ -934,18 +934,19 @@ function editFarm(id){const f=Object.assign({name:'',model:'',k:'enc',fleetId:''
  <div class="f2"><label>Nombre<input name="name" required value="${esc(f.name)}" placeholder="X1C-01, A1 rosa…"></label><label>Perfil / modelo<select name="fleetId"><option value="">— Otro —</option>${fl.map(p=>`<option value="${esc(p.id)}" ${f.fleetId===p.id?'selected':''}>${esc(p.alias)} (${esc([p.brand,p.model].filter(Boolean).join(' '))})</option>`).join('')}</select></label></div>
  <div style="display:flex;gap:14px;align-items:center"><div id="phbox" style="width:72px;height:72px;flex:none;border-radius:14px;overflow:hidden;background:var(--soft)">${prPic(f)}</div>${photoField(f.photo)}</div>
  <label>Modelo (texto libre)<input name="model" value="${esc(f.model)}" placeholder="Bambu Lab X1 Carbon"></label>
- <label style="flex-direction:row;display:flex;gap:8px;align-items:center"><input type="checkbox" name="lan" ${f.lan?'checked':''} style="width:18px;height:18px;min-height:0">Bambu Lab en modo LAN (control en directo)</label>
+ <label>Conexión<select name="conn"><option value="">Manual (marco yo el estado)</option><option value="cloud" ${f.cloud?'selected':''}>Bambu Lab por la nube · solo ver (Wi-Fi normal)</option><option value="lan" ${f.lan?'selected':''}>Bambu Lab en modo LAN · ver y controlar</option></select></label>
+ <div id="cloudbox" style="display:grid;gap:8px" ${f.cloud?'':'hidden'}><label>Nº de serie<input name="cserial" value="${esc(f.serial)}" placeholder="01S00C..."></label><div class="note">Con tu cuenta de Bambu (botón «Nube Bambu» de la granja) la app ve el estado de la impresora sin cambiar nada en ella. Solo se puede ver: para pausar o parar usa Bambu Handy.</div></div>
  <div id="lanbox" style="display:grid;gap:12px" ${f.lan?'':'hidden'}>
   <div class="f3"><label>IP de la impresora<input name="ip" value="${esc(f.ip)}" placeholder="192.168.1.50" inputmode="decimal"></label><label>Nº de serie<input name="serial" value="${esc(f.serial)}" placeholder="01S00C..."></label><label>Código de acceso${adm?'':' (solo admin)'}<input name="access" type="password" autocomplete="off" ${adm&&!IN_ARTIFACT?'':'disabled'} placeholder="${st.hasAccess?'•••••••• guardado':'8 caracteres'}"></label></div>
   <div class="note">En la impresora: <b>Ajustes → Red</b> → activa <b>Solo LAN</b> y <b>Modo desarrollador</b>. Ahí verás la IP y el código de acceso; el nº de serie está en Ajustes → Dispositivo. El servidor tiene que estar en la misma red que la impresora. El código se guarda solo en tu servidor, nunca se envía al navegador.${IN_ARTIFACT?' <b>Esta versión no puede conectarse a tu red: usa la versión instalada.</b>':''}</div></div>
  <label>Notas<input name="notes" value="${esc(f.notes)}" placeholder="Boquilla 0.6, AMS 1…"></label>
  <div class="acts">${id?'<button type="button" class="btn rd" id="delfm" style="margin-right:auto">Quitar</button>':''}<button type="button" class="btn gh" data-close>Cancelar</button><button class="btn" id="okfm">Guardar</button></div></form>`);
  let fph=f.photo||'';bindPhoto($('#phbox'),fph,f.k,v=>{fph=v});
- const fm=$('#ffm');fm.lan.onchange=()=>{$('#lanbox').hidden=!fm.lan.checked};
+ const fm=$('#ffm');fm.conn.onchange=()=>{$('#lanbox').hidden=fm.conn.value!=='lan';$('#cloudbox').hidden=fm.conn.value!=='cloud'};
  fm.fleetId.onchange=()=>{const p=fl.find(x=>x.id===fm.fleetId.value);if(p){if(!fm.model.value)fm.model.value=[p.brand,p.model].filter(Boolean).join(' ');if(!fm.name.value)fm.name.value=p.alias}};
  fm.onsubmit=async e=>{e.preventDefault();$('#okfm').disabled=true;const p=fl.find(x=>x.id===fm.fleetId.value);
   const n=f.n||Math.max(0,...S.farm.map(x=>+x.n||0))+1;
-  const d={...f,name:fm.name.value.trim(),fleetId:fm.fleetId.value,model:fm.model.value.trim()||(p?[p.brand,p.model].filter(Boolean).join(' '):''),k:p?p.k:(f.k||'enc'),lan:fm.lan.checked,ip:fm.ip.value.trim(),serial:fm.serial.value.trim().toUpperCase(),port:+f.port||8883,notes:fm.notes.value.trim(),photo:fph,n,code:f.code||('IMP-'+String(n).padStart(4,'0'))};
+  const d={...f,name:fm.name.value.trim(),fleetId:fm.fleetId.value,model:fm.model.value.trim()||(p?[p.brand,p.model].filter(Boolean).join(' '):''),k:p?p.k:(f.k||'enc'),lan:fm.conn.value==='lan',cloud:fm.conn.value==='cloud',ip:fm.ip.value.trim(),serial:(fm.conn.value==='cloud'?fm.cserial.value:fm.serial.value).trim().toUpperCase(),port:+f.port||8883,notes:fm.notes.value.trim(),photo:fph,n,code:f.code||('IMP-'+String(n).padStart(4,'0'))};
   delete d.id;
   if(d.lan&&d.ip&&!/^[\w.-]+$/.test(d.ip)){toast('La IP no es válida');$('#okfm').disabled=false;return}
   try{const nid=await put('farm',id,d);const fid=id||nid;const acc=fm.access&&fm.access.value.trim();
@@ -983,6 +984,33 @@ function farmLabels(){const l=S.farm.slice().sort((a,b)=>(a.n||0)-(b.n||0));if(!
  <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">${l.map(f=>`<div class="card" style="padding:10px;text-align:center"><img src="${qrURL(farmQR(f))}" alt="" style="width:110px;background:#fff;border-radius:8px;image-rendering:pixelated"><div style="font-weight:600;font-size:13px">${esc(f.name)}</div><div class="note">${esc(farmCode(f))}</div></div>`).join('')}</div>
  <div class="acts"><button class="btn" id="dlfml">${ico('down')}Descargar hoja para imprimir</button></div>`,true);
  $('#dlfml').onclick=()=>saveFile('qr-impresoras.html',`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>QR impresoras</title><style>body{font-family:Arial,sans-serif;margin:10mm}.g{display:grid;grid-template-columns:repeat(3,1fr);gap:5mm}.lab{border:1px dashed #aaa;padding:4mm;text-align:center;font-size:11pt;break-inside:avoid}.lab img{width:40mm;image-rendering:pixelated}.lab b,.lab span{display:block}button{padding:10px 18px;margin-bottom:8mm}@media print{button{display:none}}</style></head><body><button onclick="print()">Imprimir</button><div class="g">${html}</div></body></html>`,'text/html')}
+/* ---- Nube de Bambu (solo ver) ---- */
+function cloudModal(step){const c=S.farmCloud,adm=!ME||ME.role==='admin';
+ if(!adm){toast('Solo un administrador puede conectar la cuenta de Bambu');return}
+ if(!c){modal(`<h2>Conectar con tu cuenta de Bambu Lab</h2>
+  <p class="note" style="margin:0">Para impresoras conectadas por Wi-Fi normal (modo nube). La app solo <b>ve</b> su estado: progreso, tiempo, temperaturas y colores. No cambia nada en las impresoras ni en tu cuenta. Tu contraseña no se guarda: solo la sesión, y solo en tu servidor.</p>
+  <form id="fbc" style="display:grid;gap:12px">${step==='code'?`<label>Código que te ha llegado por email<input name="code" inputmode="numeric" autocomplete="one-time-code" required maxlength="8" placeholder="123456"></label>`
+  :`<label>Email de tu cuenta Bambu Lab<input name="email" type="email" required value="${esc(S.bcEmail||'')}"></label><label>Contraseña<input name="password" type="password" required autocomplete="current-password"></label><label>Región<select name="region"><option value="global">Europa / resto del mundo</option><option value="china">China</option></select></label>`}
+  <div class="acts"><button type="button" class="btn gh" data-close>Cancelar</button><button class="btn" id="okbc">${step==='code'?'Confirmar':'Entrar'}</button></div></form>`);
+  $('#fbc').onsubmit=async e=>{e.preventDefault();const f=e.target;$('#okbc').disabled=true;
+   try{const body=step==='code'?{email:S.bcEmail,code:f.code.value,region:S.bcRegion}:{email:f.email.value.trim(),password:f.password.value,region:f.region.value};if(!step){S.bcEmail=body.email;S.bcRegion=body.region}
+    const r=await api('POST','api/bambu/login',body);if(r.needCode){toast('Te ha llegado un código por email');cloudModal('code');return}
+    toast('Cuenta de Bambu conectada');await fetchFarmLive();cloudModal()}catch(er){toast(er.message||'No se pudo entrar');$('#okbc').disabled=false}};return}
+ modal(`<div class="ch" style="margin:0"><h2>Nube Bambu (solo ver)</h2><button class="btn gh" data-close>Cerrar</button></div>
+  <div class="note">Cuenta: <b>${esc(c.email)}</b> · ${c.online?'<span class="up">conectada</span>':'<span class="dn">'+esc(c.error||'conectando…')+'</span>'}</div>
+  <div id="bcdev" style="display:grid;gap:8px"><div class="note">Buscando tus impresoras…</div></div>
+  <div class="acts"><button class="btn rd" id="bclogout" style="margin-right:auto">Desconectar cuenta</button></div>`,true);
+ $('#bclogout').onclick=()=>confirmBox('¿Desconectar tu cuenta de Bambu? Las impresoras se quedan en la granja en modo manual.',async()=>{await api('POST','api/bambu/logout',{});S.farmCloud=null;await fetchFarmLive();closeModal()});
+ api('GET','api/bambu/devices').then(r=>{const box=$('#bcdev');if(!box)return;const ds=r.devices||[];
+  box.innerHTML=ds.length?ds.map(d=>{const f=S.farm.find(x=>String(x.serial||'').toUpperCase()===d.serial.toUpperCase());const others=S.farm.filter(x=>!x.serial);
+   return `<div class="li" style="grid-template-columns:minmax(0,1fr) auto"><div><b>${esc(d.name)}</b><small>${esc(d.model)} · ${esc(d.serial)} · ${d.online?'encendida':'apagada'}</small></div><div>${f?`<span class="tag">✓ ${esc(f.name)}</span>`
+    :`<select data-bcl="${esc(d.serial)}" data-bcn="${esc(d.name)}" data-bcm="${esc(d.model)}" style="width:auto"><option value="">Añadir a la granja…</option><option value="new">Como impresora nueva</option>${others.map(o=>`<option value="${esc(o.id)}">Vincular con ${esc(o.name)}</option>`).join('')}</select>`}</div></div>`}).join('')
+   :'<div class="note">No hay impresoras vinculadas a esta cuenta.</div>';
+  box.querySelectorAll('[data-bcl]').forEach(sl=>sl.onchange=async()=>{const v=sl.value;if(!v)return;const sn=sl.dataset.bcl,model=sl.dataset.bcm;
+   const fl=fleet().find(x=>model&&(x.model||'').toLowerCase()===model.toLowerCase())||fleet().find(x=>model&&(x.model||'').toLowerCase().includes(model.toLowerCase().split(' ')[0]));
+   if(v==='new'){const n=Math.max(0,...S.farm.map(x=>+x.n||0))+1;await put('farm','',{name:sl.dataset.bcn,model:'Bambu Lab '+model,fleetId:fl?fl.id:'',k:fl?fl.k:'enc',lan:false,cloud:true,ip:'',serial:sn,port:8883,notes:'',status:'libre',n,code:'IMP-'+String(n).padStart(4,'0')})}
+   else await patch('farm',v,{cloud:true,lan:false,serial:sn,...(fl&&!S.farm.find(x=>x.id===v).fleetId?{fleetId:fl.id,k:fl.k}:{})});
+   if(!S.cfg.farmOn)await saveCfg({farmOn:true}).catch(()=>{});toast('Impresora vinculada');setTimeout(()=>{fetchFarmLive();if($('#bcdev'))cloudModal()},1500)})}).catch(er=>{const box=$('#bcdev');if(box)box.innerHTML='<div class="note dn">'+esc(er.message||'No se pudo pedir la lista')+'</div>'})}
 function farmFromCode(code){const m=String(code).match(/IMP['\-](\d{1,6})\s*$/i);if(!m)return null;const c='IMP-'+m[1];return S.farm.find(f=>farmCode(f).toUpperCase()===c)||null}
 
 function bulkFarm(){const fl=fleet();
@@ -2031,7 +2059,7 @@ document.addEventListener('click',async e=>{
   case 'clr':S.cart=[];S.cash='';syncCart();break;case 'cobrar':cobrar();break;
   case 'newp':editProduct('');break;case 'newd':editProduct('',{estado:'idea',stock:0,code:''});break;case 'labels':labelsSheet();break;
   case 'newsp':editSpool('');break;case 'newc':editCustomer('');break;case 'newb':editCollab('');break;case 'newg':editExpense('');break;
-  case 'bmore':moreSheet();break;case 'newfm':editFarm('');break;case 'kgo':kioskEnter();break;case 'kexit':kioskExit();break;case 'kq':case 'kq2':kQueueAdd();break;case 'kseed':kioskSeed();break;case 'fmnot':Notification.requestPermission().then(p=>{toast(p==='granted'?'Te avisaré cuando una impresora termine o falle (con la web abierta)':'El navegador no ha dado permiso para avisos');render()});break;case 'bulkfm':bulkFarm();break;case 'fmlab':farmLabels();break;
+  case 'bmore':moreSheet();break;case 'newfm':editFarm('');break;case 'kgo':kioskEnter();break;case 'bcloud':cloudModal();break;case 'kexit':kioskExit();break;case 'kq':case 'kq2':kQueueAdd();break;case 'kseed':kioskSeed();break;case 'fmnot':Notification.requestPermission().then(p=>{toast(p==='granted'?'Te avisaré cuando una impresora termine o falle (con la web abierta)':'El navegador no ha dado permiso para avisos');render()});break;case 'bulkfm':bulkFarm();break;case 'fmlab':farmLabels();break;
   case 'quickp':quickPiece();break;case 'quickc':case 'quickc2':quickClient();break;case 'camscan':cameraScan(v=>handleScan(v));break;
   case 'newj':editJob('');break;case 'newq':editQuote('');break;case 'scansp':scanSpool();break;case 'addpr':case 'addpr2':pickPrinter();break;case 'nologo':saveCfg({logo:''});break;
   case 'c2q':{const c=calcRead(),r=calcCompute(c);editQuote('',{title:c.name||'',lines:[{d:(c.name||'Pieza impresa en 3D'),q:c.qty,u:+r.price.toFixed(2)}]});break}

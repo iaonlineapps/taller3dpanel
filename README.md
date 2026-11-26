@@ -47,7 +47,7 @@ una base de datos SQLite propia, dentro de tu instalación.
   pegarlo en la máquina, estado (libre, imprimiendo, mantenimiento, averiada), trabajo actual, buscador
   y filtros para granjas grandes. Las **Bambu Lab en modo «Solo LAN»** (por Wi-Fi o cable) se ven
   **en directo** (progreso, tiempo, temperaturas, AMS) y se **controlan** (pausar, reanudar, parar,
-  luz, velocidad), con **historial** (encendida, empezó, terminó, falló y cuánto tardó), **estadísticas** y **avisos al terminar**. La propia instalación hace de **servidor de impresión**: ver la
+  luz, velocidad), con **historial** (encendida, empezó, terminó, falló y cuánto tardó). Las que están en **modo nube** (Wi-Fi normal) también se ven en directo con tu cuenta de Bambu (**solo ver**), **estadísticas** y **avisos al terminar**. La propia instalación hace de **servidor de impresión**: ver la
   [guía de la granja](docs/GRANJA.md).
 - **Modo taller** para una tablet o el móvil en la zona de impresoras: pantalla reducida y táctil
   con una tarjeta grande por impresora (estado, %, tiempo que queda), **cola de piezas por imprimir**,

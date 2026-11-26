@@ -23,7 +23,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
-const { BambuLink } = require('./bambu');
+const { BambuLink, BambuCloud, BambuCloudLink, CloudView } = require('./bambu');
 
 const ROOT = __dirname;
 const PUB = path.join(ROOT, 'public');
@@ -46,7 +46,8 @@ CREATE TABLE IF NOT EXISTS docs(col TEXT NOT NULL, id TEXT NOT NULL, data TEXT N
 CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, username TEXT UNIQUE NOT NULL COLLATE NOCASE, name TEXT, pass TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'editor', active INTEGER NOT NULL DEFAULT 1, created INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
-CREATE TABLE IF NOT EXISTS farm_secret(id TEXT PRIMARY KEY, access TEXT NOT NULL);`);
+CREATE TABLE IF NOT EXISTS farm_secret(id TEXT PRIMARY KEY, access TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS cloud(k TEXT PRIMARY KEY, v TEXT NOT NULL);`);
 try { db.exec('ALTER TABLE users ADD COLUMN email TEXT'); } catch { /* ya existe */ }
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_email ON users(email COLLATE NOCASE) WHERE email IS NOT NULL AND email<>\'\'');
 
@@ -196,6 +197,26 @@ function track(id, link) {
   if (sm.online && st) t.first = false;
   tracks.set(id, t);
 }
+// ---- nube de Bambu (solo ver): credenciales solo aquí, nunca se mandan al navegador ----
+const cloudGet = db.prepare('SELECT v FROM cloud WHERE k=?'), cloudPut = db.prepare('INSERT INTO cloud(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v'), cloudDel = db.prepare('DELETE FROM cloud WHERE k=?');
+const cloudCreds = () => { try { return JSON.parse((cloudGet.get('bambu') || {}).v || 'null'); } catch { return null; } };
+let cloudConn = null, cloudPending = null, cloudRefreshing = false;
+function cloudEnsure(serials) {
+  const c = cloudCreds();
+  if (!c || !c.token || !serials.length) { if (cloudConn) { cloudConn.close(); cloudConn = null; } return null; }
+  if (cloudConn && cloudConn.token !== c.token) { cloudConn.close(); cloudConn = null; }
+  if (!cloudConn || cloudConn.closed && !cloudRefreshing) {
+    if (cloudConn && cloudConn.closed) return cloudConn; // sesión caducada: no reintentar en bucle
+    cloudConn = new BambuCloudLink({ region: c.region, uid: c.uid, token: c.token });
+    cloudConn.on('update', sn => { for (const [id, l] of links) if (l.link instanceof CloudView && (!sn || l.link.serial === sn)) { track(id, l.link); pushLive(id); } });
+    cloudConn.on('authfail', async () => { // probar una vez a renovar la sesión
+      const cc = cloudCreds(); if (!cc || !cc.refresh || cloudRefreshing) return; cloudRefreshing = true;
+      try { const j = await BambuCloud.refresh(cc.region, cc.refresh); if (j.accessToken) { cloudPut.run('bambu', JSON.stringify({ ...cc, token: j.accessToken, refresh: j.refreshToken || cc.refresh, at: Date.now() })); cloudConn = null; farmSync(); } } catch { } finally { cloudRefreshing = false; }
+    });
+  }
+  cloudConn.setSerials(serials);
+  return cloudConn;
+}
 function farmSync() {
   if (!FARM_LAN) return;
   const want = new Map();
@@ -203,11 +224,17 @@ function farmSync() {
     let d; try { d = JSON.parse(r.data); } catch { continue; }
     const sec = getSecret.get(r.id);
     if (d.lan && d.ip && d.serial && sec) want.set(r.id, { host: String(d.ip).trim(), serial: String(d.serial).trim(), code: sec.access, port: +d.port || 8883 });
+    else if (d.cloud && d.serial) want.set(r.id, { cloud: true, serial: String(d.serial).trim().toUpperCase() });
   }
+  const conn = cloudEnsure([...want.values()].filter(w => w.cloud).map(w => w.serial));
+  if (conn) for (const [id, w] of want) if (w.cloud) w.tok = conn.token.slice(-8);
   for (const [id, l] of links) { const w = want.get(id); if (!w || JSON.stringify(w) !== l.key) { l.link.close(); links.delete(id); broadcast({ farm: { id, live: null } }); } }
-  for (const [id, w] of want) if (!links.has(id)) { const link = new BambuLink(w); link.on('update', () => { track(id, link); pushLive(id); }); links.set(id, { link, key: JSON.stringify(w) }); }
+  for (const [id, w] of want) if (!links.has(id)) {
+    if (w.cloud) { if (conn) { links.set(id, { link: new CloudView(conn, w.serial), key: JSON.stringify(w) }); pushLive(id); } continue; }
+    const link = new BambuLink(w); link.on('update', () => { track(id, link); pushLive(id); }); links.set(id, { link, key: JSON.stringify(w) });
+  }
 }
-function farmLive() { const o = {}; for (const r of farmDocs.all()) { const l = links.get(r.id); o[r.id] = { hasAccess: !!getSecret.get(r.id), live: l ? l.link.summary() : null }; } return o; }
+function farmLive() { const o = {}; for (const r of farmDocs.all()) { const l = links.get(r.id); o[r.id] = { hasAccess: !!getSecret.get(r.id) || !!(cloudCreds() && cloudCreds().token), cloud: !!(l && l.link.readOnly), live: l ? l.link.summary() : null }; } return o; }
 
 
 // ---------- utilidades HTTP ----------
@@ -350,7 +377,27 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, x.body, x.type.startsWith('image/') ? x.type : x.type + '; charset=utf-8', { 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(x.name)}` });
     }
     // ----- granja -----
-    if (p === '/api/farm/live' && M === 'GET') return send(res, 200, { enabled: FARM_LAN, printers: farmLive() });
+    if (p === '/api/farm/live' && M === 'GET') { const c = cloudCreds(); return send(res, 200, { enabled: FARM_LAN, cloud: c ? { email: c.email, region: c.region, error: cloudConn ? cloudConn.error : '', online: !!(cloudConn && cloudConn.online) } : null, printers: farmLive() }); }
+    // ----- nube de Bambu (solo ver) -----
+    if (p.startsWith('/api/bambu/') && me.role !== 'admin') return send(res, 403, { error: 'Solo un administrador puede conectar la cuenta de Bambu' });
+    if (p === '/api/bambu/login' && M === 'POST') {
+      if (!FARM_LAN) return send(res, 400, { error: 'La conexión con impresoras está desactivada en este servidor (FARM_LAN=0)' });
+      const b = await readBody(req), region = b.region === 'china' ? 'china' : 'global', email = String(b.email || '').trim();
+      try {
+        let j;
+        if (b.code) { if (!cloudPending || cloudPending.email !== email) return send(res, 400, { error: 'Vuelve a empezar: pon tu email y contraseña' }); j = await BambuCloud.loginCode(region, email, b.code); }
+        else { if (!email || !b.password) return send(res, 400, { error: 'Pon el email y la contraseña de tu cuenta de Bambu Lab' }); j = await BambuCloud.login(region, email, String(b.password)); if (j.needCode) { cloudPending = { email, at: Date.now() }; return send(res, 200, { needCode: true }); } if (j.needTfa) return send(res, 400, { error: 'Tu cuenta tiene verificación en dos pasos con app: de momento no se puede usar aquí' }); }
+        const uid = await BambuCloud.uid(region, j.accessToken);
+        cloudPut.run('bambu', JSON.stringify({ email, region, uid, token: j.accessToken, refresh: j.refreshToken || '', at: Date.now() })); cloudPending = null;
+        if (cloudConn) { cloudConn.close(); cloudConn = null; } farmSync();
+        return send(res, 200, { ok: true });
+      } catch (e) { return send(res, 400, { error: e.status === 400 || e.status === 401 ? 'Email, contraseña o código incorrectos' : (e.message || 'No se pudo entrar en Bambu') }); }
+    }
+    if (p === '/api/bambu/devices' && M === 'GET') {
+      const c = cloudCreds(); if (!c) return send(res, 400, { error: 'Primero entra con tu cuenta de Bambu' });
+      try { return send(res, 200, { devices: await BambuCloud.devices(c.region, c.token) }); } catch (e) { return send(res, 400, { error: e.status === 401 ? 'La sesión de Bambu ha caducado: vuelve a entrar' : (e.message || 'No se pudo pedir la lista') }); }
+    }
+    if (p === '/api/bambu/logout' && M === 'POST') { cloudDel.run('bambu'); if (cloudConn) { cloudConn.close(); cloudConn = null; } farmSync(); return send(res, 200, { ok: true }); }
     m = p.match(/^\/api\/farm\/([A-Za-z0-9._~:@+-]{1,120})\/(access|cmd)$/);
     if (m && M === 'POST') {
       const [, id, what] = m; const b = await readBody(req);
@@ -363,6 +410,7 @@ const server = http.createServer(async (req, res) => {
       }
       if (!canWrite(me)) return send(res, 403, { error: 'Tu usuario solo puede ver' });
       if (!FARM_LAN) return send(res, 400, { error: 'El control LAN está desactivado en este servidor (FARM_LAN=0)' });
+      { const l0 = links.get(id); if (l0 && l0.link.readOnly) return send(res, 400, { error: 'Esta impresora está en modo nube: solo se puede ver. Para pausarla o pararla usa Bambu Handy.' }); }
       const l = links.get(id); if (!l || !l.link.online) return send(res, 409, { error: (l && l.link.error) || 'La impresora no está conectada' });
       if (!['pause', 'resume', 'stop', 'light', 'speed', 'refresh'].includes(b.cmd)) return send(res, 400, { error: 'Orden no válida' });
       if (['stop'].includes(b.cmd) && me.role === 'lector') return send(res, 403, { error: 'No permitido' });
@@ -397,5 +445,5 @@ const exportsMap = new Map();
 setInterval(() => { const lim = Date.now() - 6e5; for (const [k, v] of exportsMap) if (v.t < lim) exportsMap.delete(k); }, 6e4).unref();
 
 server.listen(PORT, () => { console.log(`Taller3D Panel ${VERSION} en http://0.0.0.0:${PORT}  ·  datos en ${DATA}`); farmSync(); });
-const bye = () => { for (const l of links.values()) l.link.close(); try { db.close(); } catch { } process.exit(0); };
+const bye = () => { for (const l of links.values()) l.link.close(); if (cloudConn) cloudConn.close(); try { db.close(); } catch { } process.exit(0); };
 process.on('SIGTERM', bye); process.on('SIGINT', bye);
