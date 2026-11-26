@@ -13,6 +13,7 @@
  *   REQUIRE_EMAIL   1 = pedir email al crear cuentas (recomendado si la usa más gente); 0 = solo usuario y contraseña
  *   SEED_FILE       JSON con ajustes iniciales (impresoras, categorías...) que se aplica la primera vez
  *   TRUST_PROXY     1 = detrás de un proxy (Nginx, Pangolin, Cloudflare): usa X-Forwarded-For / -Proto
+ *   FARM_LAN        0 = desactiva la conexión LAN con impresoras Bambu Lab (granja). Por defecto activa.
  */
 'use strict';
 process.removeAllListeners('warning');
@@ -22,6 +23,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
+const { BambuLink } = require('./bambu');
 
 const ROOT = __dirname;
 const PUB = path.join(ROOT, 'public');
@@ -32,9 +34,10 @@ const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 const REQUIRE_EMAIL = process.env.REQUIRE_EMAIL === '1';
 const VERSION = (process.env.TALLER3D_VERSION || '').replace(/^v/i, '').trim() ||
   (() => { try { return fs.readFileSync(path.join(ROOT, 'VERSION'), 'utf8').trim(); } catch { return '?'; } })();
-const COLLECTIONS = new Set(['products', 'customers', 'collabs', 'sales', 'expenses', 'prints', 'moves', 'spools', 'jobs', 'quotes', 'config', 'profiles']);
+const COLLECTIONS = new Set(['products', 'customers', 'collabs', 'sales', 'expenses', 'prints', 'moves', 'spools', 'jobs', 'quotes', 'config', 'profiles', 'farm']);
 const MAX_BODY = 3 * 1024 * 1024; // fotos y logos van como imagen reducida dentro del documento
 const SESSION_DAYS = 60;
+const FARM_LAN = process.env.FARM_LAN !== '0';
 
 fs.mkdirSync(DATA, { recursive: true });
 const db = new DatabaseSync(path.join(DATA, 'taller3d.db'));
@@ -42,7 +45,8 @@ db.exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys
 CREATE TABLE IF NOT EXISTS docs(col TEXT NOT NULL, id TEXT NOT NULL, data TEXT NOT NULL, updated INTEGER NOT NULL, by_user TEXT, PRIMARY KEY(col,id));
 CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, username TEXT UNIQUE NOT NULL COLLATE NOCASE, name TEXT, pass TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'editor', active INTEGER NOT NULL DEFAULT 1, created INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires INTEGER NOT NULL);
-CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);`);
+CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
+CREATE TABLE IF NOT EXISTS farm_secret(id TEXT PRIMARY KEY, access TEXT NOT NULL);`);
 try { db.exec('ALTER TABLE users ADD COLUMN email TEXT'); } catch { /* ya existe */ }
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_email ON users(email COLLATE NOCASE) WHERE email IS NOT NULL AND email<>\'\'');
 
@@ -136,6 +140,31 @@ function failed(ip) { const f = fails.get(ip); if (!f || Date.now() - f.t > 9e5)
 const clients = new Set();
 function broadcast(msg) { const s = `data: ${JSON.stringify(msg)}\n\n`; for (const c of clients) { try { c.write(s); } catch { } } }
 setInterval(() => { for (const c of clients) { try { c.write(': ping\n\n'); } catch { } } }, 25e3).unref();
+// ---------- granja de impresoras (Bambu Lab por LAN) ----------
+// El código de acceso de cada impresora se guarda SOLO aquí (tabla farm_secret) y nunca se manda a la web.
+const links = new Map(); // id -> { link, key }
+const liveTimers = new Map();
+const getSecret = db.prepare('SELECT access FROM farm_secret WHERE id=?');
+const putSecret = db.prepare('INSERT INTO farm_secret(id,access) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET access=excluded.access');
+const delSecret = db.prepare('DELETE FROM farm_secret WHERE id=?');
+const farmDocs = db.prepare("SELECT id,data FROM docs WHERE col='farm'");
+function pushLive(id) {
+  if (liveTimers.has(id)) return; // como mucho un aviso por segundo y por impresora
+  liveTimers.set(id, setTimeout(() => { liveTimers.delete(id); const l = links.get(id); broadcast({ farm: { id, live: l ? l.link.summary() : null } }); }, 1000));
+}
+function farmSync() {
+  if (!FARM_LAN) return;
+  const want = new Map();
+  for (const r of farmDocs.all()) {
+    let d; try { d = JSON.parse(r.data); } catch { continue; }
+    const sec = getSecret.get(r.id);
+    if (d.lan && d.ip && d.serial && sec) want.set(r.id, { host: String(d.ip).trim(), serial: String(d.serial).trim(), code: sec.access, port: +d.port || 8883 });
+  }
+  for (const [id, l] of links) { const w = want.get(id); if (!w || JSON.stringify(w) !== l.key) { l.link.close(); links.delete(id); broadcast({ farm: { id, live: null } }); } }
+  for (const [id, w] of want) if (!links.has(id)) { const link = new BambuLink(w); link.on('update', () => pushLive(id)); links.set(id, { link, key: JSON.stringify(w) }); }
+}
+function farmLive() { const o = {}; for (const r of farmDocs.all()) { const l = links.get(r.id); o[r.id] = { hasAccess: !!getSecret.get(r.id), live: l ? l.link.summary() : null }; } return o; }
+
 
 // ---------- utilidades HTTP ----------
 const SEC = {
@@ -233,9 +262,9 @@ const server = http.createServer(async (req, res) => {
       if (M === 'PUT' || M === 'PATCH') {
         let d = cleanDoc(await readBody(req));
         if (M === 'PATCH') { const r = q.getDoc.get(col, id); if (!r) return send(res, 404, { error: 'No existe' }); d = { ...JSON.parse(r.data), ...d }; }
-        q.putDoc.run(col, id, JSON.stringify(d), Date.now(), me.id); broadcast({ col, id, data: d }); return send(res, 200, { ok: true });
+        q.putDoc.run(col, id, JSON.stringify(d), Date.now(), me.id); broadcast({ col, id, data: d }); if (col === 'farm') farmSync(); return send(res, 200, { ok: true });
       }
-      if (M === 'DELETE') { q.delDoc.run(col, id); broadcast({ col, id, data: null }); return send(res, 200, { ok: true }); }
+      if (M === 'DELETE') { q.delDoc.run(col, id); broadcast({ col, id, data: null }); if (col === 'farm') { delSecret.run(id); farmSync(); } return send(res, 200, { ok: true }); }
     }
     if (p === '/api/backup' && M === 'GET') {
       if (me.role !== 'admin') return send(res, 403, { error: 'Solo administradores' });
@@ -246,7 +275,7 @@ const server = http.createServer(async (req, res) => {
       if (me.role !== 'admin') return send(res, 403, { error: 'Solo administradores' });
       const b = await readBody(req); const d = b && b.data; if (!d || typeof d !== 'object') return send(res, 400, { error: 'Copia no válida' });
       db.exec('BEGIN'); try { db.exec('DELETE FROM docs'); for (const [col, docs] of Object.entries(d)) { if (!COLLECTIONS.has(col)) continue; for (const [id, doc] of Object.entries(docs || {})) q.putDoc.run(col, id, JSON.stringify(doc), Date.now(), me.id); } db.exec('COMMIT'); } catch (e) { db.exec('ROLLBACK'); throw e; }
-      broadcast({ reload: true }); return send(res, 200, { ok: true });
+      broadcast({ reload: true }); farmSync(); return send(res, 200, { ok: true });
     }
     // Descargas generadas por la web (tickets, CSV, etiquetas): la app de Android las guarda con su gestor de descargas
     if (p === '/api/export' && M === 'POST') {
@@ -259,6 +288,26 @@ const server = http.createServer(async (req, res) => {
     if (m && M === 'GET') {
       const x = exportsMap.get(m[1]); if (!x || x.user !== me.id) return send(res, 404, { error: 'Caducado' });
       return send(res, 200, x.body, x.type.startsWith('image/') ? x.type : x.type + '; charset=utf-8', { 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(x.name)}` });
+    }
+    // ----- granja -----
+    if (p === '/api/farm/live' && M === 'GET') return send(res, 200, { enabled: FARM_LAN, printers: farmLive() });
+    m = p.match(/^\/api\/farm\/([A-Za-z0-9._~:@+-]{1,120})\/(access|cmd)$/);
+    if (m && M === 'POST') {
+      const [, id, what] = m; const b = await readBody(req);
+      if (!q.getDoc.get('farm', id)) return send(res, 404, { error: 'No existe esa impresora' });
+      if (what === 'access') {
+        if (me.role !== 'admin') return send(res, 403, { error: 'Solo un administrador puede guardar el código de acceso' });
+        const code = String(b.code || '').trim();
+        if (!code) delSecret.run(id); else if (!/^[A-Za-z0-9]{4,32}$/.test(code)) return send(res, 400, { error: 'El código de acceso son 8 caracteres (letras y números) que salen en la pantalla de la impresora' }); else putSecret.run(id, code);
+        farmSync(); pushLive(id); return send(res, 200, { ok: true, hasAccess: !!code });
+      }
+      if (!canWrite(me)) return send(res, 403, { error: 'Tu usuario solo puede ver' });
+      if (!FARM_LAN) return send(res, 400, { error: 'El control LAN está desactivado en este servidor (FARM_LAN=0)' });
+      const l = links.get(id); if (!l || !l.link.online) return send(res, 409, { error: (l && l.link.error) || 'La impresora no está conectada' });
+      if (!['pause', 'resume', 'stop', 'light', 'speed', 'refresh'].includes(b.cmd)) return send(res, 400, { error: 'Orden no válida' });
+      if (['stop'].includes(b.cmd) && me.role === 'lector') return send(res, 403, { error: 'No permitido' });
+      l.link.command(b.cmd, b.value); setTimeout(() => l.link.command('refresh'), 800);
+      return send(res, 200, { ok: true });
     }
     // ----- usuarios -----
     if (p === '/api/users' && M === 'GET') { if (me.role !== 'admin') return send(res, 403, { error: 'Solo administradores' }); return send(res, 200, q.users.all().map(pubUser)); }
@@ -287,6 +336,6 @@ const server = http.createServer(async (req, res) => {
 const exportsMap = new Map();
 setInterval(() => { const lim = Date.now() - 6e5; for (const [k, v] of exportsMap) if (v.t < lim) exportsMap.delete(k); }, 6e4).unref();
 
-server.listen(PORT, () => console.log(`Taller3D Panel ${VERSION} en http://0.0.0.0:${PORT}  ·  datos en ${DATA}`));
-const bye = () => { try { db.close(); } catch { } process.exit(0); };
+server.listen(PORT, () => { console.log(`Taller3D Panel ${VERSION} en http://0.0.0.0:${PORT}  ·  datos en ${DATA}`); farmSync(); });
+const bye = () => { for (const l of links.values()) l.link.close(); try { db.close(); } catch { } process.exit(0); };
 process.on('SIGTERM', bye); process.on('SIGINT', bye);

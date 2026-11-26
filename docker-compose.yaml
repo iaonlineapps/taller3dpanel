@@ -14,6 +14,7 @@ services:
       - ALLOW_REGISTER=${ALLOW_REGISTER:-1}
       - REQUIRE_EMAIL=${REQUIRE_EMAIL:-1}
       - TRUST_PROXY=${TRUST_PROXY:-0}
+      - FARM_LAN=${FARM_LAN:-1}
     volumes:
       # Todos los datos: la base de datos taller3d.db (piezas, ventas, clientes, fotos, ajustes...)
       - ${DATA_DIR:-./data}:/data

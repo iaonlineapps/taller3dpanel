@@ -43,6 +43,12 @@ una base de datos SQLite propia, dentro de tu instalación.
   lo que cobras, lo que te cuesta y si está cobrado. Resguardo con código de barras.
 - **Clientes** (lo que ha gastado y lo que debe cada uno), **colaboradores** (lo que pagan, lo que
   venden y lo que les debes devolver) y **gastos** por categoría y por área.
+- **Granja de impresoras** (opcional, se activa en Ajustes): cada impresora con su **QR** para
+  pegarlo en la máquina, estado (libre, imprimiendo, mantenimiento, averiada), trabajo actual, buscador
+  y filtros para granjas grandes. Las **Bambu Lab en modo «Solo LAN»** (por Wi-Fi o cable) se ven
+  **en directo** (progreso, tiempo, temperaturas, AMS) y se **controlan** (pausar, reanudar, parar,
+  luz, velocidad). La propia instalación hace de **servidor de impresión**: ver la
+  [guía de la granja](docs/GRANJA.md).
 - **Movimientos** de stock (kardex): cada entrada y salida con el stock antes y después.
 - **Usuarios** con nick, email y contraseña, y permisos (administrador, puede editar, solo ver).
 - **Exporta** ventas, gastos, piezas, movimientos, servicios y presupuestos a CSV (Excel), y haz o
@@ -112,6 +118,7 @@ margen).
 | `ALLOW_REGISTER` | `1` = otros pueden pedir cuenta (el administrador la activa); `0` = solo el administrador crea cuentas. |
 | `REQUIRE_EMAIL` | `1` = pedir email al crear cuentas; `0` = solo nick y contraseña. |
 | `TRUST_PROXY` | `1` si la publicas detrás de un proxy (Nginx Proxy Manager, Pangolin, Cloudflare Tunnel…). |
+| `FARM_LAN` | `1` (por defecto) = conecta con las Bambu Lab en modo LAN de la granja; `0` = desactivado. |
 
 **También con la imagen ya hecha** (sin compilar), en `docker-compose.yaml`:
 
@@ -127,6 +134,25 @@ services:
 ```
 
 Funciona en PC (amd64), Raspberry Pi 4/5 (arm64) y Raspberry Pi de 32 bits (armv7).
+
+## Granja de impresoras y servidor de impresión
+
+**Un solo equipo hace de todo.** Instala la app en una Raspberry Pi o un PC (Ubuntu Server, Debian…)
+que esté **en la misma red** que tus impresoras, y ese equipo es a la vez la app y el **servidor de
+impresión**. No hace falta nada más.
+
+1. Instala como arriba y dale **IP fija** al equipo en tu router.
+2. En cada Bambu Lab: **Ajustes → Red → «Solo LAN» + «Modo desarrollador»**. Funciona por Wi-Fi o
+   cable. Apunta la IP, el código de acceso y el nº de serie.
+3. En la app: **Ajustes → Granja → Activada**, añade las impresoras (una a una o varias de golpe), pon
+   IP, serie y código, e imprime sus **etiquetas QR**.
+
+Todos los pasos, qué equipo elegir, cómo entrar desde fuera de casa y qué hacer si una impresora no
+conecta: **[docs/GRANJA.md](docs/GRANJA.md)**.
+
+![Granja de impresoras](docs/capturas/granja.png)
+
+![Control en directo de una Bambu Lab](docs/capturas/granja-control.png)
 
 ## App para Android
 
@@ -182,7 +208,7 @@ Self-hosted management for a **3D printing workshop** (plus an **IT repair servi
 printed parts with photos, a point of sale with **QR / barcode scanner** support, receipts and quotes
 with your company logo and tax details, a **print cost calculator** that reads **STL and 3MF** files
 (exact grams and time from sliced Bambu Studio 3MF files, or an estimate from your printer profile),
-customers, expenses, collaborators, filament spools (with a brand catalogue and spool QR reading),
+customers, expenses, collaborators, an optional **printer farm** (QR per printer, live status and control of Bambu Lab printers in LAN Only + Developer Mode over MQTT; the install itself acts as the print server, see docs/GRANJA.md), filament spools (with a brand catalogue and spool QR reading),
 printer catalogue with profiles, stock movements, sales on credit, Instagram post generator, users
 with roles, CSV export and full backups. Light and dark mode, Android app, and all data in its own
 SQLite database inside your installation. The interface is in Spanish.

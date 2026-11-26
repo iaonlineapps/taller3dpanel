@@ -212,6 +212,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
  .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top));transform:translate(-50%,-160px)}
 }
 #login[hidden]{display:none!important}
+[hidden]{display:none!important}
 .scrim{position:fixed;inset:0;background:rgba(8,10,25,.45);z-index:75;display:none}.scrim.show{display:block}
 @media(max-width:600px){table{font-size:14px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--line)}.stack tr:last-child{border-bottom:0}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8.5em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:8em;margin-inline-start:-8.5em;color:var(--mute);font-size:13px}.stack td:empty{display:none}.stack .spk{margin-left:0}
  .kpis{gap:10px}.kpi .ic{width:40px;height:40px}.card{padding:16px}.f3{grid-template-columns:1fr 1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.srch{max-width:none}}
@@ -227,6 +228,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
  <symbol id="i-rcpt" viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></symbol>
  <symbol id="i-box" viewBox="0 0 24 24"><path d="M12 3 3 7.5l9 4.5 9-4.5zM3 7.5v9L12 21l9-4.5v-9M12 12v9"/></symbol>
  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13 7 4 4"/></symbol>
+ <symbol id="i-farm" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7 7h10M10 7v4h4V7M7 17h10"/></symbol>
  <symbol id="i-spool" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v6M12 15v6"/></symbol>
  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/></symbol>
  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M16 4a4 4 0 0 1 0 8M22 21c0-3-2-5-4-5.6"/></symbol>
@@ -264,6 +266,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
  <button class="nv" data-v="piezas"><svg class="i"><use href="#i-box"/></svg>Piezas y stock<span class="cnt" id="lowc" hidden></span></button>
  <button class="nv" data-v="disenos"><svg class="i"><use href="#i-pen"/></svg>Diseños 3D</button>
  <button class="nv" data-v="filamentos"><svg class="i"><use href="#i-spool"/></svg>Filamentos</button>
+ <button class="nv" data-v="granja" id="navfarm" hidden><svg class="i"><use href="#i-farm"/></svg>Granja</button>
  <button class="nv" data-v="movimientos"><svg class="i"><use href="#i-swap"/></svg>Movimientos</button>
  <div class="grp">Servicios</div>
  <button class="nv" data-v="presupuestos"><svg class="i"><use href="#i-calc"/></svg>Calculadora</button>
@@ -307,7 +310,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
 <script>
 {
 /* ======================= ESTADO ======================= */
-const S={products:[],customers:[],collabs:[],sales:[],expenses:[],prints:[],moves:[],spools:[],
+const S={products:[],customers:[],collabs:[],sales:[],expenses:[],prints:[],moves:[],spools:[],farm:[],farmLive:{},farmEnabled:false,fmOpen:'',fmq:'',fmf:'todas',
  cfg:{name:'Mi taller 3D',owner:'Yo',currency:'EUR',printers:['Impresora 1','Impresora 2'],fleet:[],footer:'¡Gracias por tu compra!',phone:'',logo:'',vat:0,vatIncl:true,kwh:0.18,labor:15,margin:60,fail:5,cats:[],email:''},
  view:'panel',cart:[],cat:'Todas',q:'',pay:'Efectivo',cust:'',seller:'',cash:'',range:30,layout:'galeria',scanMode:'vender',beep:true,askQty:false,last:null,
  tkq:'',tksel:'',mvf:'todos',gcat:'Todas',who:'clientes',lowOnly:false,appusers:[],profiles:[],jobs:[],quotes:[],jobf:'abiertos',qtab:'calc',garea:'todas',calc:null};
@@ -379,6 +382,7 @@ let actx=null;function beep(ok=true){if(!S.beep)return;try{actx=actx||new (windo
 const findCode=c=>S.products.find(p=>String(p.code||'').toLowerCase()===c.toLowerCase()||p.id===c);
 async function handleScan(raw,mode=S.scanMode){
  const code=fixScan(raw).replace(/^TALLER3D:/i,'');if(!code)return;
+ {const fm=farmFromCode(code);if(fm){beep();if(S.view!=='granja')go('granja');farmDetail(fm.id);return}}
  if(S.view==='filamentos'||S.spools.some(s=>s.code&&s.code===code)){spoolFromQR(code);return}
  {const jb=S.jobs.find(j=>jnum(j.num)===code.toUpperCase());if(jb){beep();jobReceiptModal(jb.id);return}}
  const t=S.sales.find(s=>'T'+String(s.num).padStart(4,'0')===code.toUpperCase());if(t){beep();go('tickets');S.tksel=t.id;render();return}
@@ -776,6 +780,115 @@ function editSpool(id,pre={}){const s=Object.assign({brand:'Genérico',line:'',m
   if(d.code&&S.spools.some(x=>x.id!==id&&x.code===d.code)){toast('Ese código ya es de otra bobina');$('#okspool').disabled=false;return}
   await put('spools',id,d);if(!id&&f.asexp&&f.asexp.checked&&d.priceKg)await put('expenses','',{date:Date.now(),concept:`Bobina ${[d.brand,d.line||d.material,d.color].filter(Boolean).join(' ')}`,cat:'Filamento',amount:+(d.priceKg*d.size/1000).toFixed(2),paidBy:'',settled:true,note:'',area:'3d'});closeModal();toast('Bobina guardada')};
  const ds=$('#dels');if(ds)ds.onclick=()=>confirmBox('¿Borrar esta bobina?',async()=>{await del('spools',id)})}
+
+/* ======================= GRANJA DE IMPRESORAS ======================= */
+const FST={libre:['Libre','var(--inc)'],imprimiendo:['Imprimiendo','var(--pri)'],mantenimiento:['Mantenimiento','var(--warn)'],averiada:['Averiada','var(--exp)']};
+const LIVEST={RUNNING:['Imprimiendo','var(--pri)'],PREPARE:['Preparando','var(--pri)'],SLICING:['Preparando','var(--pri)'],PAUSE:['En pausa','var(--warn)'],FINISH:['Terminada','var(--inc)'],FAILED:['Fallida','var(--exp)'],IDLE:['Libre','var(--inc)']};
+const SPEEDS={1:'Silencioso',2:'Normal',3:'Sport',4:'Ludicrous'};
+const farmCode=f=>f.code||('IMP-'+String(f.n||0).padStart(4,'0'));
+const farmLive=id=>(S.farmLive[id]||{}).live||null;
+const farmQR=f=>IN_ARTIFACT?farmCode(f):location.origin+location.pathname.replace(/[^/]*$/,'')+'#granja/'+farmCode(f);
+function farmState(f){const l=farmLive(f.id);
+ if(l&&l.online){const s=LIVEST[l.state]||[l.state||'Conectada','var(--pri)'];return {t:s[0],c:s[1],live:true,l}}
+ const m=FST[f.status||'libre']||FST.libre;return {t:m[0],c:m[1],live:false,l}}
+const fmtMin=m=>m==null?'':m>=60?Math.floor(m/60)+' h '+String(m%60).padStart(2,'0')+' min':m+' min';
+async function fetchFarmLive(){if(IN_ARTIFACT)return;try{const r=await api('GET','api/farm/live');S.farmEnabled=!!r.enabled;S.farmLive=r.printers||{};render();paintFarmModal()}catch(e){}}
+function onFarmLive(m){if(!m||!m.id)return;S.farmLive[m.id]={...(S.farmLive[m.id]||{hasAccess:true}),live:m.live};if(S.view==='granja')render();paintFarmModal()}
+function farmTrays(l){return (l&&l.trays||[]).map(t=>`<span title="${esc(t.type)}${t.remain!=null&&t.remain>=0?' · '+t.remain+'%':''}" style="display:inline-flex;align-items:center;gap:4px;font-size:12px"><i style="width:14px;height:14px;border-radius:50%;background:${/^#[0-9a-f]{6}$/i.test(t.color)?t.color:'#888'};border:1px solid var(--line)"></i>${esc(t.type||'?')}</span>`).join(' ')}
+const FMF=[['todas','Todas'],['trabajando','Trabajando'],['libres','Libres'],['aviso','Con aviso']];
+const fmMatch=(k,s)=>k==='trabajando'?/Imprimiendo|Preparando|pausa/.test(s.t):k==='libres'?(s.t==='Libre'||s.t==='Terminada'):k==='aviso'?/Averiada|Fallida|Mantenimiento/.test(s.t)||!!(s.l&&(s.l.errors||s.l.printError)):true;
+function vGranja(){
+ const all=S.farm.slice().sort((a,b)=>(a.n||0)-(b.n||0)),stAll=all.map(farmState);
+ const qq=(S.fmq||'').toLowerCase(),idx=all.map((f,i)=>i).filter(i=>fmMatch(S.fmf||'todas',stAll[i])&&(!qq||[all[i].name,all[i].model,farmCode(all[i]),all[i].job,all[i].notes].join(' ').toLowerCase().includes(qq)));
+ const l=idx.map(i=>all[i]),st=idx.map(i=>stAll[i]);
+ const busy=stAll.filter(s=>/Imprimiendo|Preparando|pausa/.test(s.t)).length,free=stAll.filter(s=>s.t==='Libre'||s.t==='Terminada').length,bad=stAll.filter(s=>/Averiada|Fallida|Mantenimiento/.test(s.t)).length,lan=all.filter(f=>f.lan).length;
+ return `<div class="ph"><div><h1>Granja de impresoras</h1><div class="sub">Cada impresora con su QR: escanéalo para ver qué está haciendo, cambiar su estado o controlarla</div></div>
+ <div class="btns"><button class="btn gh" id="fmlab">${ico('qr')}Etiquetas QR</button><button class="btn gh" id="bulkfm">+ Varias</button><button class="btn" id="newfm">+ Añadir impresora</button></div></div>
+ <div class="sum"><div class="sm"><div class="l">Impresoras</div><div class="v">${all.length}</div></div><div class="sm" style="border-left-color:var(--pri)"><div class="l">Trabajando</div><div class="v">${busy}</div></div><div class="sm" style="border-left-color:var(--inc)"><div class="l">Libres</div><div class="v">${free}</div></div><div class="sm" style="border-left-color:var(--exp)"><div class="l">Paradas o con aviso</div><div class="v ${bad?'dn':''}">${bad}</div></div></div>
+ ${IN_ARTIFACT?`<p class="note" style="margin:0">Aquí llevas el estado de cada impresora a mano. El control en directo de las Bambu Lab por LAN (progreso, temperaturas, pausar, parar…) funciona en la versión instalada en tu red (Docker o servidor de casa).</p>`
+  :lan&&!S.farmEnabled?`<p class="note" style="margin:0">El control LAN está desactivado en este servidor (FARM_LAN=0).</p>`:''}
+ ${all.length>6?`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><input id="fmq" placeholder="Buscar impresora, código, modelo o trabajo…" value="${esc(S.fmq||'')}" autocomplete="off" style="flex:1 1 240px"><div class="tabs">${FMF.map(([k,t])=>`<button data-fmf="${k}" class="${(S.fmf||'todas')===k?'on':''}">${t}</button>`).join('')}</div></div>`:''}
+ <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">${l.length?l.map((f,i)=>{const s=st[i],lv=s.l,pct=lv&&lv.online&&lv.percent!=null?Math.max(0,Math.min(100,lv.percent)):null;
+  return `<button class="card" data-fm="${esc(f.id)}" style="text-align:left;display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;gap:12px;align-items:center"><div style="width:52px;height:52px;flex:none;background:var(--soft);border-radius:12px">${printerArt(f.k||'enc')}</div><div style="min-width:0;flex:1"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</b><div class="note" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc([farmCode(f),f.model].filter(Boolean).join(' · '))}</div><span class="tag" style="margin-top:4px;background:color-mix(in srgb,${s.c} 16%,transparent);color:${s.c}">${s.live?'● ':''}${esc(s.t)}</span></div></div>
+  ${pct!=null&&/Imprimiendo|pausa|Preparando/.test(s.t)?`<div class="bar"><div class="h"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(lv.file||'Imprimiendo')}</span><span>${pct}%</span></div><div class="trk"><i style="width:${pct}%"></i></div></div><div class="note">Quedan ${fmtMin(lv.remaining)}${lv.layers?' · capa '+lv.layer+'/'+lv.layers:''}</div>`
+   :f.job&&f.status==='imprimiendo'?`<div class="note">${ico('clock')} ${esc(f.job)}${f.since?' · desde '+fdt(f.since):''}</div>`:''}
+  ${lv&&lv.online?`<div class="note">Boquilla ${num(lv.nozzle||0)}°${lv.nozzleT?'/'+num(lv.nozzleT)+'°':''} · Cama ${num(lv.bed||0)}°${lv.chamber?' · Cámara '+num(lv.chamber)+'°':''}</div>${lv.trays&&lv.trays.length?`<div style="display:flex;gap:8px;flex-wrap:wrap">${farmTrays(lv)}</div>`:''}`
+   :f.lan&&!IN_ARTIFACT?`<div class="note" style="color:var(--exp)">${esc(lv&&lv.error||(S.farmLive[f.id]&&S.farmLive[f.id].hasAccess?'Conectando…':'Falta el código de acceso LAN'))}</div>`:''}
+  </button>`}).join(''):`<div class="card empty" style="grid-column:1/-1">${all.length?'Ninguna impresora coincide.':'Añade tus impresoras. A cada una se le da un código (IMP-0001, IMP-0002…) con su QR para pegarlo en la máquina.'}</div>`}</div>`}
+function farmDetail(id){const f=S.farm.find(x=>x.id===id);if(!f)return;S.fmOpen=id;
+ const ps=catalog().slice().sort((a,b)=>a.name.localeCompare(b.name));
+ modal(`<div class="det"><div style="display:flex;flex-direction:column;gap:12px;align-items:center"><div style="width:120px;height:120px">${printerArt(f.k||'enc')}</div>
+  <div class="codes" style="width:100%"><img src="${qrURL(farmQR(f))}" alt="QR de la impresora"><div style="flex:1"><b>${esc(farmCode(f))}</b><div class="note">Pega este QR en la impresora: al escanearlo se abre esta ficha.</div></div></div></div>
+  <div style="display:flex;flex-direction:column;gap:12px"><div><span class="tag">${esc(f.model||'Impresora')}</span><h2 style="font-size:24px;margin-top:8px">${esc(f.name)}</h2>${f.lan?`<div class="note">LAN · ${esc(f.ip||'sin IP')} · nº serie ${esc(f.serial?f.serial.slice(0,4)+'…':'—')}</div>`:''}</div>
+  <div id="fmlive"></div>
+  <div><h3 style="margin-bottom:6px">Estado en el taller</h3><div class="chips">${Object.entries(FST).map(([k,[t]])=>`<button class="chip ${(f.status||'libre')===k?'on':''}" data-fms="${k}">${t}</button>`).join('')}</div></div>
+  <form id="ffj" style="display:grid;gap:8px"><label>Trabajo actual<input name="job" value="${esc(f.job||'')}" placeholder="Qué está imprimiendo" list="fmpl"><datalist id="fmpl">${ps.map(p=>`<option value="${esc(p.name)}">`).join('')}</datalist></label>
+  <div class="btns"><button class="btn sf">Guardar trabajo</button>${f.job?'<button type="button" class="btn gh" id="fmdone">Terminado</button>':''}</div></form>
+  ${f.notes?`<div class="note">${esc(f.notes)}</div>`:''}</div></div>
+  <div class="acts"><button class="btn gh" data-efm="${esc(id)}" style="margin-right:auto">Editar</button><button class="btn gh" data-close>Cerrar</button></div>`,true);
+ paintFarmModal();
+ $('#ffj').onsubmit=async e=>{e.preventDefault();const job=e.target.job.value.trim();await patch('farm',id,{job,status:job?'imprimiendo':(f.status==='imprimiendo'?'libre':f.status||'libre'),since:job?(f.job===job&&f.since?f.since:Date.now()):0});toast('Guardado');farmDetail(id)};
+ const dn=$('#fmdone');if(dn)dn.onclick=async()=>{const p=catalog().find(x=>x.name===f.job);await patch('farm',id,{job:'',status:'libre',since:0,last:f.job,lastAt:Date.now()});
+  if(p){closeModal();registerPrint(p.id)}else{toast('Impresora libre');farmDetail(id)}};
+}
+function paintFarmModal(){const box=$('#fmlive');if(!box||!$('#ov').classList.contains('show'))return;const f=S.farm.find(x=>x.id===S.fmOpen);if(!f)return;
+ if(!f.lan){box.innerHTML='';return}
+ if(IN_ARTIFACT){box.innerHTML='<div class="note">Control LAN disponible en la versión instalada en tu red.</div>';return}
+ const st=S.farmLive[f.id]||{},l=st.live,adm=ME&&ME.role==='admin',ro=ME&&ME.role==='lector';
+ if(!l||!l.online){box.innerHTML=`<div class="card" style="padding:12px;display:grid;gap:6px"><b>Sin conexión en directo</b><div class="note">${esc(l&&l.error||(st.hasAccess?'Conectando con la impresora…':'Falta guardar el código de acceso LAN (Editar).'))}</div></div>`;return}
+ l.percent=l.percent==null?null:Math.max(0,Math.min(100,l.percent));const s=LIVEST[l.state]||[l.state,'var(--pri)'],run=l.state==='RUNNING'||l.state==='PREPARE',pau=l.state==='PAUSE';
+ box.innerHTML=`<div class="card" style="padding:14px;display:grid;gap:10px"><div style="display:flex;justify-content:space-between;align-items:center"><b style="color:${s[1]}">● ${esc(s[0])}</b><span class="note">${l.wifi?'Wi-Fi '+esc(l.wifi):''}</span></div>
+  ${l.percent!=null&&(run||pau)?`<div class="bar"><div class="h"><span>${esc(l.file||'')}</span><span>${l.percent}%</span></div><div class="trk"><i style="width:${l.percent}%"></i></div></div><div class="note">Quedan ${fmtMin(l.remaining)}${l.layers?' · capa '+l.layer+' de '+l.layers:''}</div>`:''}
+  <div class="note">Boquilla ${num(l.nozzle||0)}° / ${num(l.nozzleT||0)}° · Cama ${num(l.bed||0)}° / ${num(l.bedT||0)}°${l.chamber?' · Cámara '+num(l.chamber)+'°':''}</div>
+  ${l.trays&&l.trays.length?`<div style="display:flex;gap:10px;flex-wrap:wrap">${farmTrays(l)}</div>`:''}
+  ${l.errors||l.printError?`<div class="note" style="color:var(--exp)">La impresora tiene ${l.errors||1} aviso(s): míralo en su pantalla o en Bambu Studio.</div>`:''}
+  ${ro?'':`<div class="btns">${run?'<button class="btn sf" data-fmc="pause">Pausar</button>':''}${pau?'<button class="btn" data-fmc="resume">Reanudar</button>':''}${run||pau?'<button class="btn rd" data-fmc="stop">Parar</button>':''}
+  <button class="btn gh" data-fmc="light" data-fmv="${l.light?0:1}">${l.light?'Apagar luz':'Encender luz'}</button>
+  ${run||pau?`<select id="fmspd" style="width:auto">${[1,2,3,4].map(v=>`<option value="${v}" ${+l.speed===v?'selected':''}>${SPEEDS[v]}</option>`).join('')}</select>`:''}</div>`}</div>`;
+ const sp=$('#fmspd');if(sp)sp.onchange=()=>farmCmd(f.id,'speed',+sp.value);void adm}
+async function farmCmd(id,cmd,value){
+ const run=async()=>{try{await api('POST','api/farm/'+encodeURIComponent(id)+'/cmd',{cmd,value});toast('Orden enviada')}catch(e){toast(e.message||'No se pudo')}};
+ if(cmd==='stop')confirmBox('¿Parar la impresión? No se puede reanudar después.',async()=>{await run();setTimeout(()=>farmDetail(id),300)});else run()}
+function editFarm(id){const f=Object.assign({name:'',model:'',k:'enc',fleetId:'',lan:false,ip:'',serial:'',port:8883,notes:'',status:'libre'},S.farm.find(x=>x.id===id)||{});
+ const fl=fleet(),st=S.farmLive[id]||{},adm=!ME||ME.role==='admin';
+ modal(`<h2>${id?'Editar impresora':'Añadir a la granja'}</h2><form id="ffm" style="display:grid;gap:12px">
+ <div class="f2"><label>Nombre<input name="name" required value="${esc(f.name)}" placeholder="X1C-01, A1 rosa…"></label><label>Perfil / modelo<select name="fleetId"><option value="">— Otro —</option>${fl.map(p=>`<option value="${esc(p.id)}" ${f.fleetId===p.id?'selected':''}>${esc(p.alias)} (${esc([p.brand,p.model].filter(Boolean).join(' '))})</option>`).join('')}</select></label></div>
+ <label>Modelo (texto libre)<input name="model" value="${esc(f.model)}" placeholder="Bambu Lab X1 Carbon"></label>
+ <label style="flex-direction:row;display:flex;gap:8px;align-items:center"><input type="checkbox" name="lan" ${f.lan?'checked':''} style="width:18px;height:18px;min-height:0">Bambu Lab en modo LAN (control en directo)</label>
+ <div id="lanbox" style="display:grid;gap:12px" ${f.lan?'':'hidden'}>
+  <div class="f3"><label>IP de la impresora<input name="ip" value="${esc(f.ip)}" placeholder="192.168.1.50" inputmode="decimal"></label><label>Nº de serie<input name="serial" value="${esc(f.serial)}" placeholder="01S00C..."></label><label>Código de acceso${adm?'':' (solo admin)'}<input name="access" type="password" autocomplete="off" ${adm&&!IN_ARTIFACT?'':'disabled'} placeholder="${st.hasAccess?'•••••••• guardado':'8 caracteres'}"></label></div>
+  <div class="note">En la impresora: <b>Ajustes → Red</b> → activa <b>Solo LAN</b> y <b>Modo desarrollador</b>. Ahí verás la IP y el código de acceso; el nº de serie está en Ajustes → Dispositivo. El servidor tiene que estar en la misma red que la impresora. El código se guarda solo en tu servidor, nunca se envía al navegador.${IN_ARTIFACT?' <b>Esta versión no puede conectarse a tu red: usa la versión instalada.</b>':''}</div></div>
+ <label>Notas<input name="notes" value="${esc(f.notes)}" placeholder="Boquilla 0.6, AMS 1…"></label>
+ <div class="acts">${id?'<button type="button" class="btn rd" id="delfm" style="margin-right:auto">Quitar</button>':''}<button type="button" class="btn gh" data-close>Cancelar</button><button class="btn" id="okfm">Guardar</button></div></form>`);
+ const fm=$('#ffm');fm.lan.onchange=()=>{$('#lanbox').hidden=!fm.lan.checked};
+ fm.fleetId.onchange=()=>{const p=fl.find(x=>x.id===fm.fleetId.value);if(p){if(!fm.model.value)fm.model.value=[p.brand,p.model].filter(Boolean).join(' ');if(!fm.name.value)fm.name.value=p.alias}};
+ fm.onsubmit=async e=>{e.preventDefault();$('#okfm').disabled=true;const p=fl.find(x=>x.id===fm.fleetId.value);
+  const n=f.n||Math.max(0,...S.farm.map(x=>+x.n||0))+1;
+  const d={...f,name:fm.name.value.trim(),fleetId:fm.fleetId.value,model:fm.model.value.trim()||(p?[p.brand,p.model].filter(Boolean).join(' '):''),k:p?p.k:(f.k||'enc'),lan:fm.lan.checked,ip:fm.ip.value.trim(),serial:fm.serial.value.trim().toUpperCase(),port:+f.port||8883,notes:fm.notes.value.trim(),n,code:f.code||('IMP-'+String(n).padStart(4,'0'))};
+  delete d.id;
+  if(d.lan&&d.ip&&!/^[\w.-]+$/.test(d.ip)){toast('La IP no es válida');$('#okfm').disabled=false;return}
+  try{const nid=await put('farm',id,d);const fid=id||nid;const acc=fm.access&&fm.access.value.trim();
+   if(acc&&!IN_ARTIFACT){try{await api('POST','api/farm/'+encodeURIComponent(fid)+'/access',{code:acc})}catch(er){toast(er.message||'No se guardó el código');$('#okfm').disabled=false;return}}
+   closeModal();toast('Impresora guardada');setTimeout(fetchFarmLive,1500)}catch(er){$('#okfm').disabled=false}};
+ const dl=$('#delfm');if(dl)dl.onclick=()=>confirmBox('¿Quitar '+f.name+' de la granja?',async()=>{await del('farm',id)})}
+function farmLabels(){const l=S.farm.slice().sort((a,b)=>(a.n||0)-(b.n||0));if(!l.length){toast('Añade primero alguna impresora');return}
+ const html=l.map(f=>`<div class="lab"><img src="${qrURL(farmQR(f))}" alt=""><b>${esc(f.name)}</b><span>${esc(farmCode(f))}${f.model?' · '+esc(f.model):''}</span></div>`).join('');
+ modal(`<div class="ch" style="margin:0"><h2>QR de las impresoras</h2><button class="btn gh" data-close>Cerrar</button></div><p class="note" style="margin:0">Imprime la hoja y pega cada QR en su impresora. Al leerlo con tu lector o con la cámara del móvil se abre su ficha.</p>
+ <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">${l.map(f=>`<div class="card" style="padding:10px;text-align:center"><img src="${qrURL(farmQR(f))}" alt="" style="width:110px;background:#fff;border-radius:8px;image-rendering:pixelated"><div style="font-weight:600;font-size:13px">${esc(f.name)}</div><div class="note">${esc(farmCode(f))}</div></div>`).join('')}</div>
+ <div class="acts"><button class="btn" id="dlfml">${ico('down')}Descargar hoja para imprimir</button></div>`,true);
+ $('#dlfml').onclick=()=>saveFile('qr-impresoras.html',`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>QR impresoras</title><style>body{font-family:Arial,sans-serif;margin:10mm}.g{display:grid;grid-template-columns:repeat(3,1fr);gap:5mm}.lab{border:1px dashed #aaa;padding:4mm;text-align:center;font-size:11pt;break-inside:avoid}.lab img{width:40mm;image-rendering:pixelated}.lab b,.lab span{display:block}button{padding:10px 18px;margin-bottom:8mm}@media print{button{display:none}}</style></head><body><button onclick="print()">Imprimir</button><div class="g">${html}</div></body></html>`,'text/html')}
+function farmFromCode(code){const m=String(code).match(/IMP['\-](\d{1,6})\s*$/i);if(!m)return null;const c='IMP-'+m[1];return S.farm.find(f=>farmCode(f).toUpperCase()===c)||null}
+
+function bulkFarm(){const fl=fleet();
+ modal(`<h2>Añadir varias impresoras</h2><form id="fbk" style="display:grid;gap:12px"><div class="f2"><label>Cuántas<input name="n" type="number" min="1" max="200" value="5" required></label><label>Perfil / modelo<select name="fleetId"><option value="">— Otro —</option>${fl.map(p=>`<option value="${esc(p.id)}">${esc(p.alias)} (${esc([p.brand,p.model].filter(Boolean).join(' '))})</option>`).join('')}</select></label></div>
+ <div class="f2"><label>Nombre base<input name="base" value="Impresora" required></label><label>Modelo (texto libre)<input name="model" placeholder="Bambu Lab A1"></label></div>
+ <p class="note" style="margin:0">Se crean con nombres numerados (Impresora 01, 02…) y su QR. Luego puedes abrir cada una para poner su IP y código si van por LAN.</p>
+ <div class="acts"><button type="button" class="btn gh" data-close>Cancelar</button><button class="btn" id="okbk">Crear</button></div></form>`);
+ $('#fbk').onsubmit=async e=>{e.preventDefault();const fm=e.target,n=Math.min(200,Math.max(1,+fm.n.value||1)),p=fl.find(x=>x.id===fm.fleetId.value);$('#okbk').disabled=true;
+  let k=Math.max(0,...S.farm.map(x=>+x.n||0));const c0=S.farm.length,w=Math.max(2,String(n+c0).length);
+  for(let i=1;i<=n;i++){k++;await put('farm','',{name:fm.base.value.trim()+' '+String(c0+i).padStart(w,'0'),fleetId:fm.fleetId.value,model:fm.model.value.trim()||(p?[p.brand,p.model].filter(Boolean).join(' '):''),k:p?p.k:'enc',lan:false,ip:'',serial:'',port:8883,notes:'',status:'libre',n:k,code:'IMP-'+String(k).padStart(4,'0')})}
+  closeModal();toast(n+' impresoras añadidas')}}
 
 /* ======================= MOVIMIENTOS ======================= */
 const MVT={venta:'Venta',impresion:'Impresión',ajuste:'Ajuste',anulacion:'Anulación',compra:'Compra'};
@@ -1289,7 +1402,7 @@ function serverDB(){
  const split=p=>{const i=p.indexOf('/');return [p.slice(0,i),p.slice(i+1)]};
  const rid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,9);
  async function load(){const all=await api('GET','api/data');Object.keys(cache).forEach(k=>delete cache[k]);Object.entries(all||{}).forEach(([c,m])=>cache[c]=m);ready=true;[...new Set(subs.map(s=>s.col))].forEach(fire)}
- function stream(){try{es&&es.close()}catch(e){}es=new EventSource('api/stream');es.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.reload)load();else apply(m.col,m.id,m.data)}catch(_){}};es.onerror=()=>{status(false,'Reconectando…')};es.onopen=()=>{status(true,'Guardado en tu servidor');load().catch(()=>{})}}
+ function stream(){try{es&&es.close()}catch(e){}es=new EventSource('api/stream');es.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.reload)load();else if(m.farm)onFarmLive(m.farm);else apply(m.col,m.id,m.data)}catch(_){}};es.onerror=()=>{status(false,'Reconectando…')};es.onopen=()=>{status(true,'Guardado en tu servidor');load().catch(()=>{});fetchFarmLive()}}
  const docRef=path=>{const [col,id]=split(path);return {id,path,
   get:async()=>{const d=(cache[col]||{})[id];return {id,exists:!!d,data:()=>d,metadata:{fromCache:false}}},
   set:async d=>{const prev=(cache[col]||{})[id];apply(col,id,d);try{await api('PUT','api/doc/'+encodeURIComponent(col)+'/'+encodeURIComponent(id),d)}catch(e){apply(col,id,prev);throw e}},
@@ -1401,6 +1514,7 @@ function vAjustes(){const c=S.cfg,ej=['products','customers','sales','prints','s
  ${sec('Apariencia',`<div class="tabs"><button data-th="light" class="${!isDark()?'on':''}">${ico('sun')} Claro</button><button data-th="dark" class="${isDark()?'on':''}">${ico('moon')} Oscuro</button></div>`)}
  </div><div style="display:grid;gap:16px">
  ${sec('Mis impresoras',`<div class="lst">${fleet().map(printerCard).join('')||'<div class="empty">Añade tus impresoras desde el catálogo</div>'}</div><p class="note" style="margin:0">Toca una impresora para ver y ajustar su perfil (consumo, velocidad, boquilla, relleno, precio y vida útil). La calculadora lo usa para estimar los costes.</p>`,'<button class="btn" id="addpr">+ Añadir</button>')}
+ ${sec('Granja de impresoras',`<div class="tabs"><button data-farmon="1" class="${c.farmOn?'on':''}">Activada</button><button data-farmon="0" class="${c.farmOn?'':'on'}">Desactivada</button></div><p class="note" style="margin:0">Opcional. Añade la sección «Granja» con un QR para cada impresora y su estado (libre, imprimiendo, mantenimiento, averiada). En la versión instalada en tu red, las Bambu Lab en modo «Solo LAN» + «Modo desarrollador» (por Wi-Fi o cable) se ven y se controlan en directo. Sirve igual para 2 impresoras que para 100.</p>`)}
  ${sec('Costes para la calculadora',`<form id="fcost" style="display:grid;gap:12px"><div class="f2"><label>Precio de la luz (/kWh)<input name="kwh" type="number" min="0" step="0.01" value="${esc(c.kwh)}"></label><label>Tu hora de trabajo vale<input name="labor" type="number" min="0" step="0.5" value="${esc(c.labor)}"></label></div><div class="f2"><label>Margen de beneficio (%)<input name="margin" type="number" min="0" step="5" value="${esc(c.margin)}"></label><label>Impresiones fallidas (%)<input name="fail" type="number" min="0" step="1" value="${esc(c.fail)}"></label></div><div class="acts"><button class="btn">Guardar costes</button></div></form>`)}
  ${sec('Categorías de piezas',`<form id="fcats" style="display:grid;gap:12px"><label>Una por línea<textarea name="cats" rows="6">${esc((c.cats&&c.cats.length?c.cats:PRESET_CATS).join('\n'))}</textarea></label><div class="acts"><button class="btn">Guardar categorías</button></div></form>`)}
  ${sec('Tus datos',`<p class="note" style="margin:0">${IN_ARTIFACT?'Todo se guarda automáticamente en la base de datos de esta app.':'Todo se guarda en la base de datos de tu servidor (archivo SQLite dentro de la carpeta de datos).'} Puedes exportarlo cuando quieras.</p>
@@ -1443,14 +1557,14 @@ $('#gres').addEventListener('mousedown',e=>{const b=e.target.closest('[data-gr]'
 function modal(h,wide){const d=$('#dlg');d.className='dlg'+(wide?' w':'');d.innerHTML=h;$('#ov').classList.add('show');d.scrollTop=0}
 function closeModal(){$('#ov').classList.remove('show')}
 function confirmBox(msg,fn){modal(`<h2>¿Seguro?</h2><p style="margin:0">${esc(msg)}</p><div class="acts"><button class="btn gh" data-close>Cancelar</button><button class="btn" id="yes" style="background:var(--exp)">Sí, continuar</button></div>`);$('#yes').onclick=async()=>{$('#yes').disabled=true;try{await fn()}finally{closeModal();render()}}}
-function moreSheet(){modal(`<div class="ch" style="margin:0"><h2>Más secciones</h2><button class="btn gh" data-close>Cerrar</button></div><div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${[['presupuestos','calc','Calculadora'],['servicios','pc','Informática'],['tickets','rcpt','Tickets'],['disenos','pen','Diseños 3D'],['filamentos','spool','Filamentos'],['movimientos','swap','Movimientos'],['clientes','user','Clientes'],['colaboradores','team','Colaboradores'],['usuarios','user','Usuarios'],['ajustes','cog','Ajustes']].map(([v,i,l])=>`<button class="card" data-go="${v}" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(i)}${l}</button>`).join('')}<button class="card" id="mth" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(isDark()?'sun':'moon')}${isDark()?'Modo claro':'Modo oscuro'}</button></div>`)}
+function moreSheet(){modal(`<div class="ch" style="margin:0"><h2>Más secciones</h2><button class="btn gh" data-close>Cerrar</button></div><div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${[['presupuestos','calc','Calculadora'],['servicios','pc','Informática'],['tickets','rcpt','Tickets'],['disenos','pen','Diseños 3D'],['filamentos','spool','Filamentos'],...(S.cfg.farmOn?[['granja','farm','Granja']]:[]),['movimientos','swap','Movimientos'],['clientes','user','Clientes'],['colaboradores','team','Colaboradores'],['usuarios','user','Usuarios'],['ajustes','cog','Ajustes']].map(([v,i,l])=>`<button class="card" data-go="${v}" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(i)}${l}</button>`).join('')}<button class="card" id="mth" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(isDark()?'sun':'moon')}${isDark()?'Modo claro':'Modo oscuro'}</button></div>`)}
 const closeSide=()=>{$('#side').classList.remove('open');$('#scrim').classList.remove('show')};
 
 /* ======================= RENDER ======================= */
-const V={panel:vPanel,vender:vVender,tickets:vTickets,piezas:vPiezas,disenos:vDisenos,filamentos:vFilamentos,movimientos:vMovimientos,clientes:vClientes,colaboradores:vColaboradores,gastos:vGastos,ajustes:vAjustes,usuarios:vUsuariosPage,servicios:vServicios,presupuestos:vPresupuestos};
+const V={panel:vPanel,vender:vVender,tickets:vTickets,piezas:vPiezas,disenos:vDisenos,filamentos:vFilamentos,movimientos:vMovimientos,clientes:vClientes,colaboradores:vColaboradores,gastos:vGastos,ajustes:vAjustes,usuarios:vUsuariosPage,servicios:vServicios,presupuestos:vPresupuestos,granja:vGranja};
 let rq=0;const render=()=>{if(rq)return;rq=requestAnimationFrame(()=>{rq=0;doRender()})};
 function doRender(){
- const a=document.activeElement,fid=a&&a.id,pos=a&&a.selectionStart,keep=['q','tkq','scan','cash'].includes(fid)?fid:'';if(S.view==='presupuestos'&&a&&a.closest&&a.closest('#calcf'))return;
+ const a=document.activeElement,fid=a&&a.id,pos=a&&a.selectionStart,keep=['q','tkq','scan','cash','fmq'].includes(fid)?fid:'';if(S.view==='presupuestos'&&a&&a.closest&&a.closest('#calcf'))return;
  const scanVal=$('#scan')?.value||'';
  $('#main').innerHTML=V[S.view]();
  document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
@@ -1459,13 +1573,14 @@ function doRender(){
  $('#lmark').innerHTML=logoMark(32);const oj=S.jobs.filter(j=>j.status==='pendiente'||j.status==='curso').length,jc=$('#jobc');jc.hidden=!oj;jc.textContent=oj;$('#sver').textContent=versionText().replace(' · ','\n');
  if(S.view==='ajustes'||S.view==='usuarios')setTimeout(paintUsers,0);
  {const adm=!!(ME&&ME.role==='admin');$('#navusers').hidden=!adm;const pend=IN_ARTIFACT?S.appusers.filter(u=>u.active===false).length:0,pc=$('#penc');pc.hidden=!(adm&&pend);pc.textContent=pend}
+ $('#navfarm').hidden=!S.cfg.farmOn;
  syncCart();themeIcon();paintBarcodes($('#main'));
  if($('#scan')&&scanVal)$('#scan').value=scanVal;
  if(keep){const el=$('#'+keep);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}}
  if(ro){ro.disconnect();ro=null}const c=$('#chart');if(c){ro=new ResizeObserver(drawChart);ro.observe(c)}
 }
 function go(v){if(!V[v])return;S.view=v;S.q='';closeModal();closeSide();try{history.replaceState(null,'','#'+v)}catch(e){}render();scrollTo(0,0)}
-addEventListener('hashchange',()=>{const v=location.hash.slice(1);if(V[v]&&v!==S.view)go(v)});
+addEventListener('hashchange',()=>{const v=location.hash.slice(1);if(/^granja\/IMP-\d+$/i.test(v)){const f=farmFromCode(v);go('granja');if(f)farmDetail(f.id);return}if(V[v]&&v!==S.view)go(v)});
 
 /* ======================= EVENTOS ======================= */
 $('#theme').onclick=toggleTheme;
@@ -1488,7 +1603,7 @@ $('#bell').onclick=()=>{S.lowOnly=true;go('piezas')};
 $('#mcart').onclick=()=>{if(S.cart.length)$('#ticket')?.classList.toggle('open')};
 document.addEventListener('input',e=>{const t=e.target;
  if(t.closest&&t.closest('#calcf')){calcRead();paintCalc();return}
- if(t.id==='q'){S.q=t.value;render()}else if(t.id==='tkq'){S.tkq=t.value;render()}
+ if(t.id==='q'){S.q=t.value;render()}else if(t.id==='fmq'){S.fmq=t.value;render()}else if(t.id==='tkq'){S.tkq=t.value;render()}
  else if(t.id==='cash'){S.cash=t.value;const tot=S.cart.reduce((s,l)=>s+l.qty*l.price,0),c=+t.value||0,el=$('#chg');if(el){el.textContent=c?money(c-tot):'—';el.className=c&&c<tot?'dn':'up'}}});
 document.addEventListener('change',e=>{const t=e.target;
  if(t.id==='cust')S.cust=t.value;else if(t.id==='seller')S.seller=t.value;
@@ -1528,13 +1643,17 @@ document.addEventListener('click',async e=>{
  else if(d.payt)payTicket(d.payt);else if(d.tkf){S.tkf=d.tkf;render()}else if(d.ig)igPost(d.ig);
  else if(d.pr)editPrinter(d.pr);else if(d.ej){closeModal();editJob(d.ej)}else if(d.jr)jobReceiptModal(d.jr);else if(d.jobf){S.jobf=d.jobf;render()}
  else if(d.qtab){S.qtab=d.qtab;render()}else if(d.vq)viewQuote(d.vq);else if(d.garea){S.garea=d.garea;render()}
+ else if(d.farmon!=null){saveCfg({farmOn:d.farmon==='1'}).then(()=>toast(d.farmon==='1'?'Granja activada: la tienes en el menú «Taller»':'Granja desactivada')).catch(()=>{})}
+ else if(d.fm)farmDetail(d.fm);else if(d.efm)editFarm(d.efm);else if(d.fmf){S.fmf=d.fmf;render()}
+ else if(d.fms){const id=S.fmOpen;patch('farm',id,{status:d.fms,...(d.fms!=='imprimiendo'?{}:{since:Date.now()})}).then(()=>farmDetail(id)).catch(()=>{})}
+ else if(d.fmc)farmCmd(S.fmOpen,d.fmc,d.fmv!=null?+d.fmv:undefined);
  else if(d.eu){if(IN_ARTIFACT){const u=S.appusers.find(x=>x.id===d.eu);if(u)editUser(pubLocal(u))}else api('GET','api/users').then(l=>{const u=l.find(x=>x.id===d.eu);if(u)editUser(u)}).catch(()=>{})}
  else if(CSV[t.id]){const [n,c]=CSV[t.id]();saveFile(n,c,'text/csv')}
  else switch(t.id){
   case 'clr':S.cart=[];S.cash='';syncCart();break;case 'cobrar':cobrar();break;
   case 'newp':editProduct('');break;case 'newd':editProduct('',{estado:'idea',stock:0,code:''});break;case 'labels':labelsSheet();break;
   case 'newsp':editSpool('');break;case 'newc':editCustomer('');break;case 'newb':editCollab('');break;case 'newg':editExpense('');break;
-  case 'bmore':moreSheet();break;
+  case 'bmore':moreSheet();break;case 'newfm':editFarm('');break;case 'bulkfm':bulkFarm();break;case 'fmlab':farmLabels();break;
   case 'quickp':quickPiece();break;case 'quickc':case 'quickc2':quickClient();break;case 'camscan':cameraScan(v=>handleScan(v));break;
   case 'newj':editJob('');break;case 'newq':editQuote('');break;case 'scansp':scanSpool();break;case 'addpr':pickPrinter();break;case 'nologo':saveCfg({logo:''});break;
   case 'c2q':{const c=calcRead(),r=calcCompute(c);editQuote('',{title:c.name||'',lines:[{d:(c.name||'Pieza impresa en 3D'),q:c.qty,u:+r.price.toFixed(2)}]});break}
@@ -1544,7 +1663,7 @@ document.addEventListener('click',async e=>{
   case 'delej':confirmBox('Se borrarán solo los registros de ejemplo. Lo que hayas creado tú se queda.',async()=>{for(const k of ['sales','moves','prints','expenses','jobs','quotes','products','customers','collabs','spools'])for(const x of S[k].filter(x=>/^ej/.test(x.id)))await del(k,x.id);toast('Datos de ejemplo borrados')});break;
  }
 });
-const h=location.hash.slice(1);if(V[h])S.view=h;
+const h=location.hash.slice(1);if(V[h])S.view=h;else if(/^granja\/IMP-\d+$/i.test(h)){S.view='granja';S.pendingFarm=h.slice(7)}
 doRender();
 
 /* ======================= BASE DE DATOS ======================= */
@@ -1552,9 +1671,9 @@ function subscribeAll(){
  const timer=setTimeout(()=>{if(!live)status(false,'Sin conexión todavía…')},10000);
  const ok=snap=>{if(!snap.metadata.fromCache&&!live){live=true;clearTimeout(timer);status(true,IN_ARTIFACT?'Todo guardado en la nube':'Guardado en tu servidor')}else if(!snap.metadata.fromCache)clearTimeout(timer)};
  const fail=()=>{clearTimeout(timer);status(false,'Error de conexión')};
- const sub=(col,q)=>q.onSnapshot(snap=>{S[col]=snap.docs.map(d=>({id:d.id,...d.data()}));ok(snap);if(col==='products')S.cart=S.cart.filter(l=>l.custom||S.products.some(p=>p.id===l.id));render()},fail);
+ const sub=(col,q)=>q.onSnapshot(snap=>{S[col]=snap.docs.map(d=>({id:d.id,...d.data()}));ok(snap);if(col==='farm'&&S.pendingFarm){const pf=farmFromCode(S.pendingFarm);if(pf){S.pendingFarm='';setTimeout(()=>farmDetail(pf.id),50)}}if(col==='products')S.cart=S.cart.filter(l=>l.custom||S.products.some(p=>p.id===l.id));render()},fail);
  if(IN_ARTIFACT)db.collection('appusers').onSnapshot(snap=>{if(snap.metadata.fromCache&&snap.empty&&!authReady)return;S.appusers=snap.docs.map(d=>({id:d.id,...d.data()}));checkLocalAuth()},()=>{authReady=true;$('#login').hidden=true});
- ['products','customers','collabs','spools','quotes','profiles'].forEach(c=>sub(c,db.collection(c)));
+ ['products','customers','collabs','spools','quotes','profiles','farm'].forEach(c=>sub(c,db.collection(c)));
  ['sales','expenses','prints','moves','jobs'].forEach(c=>sub(c,db.collection(c).orderBy('date','desc').limit(1000)));
  db.doc('config/main').onSnapshot(s=>{if(s.exists){const d=s.data()||{};S.cfg={...S.cfg,...d,printers:Array.isArray(d.printers)&&d.printers.length?d.printers.map(String):S.cfg.printers};_fmt=null;render()}},()=>{});
 }
