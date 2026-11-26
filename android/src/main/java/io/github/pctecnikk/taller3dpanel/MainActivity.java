@@ -82,7 +82,7 @@ public class MainActivity extends Activity {
         String url = prefs.getString(KEY_URL, null);
         if (url == null || ACTION_CHANGE_SERVER.equals(getIntent().getAction())) askServer(url, null);
         else showWeb(url, state);
-        Novedades.check(this, false);
+        if (state == null) Novedades.check(this, false, url);
     }
 
     @Override
@@ -300,6 +300,7 @@ public class MainActivity extends Activity {
 
     /** Tickets, presupuestos, CSV y etiquetas: se guardan en Descargas con el gestor de descargas de Android. */
     private void download(String url, String ua, String disposition, String mime) {
+        if (url != null && url.matches("(?i).*/app/Taller3DPanel\\.apk(\\?.*)?$")) { Novedades.install(this, url, "nueva"); return; }
         try {
             String name = fileName(disposition);
             if (name == null) name = URLUtil.guessFileName(url, disposition, mime);
@@ -379,7 +380,7 @@ public class MainActivity extends Activity {
                                             : new String[]{"Salir de la app", "Cambiar servidor", "Novedades y versión", "Language: English"}, (d, w) -> {
                         if (w == 0) finish();
                         else if (w == 1) askServer(prefs.getString(KEY_URL, null), null);
-                        else if (w == 2) Novedades.check(this, true);
+                        else if (w == 2) Novedades.check(this, true, prefs.getString(KEY_URL, null));
                         else { String nl = Lang.en(this) ? "es" : "en"; Lang.set(this, nl); if (web != null) web.evaluateJavascript("window.setLang&&setLang('" + nl + "')", null); }
                     }).show();
             return;

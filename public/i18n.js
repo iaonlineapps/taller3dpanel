@@ -1451,7 +1451,13 @@ var EN={
 "{} (copia)":"{} (copy)",
 "Está todo copiado. Cambia lo que quieras (nombre, color…) y guarda.":"Everything has been copied. Change whatever you want (name, colour…) and save.",
 "**Duplicar una pieza**: con el botón derecho (o dejando el dedo pulsado en el móvil) sobre una pieza, o con el botón «Duplicar» de su ficha. Se abre con todo copiado (foto, categoría, colores, gramos, coste y precio) y el stock a 0: solo cambias lo que quieras, por ejemplo el nombre y el color.":"**Duplicate a part**: right-click a part (or press and hold on mobile), or use the «Duplicate» button in its details. It opens with everything copied (photo, category, colours, grams, cost and price) and stock at 0: you only change what you want, for example the name and colour.",
-"Nuevo **logo de Taller3D Panel**: un cubo impreso capa a capa con la boquilla. Sale en el icono de la app de Android, en la pestaña del navegador y en la pantalla de entrar.":"New **Taller3D Panel logo**: a cube printed layer by layer with the nozzle. It appears on the Android app icon, the browser tab and the sign-in screen."
+"Nuevo **logo de Taller3D Panel**: un cubo impreso capa a capa con la boquilla. Sale en el icono de la app de Android, en la pestaña del navegador y en la pantalla de entrar.":"New **Taller3D Panel logo**: a cube printed layer by layer with the nozzle. It appears on the Android app icon, the browser tab and the sign-in screen.",
+"La **app de Android avisa sola cuando hay una versión nueva**: al abrirla sale «Hay una actualización» y con «Actualizar» se descarga y se instala encima. La APK viene con la web, así que siempre está la última.":"The **Android app tells you by itself when there is a new version**: when you open it you see «Update available» and with «Update» it downloads and installs on top. The APK comes with the web, so the latest one is always there.",
+"Hay una actualización de la app":"App update available",
+"Tienes la app Android {} y ya está la {}. Pulsa «Actualizar»: se descarga y se abre el instalador (o ábrela desde Descargas). Se instala encima y no se pierde nada.":"You have Android app {} and {} is now available. Tap «Update»: it downloads and the installer opens (or open it from Downloads). It installs on top and nothing is lost.",
+"Actualizar":"Update",
+"Ahora no":"Not now",
+"La web y la app tienen **cada una su color de logo**: la **web en verde** («Taller3D Panel Web») y la **app de Android en índigo**, para distinguirlas.":"The web and the app each have **their own logo colour**: the **web in green** («Taller3D Panel Web») and the **Android app in indigo**, so you can tell them apart."
 };
 var exact=Object.create(null),pats=[];
 function rx(s){return s.replace(/[.*+?^$()|[\]\\]/g,'\\$&').replace(/[{}]/g,function(c){return '\\'+c})}

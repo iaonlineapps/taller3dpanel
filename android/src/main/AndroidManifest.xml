@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="io.github.pctecnikk.taller3dpanel"
-    android:versionCode="4"
-    android:versionName="1.0.3">
+    android:versionCode="5"
+    android:versionName="1.0.4">
 
     <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="34" />
 
@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Leer códigos QR y de barras con la cámara del móvil -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Instalar las actualizaciones de la app que se descargan del propio servidor -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <!-- Solo para guardar descargas en Android 9 o anterior -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />

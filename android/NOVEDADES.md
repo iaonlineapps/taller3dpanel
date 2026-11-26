@@ -1,5 +1,8 @@
 # Novedades de la app Android
 
+## 1.0.4
+- **Avisa sola cuando hay una versión nueva**: al abrirla mira en tu servidor y, si hay una más nueva, sale «Hay una actualización». Pulsas «Actualizar», se descarga y se abre el instalador.
+
 ## 1.0.3
 - Nuevo icono: el logo de Taller3D Panel (un cubo impreso capa a capa). En los móviles modernos se adapta a la forma de los iconos.
 
