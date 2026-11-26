@@ -9,7 +9,7 @@
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<script src="i18n.js?v=1.0.11"></script>
+<script src="i18n.js?v=1.0.12"></script>
 <script>window.T=window.T||(s=>s);window.TL=window.TL||(s=>s);window.T3D_LANG=window.T3D_LANG||'es';window.T3D_LOCALE=window.T3D_LOCALE||T3D_LOCALE;window.setLang=window.setLang||(()=>{})</script>
 <script src="vendor/qrcode.js"></script>
 <script src="vendor/JsBarcode.all.min.js"></script>
@@ -722,6 +722,7 @@ function editTicket(id){const s=S.sales.find(x=>x.id===id);if(!s||s.status==='an
   const total=tot(),comm=+items.reduce((t,i)=>t+i.qty*(+i.commission||0),0).toFixed(2);
   const ch=[];if(cid!==(s.customerId||''))ch.push(T('cliente'));if(sid!==(s.sellerId||''))ch.push(T('vendedor'));if(method!==s.method)ch.push(T('forma de pago'));
   if(JSON.stringify(items.map(i=>[i.pid,i.name,i.qty,i.price]))!==JSON.stringify((s.items||[]).map(i=>[i.pid,i.name,i.qty,i.price])))ch.push(T('piezas'));
+  if(comm!==+(+s.commission||0).toFixed(2))ch.push(T('margen del colaborador'));
   if(!ch.length){closeModal();toast('No has cambiado nada');return}
   const upd={items,total,units:items.reduce((t,i)=>t+i.qty,0),customerId:c?c.id:'',customerName:c?c.name:'',sellerId:sid,sellerName:collabName(sid),commission:comm,
    edits:[...(s.edits||[]),{date:Date.now(),by:ME?(ME.name||ME.username):(S.cfg.owner||''),what:ch.join(', '),before:{total:s.total,customerName:s.customerName||'',sellerName:s.sellerName||''}}]};
@@ -1366,6 +1367,7 @@ function editCustomer(id){const c=S.customers.find(x=>x.id===id)||{name:'',phone
 /* ======================= COLABORADORES ======================= */
 function collabStats(id){const ex=S.expenses.filter(e=>(e.paidBy||'')===id),sl=okSales().filter(s=>(s.sellerId||'')===id),cm=sl.filter(s=>+s.commission>0);
  return {spent:ex.reduce((t,e)=>t+(+e.amount||0),0),owe:ex.filter(e=>!e.settled).reduce((t,e)=>t+(+e.amount||0),0),sold:sl.reduce((t,s)=>t+(+s.total||0),0),n:sl.length,ex,sl,cm,
+  old:S.sales.filter(s=>(s.sellerId||'')===id&&id&&s.status!=='anulado'&&s.commission==null),
   earned:cm.reduce((t,s)=>t+(+s.commission||0),0),due:cm.filter(s=>!s.commissionPaid).reduce((t,s)=>t+Math.max(0,(+s.commission||0)-(+s.commissionPaidAmt||0)),0)}}
 function vColaboradores(){
  const me=collabStats('');
@@ -1380,6 +1382,7 @@ function vColaboradores(){
 function editCollab(id){const c=S.collabs.find(x=>x.id===id)||{name:'',role:'',phone:'',notes:'',margin:1,marginType:'eur',marginMode:'dentro'},st=id?collabStats(id):null;
  modal(`<h2>${id?esc(c.name):'Nuevo colaborador'}</h2>${st?`<div class="sum" style="grid-template-columns:repeat(3,1fr)"><div class="sm" style="border-left-color:var(--exp)"><div class="l">Ha gastado</div><div class="v">${money(st.spent)}</div></div><div class="sm" style="border-left-color:var(--warn)"><div class="l">Gastos por devolverle</div><div class="v">${money(st.owe)}</div></div><div class="sm" style="border-left-color:var(--inc)"><div class="l">Ha vendido</div><div class="v">${money(st.sold)}</div></div></div>
  ${st.owe?`<button class="btn sf" id="settle">Marcar todo como devuelto (${money(st.owe)})</button>`:''}
+ ${st.old.length&&+c.margin>0?`<div class="card" style="padding:12px;display:grid;gap:8px;background:color-mix(in srgb,var(--warn) 10%,var(--card))"><div class="note">Tiene ventas de antes de ponerle el margen. Esas ventas no llevan su parte.</div><button class="btn" id="oldcm">Aplicar su margen a sus ventas anteriores (${st.old.length})</button></div>`:''}
  ${st.cm.length?`<div class="sum" style="grid-template-columns:repeat(2,1fr)"><div class="sm" style="border-left-color:var(--or)"><div class="l">Su margen ganado</div><div class="v">${money(st.earned)}</div></div><div class="sm" style="border-left-color:var(--warn)"><div class="l">Pendiente de pagarle</div><div class="v">${money(st.due)}</div></div></div>
  ${st.due?`<button class="btn" id="paycm">Marcar su margen como pagado (${money(st.due)})</button>`:''}
  <div><h3>Sus ventas con margen</h3><div class="lst">${st.cm.sort((a,b)=>b.date-a.date).slice(0,30).map(s=>`<button class="li" data-tkm="${esc(s.id)}"><div class="th" style="background:color-mix(in srgb,var(--or) 16%,transparent);color:var(--or)">${esc(String(s.units||''))}</div><div><b>${esc((s.items||[]).map(i=>i.name+(i.qty>1?' ×'+i.qty:'')).join(', '))}</b><small>${fdate(s.date)} · ${tnum(s.num)} · ${money(s.total)}</small></div><div class="rt"><b style="color:var(--or)">${money(s.commission)}</b><br>${s.commissionPaid?'<span class="tag g">Pagado</span>':'<span class="tag y">Pendiente</span>'}</div></button>`).join('')}</div></div>`:''}
@@ -1391,6 +1394,10 @@ function editCollab(id){const c=S.collabs.find(x=>x.id===id)||{name:'',role:'',p
  <div class="note">«Ya lo incluye»: la pieza está a 5 € en el ticket; él se lleva 1 € y tú 4 €. «Se le suma»: la pieza está a 4 €, el ticket sale a 5 € y él se lleva 1 €.</div></div>
  <div class="acts">${id?'<button type="button" class="btn rd" id="delb" style="margin-right:auto">Borrar</button>':''}<button type="button" class="btn gh" data-close>Cancelar</button><button class="btn">Guardar</button></div></form>`,!!id);
  const f=$('#fb');f.onsubmit=async e=>{e.preventDefault();await put('collabs',id,{name:f.name.value.trim(),role:f.role.value.trim(),phone:f.phone.value.trim(),notes:f.notes.value.trim(),margin:Math.max(0,+f.margin.value||0),marginType:f.marginType.value,marginMode:f.marginMode.value});closeModal();toast('Colaborador guardado')};
+ const oc=$('#oldcm');if(oc)oc.onclick=()=>confirmBox('¿Aplicar el margen de '+c.name+' ('+marginLabel(c)+') a sus '+st.old.length+' ventas anteriores?',async()=>{const now=Date.now(),by=ME?(ME.name||ME.username):(S.cfg.owner||'');
+  for(const s of st.old){const items=(s.items||[]).map(i=>{const base=c.marginMode==='suma'&&c.marginType==='pct'?(+i.price||0)/(1+(+c.margin||0)/100):(+i.price||0),u=Math.min(cutUnit(c,base),+i.price||0);return u>0?{...i,commission:+u.toFixed(2)}:{...i}});
+   const comm=+items.reduce((t,i)=>t+i.qty*(+i.commission||0),0).toFixed(2);await patch('sales',s.id,{items,commission:comm,commissionPaid:false,edits:[...(s.edits||[]),{date:now,by,what:T('margen del colaborador')}]})}
+  toast('Margen aplicado a sus ventas anteriores')});
  const pc=$('#paycm');if(pc)pc.onclick=()=>confirmBox('¿Ya le has pagado a '+c.name+' su margen de '+money(st.due)+'?',async()=>{const now=Date.now();for(const s of st.cm.filter(s=>!s.commissionPaid))await patch('sales',s.id,{commissionPaid:true,commissionPaidAt:now,commissionPaidAmt:+s.commission||0});toast('Margen marcado como pagado')});
  const sb=$('#settle');if(sb)sb.onclick=async()=>{sb.disabled=true;for(const e of st.ex.filter(e=>!e.settled))await patch('expenses',e.id,{settled:true});closeModal();toast('Gastos marcados como devueltos')};
  const db_=$('#delb');if(db_)db_.onclick=()=>confirmBox('¿Borrar a '+c.name+'? Sus gastos y ventas se conservan.',async()=>{await del('collabs',id)})}
@@ -2033,7 +2040,7 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.11';
+const WEB_VERSION='1.0.12';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/pctecnikk/taller3dpanel',APK_URL='app/Taller3DPanel.apk';
 /* La APK viaja con la web (public/app/): version.json dice cuál es la última. Si abres la web desde una app
@@ -2046,6 +2053,8 @@ async function appUpdateCheck(){const mine=appVersion();if(!mine)return;let v=''
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.12',['Si pusiste el **margen a un colaborador después de hacer sus ventas**, ahora en su ficha sale «Aplicar su margen a sus ventas anteriores» y se le suma su parte de esas ventas.',
+  'Al **editar un ticket** y guardar, también se recalcula el margen del colaborador.']],
  ['1.0.11',['**Editar un ticket ya hecho**: en Tickets, abre el ticket y pulsa «Editar». Puedes poner el cliente si se te olvidó, cambiar quién lo vendió, la forma de pago, las cantidades y los precios, quitar piezas o añadir otras.',
   'El **stock se ajusta solo** con los cambios, y también el margen del colaborador y tus cuentas. En el ticket queda apuntado cuándo se corrigió y quién lo hizo.']],
  ['1.0.10',['**Margen de los colaboradores**: en cada colaborador pones lo que se lleva por cada pieza que vende (por ejemplo **1 € por pieza**, o un %). Al ponerle como «Vendido por» en una venta, ese dinero se le apunta a él y tu beneficio cuenta solo tu parte.',

@@ -17,6 +17,13 @@ window.setLang=function(l){if(l!=='es'&&l!=='en')return;try{localStorage.setItem
  try{window.T3DApp&&T3DApp.setLang&&T3DApp.setLang(l)}catch(e){}
  if(l!==LANG){var u=location.href.replace(/([?&])lang=(es|en)&?/,'$1').replace(/[?&]$/,'');location.replace(u)}};
 var EN={
+"margen del colaborador":"collaborator's margin",
+"Tiene ventas de antes de ponerle el margen. Esas ventas no llevan su parte.":"They have sales from before you set the margin. Those sales do not include their share.",
+"Aplicar su margen a sus ventas anteriores ({})":"Apply their margin to their earlier sales ({})",
+"¿Aplicar el margen de {} ({}) a sus {} ventas anteriores?":"Apply {}'s margin ({}) to their {} earlier sales?",
+"Margen aplicado a sus ventas anteriores":"Margin applied to their earlier sales",
+"Si pusiste el **margen a un colaborador después de hacer sus ventas**, ahora en su ficha sale «Aplicar su margen a sus ventas anteriores» y se le suma su parte de esas ventas.":"If you set a **collaborator's margin after making their sales**, their card now shows «Apply their margin to their earlier sales» and their share of those sales is added.",
+"Al **editar un ticket** y guardar, también se recalcula el margen del colaborador.":"When you **edit a ticket** and save, the collaborator's margin is recalculated too.",
 "Editar ticket {}":"Edit ticket {}",
 "Corrige lo que te equivocaste. Si cambias las piezas o las cantidades, el stock se ajusta solo.":"Fix any mistake. If you change the parts or the quantities, the stock is adjusted by itself.",
 "Este ticket está a deber: cóbralo con «Cobrar ahora».":"This ticket is on credit: charge it with «Charge now».",
