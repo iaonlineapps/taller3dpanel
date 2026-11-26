@@ -53,6 +53,25 @@ aside.side{background:var(--side);border-right:1px solid var(--line);position:st
 .tb{display:flex;gap:8px;margin-left:auto;align-items:center}
 .vchip{height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--soft);color:var(--mut);font-size:12px;font-weight:600;white-space:nowrap}.vchip:hover{color:var(--pri)}
 @media(max-width:560px){.vchip{display:none}}
+.kiosk .side,.kiosk header.top,.kiosk #bnav,.kiosk .pfoot{display:none!important}.kiosk .app{grid-template-columns:minmax(0,1fr)!important}.kiosk #main{padding:14px!important;max-width:none!important}
+.kz{display:grid;gap:14px}.kz-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 16px}
+.kz-brand{display:flex;align-items:center;gap:10px}.kz-brand img{width:42px;height:42px;border-radius:10px;object-fit:cover}.kz-brand b{display:block;font-size:18px}.kz-brand span{font-size:12px;color:var(--mut)}
+.kz-stats{display:flex;gap:14px;flex-wrap:wrap;font-weight:600;font-size:15px;flex:1}.kz-stats span{display:flex;align-items:center;gap:6px}.kz-stats i{width:12px;height:12px;border-radius:50%;display:inline-block}
+.kz-clock{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums}.kz-actions{display:flex;gap:8px}
+.kz-btn{white-space:nowrap;min-height:52px;padding:0 18px;border-radius:14px;border:0;background:var(--pri);color:#fff;font-weight:700;font-size:17px;cursor:pointer;touch-action:manipulation}.kz-btn.gh{background:var(--soft);color:var(--ink);border:1px solid var(--line)}.kz-btn.ok{background:#12a150}.kz-btn.bad{background:#ef4b4b}.kz-btn.ksm{min-height:44px;font-size:15px;padding:0 14px}.kz-btn.big{min-height:64px;font-size:19px;text-align:left}.kz-btn:active{transform:scale(.97)}
+.kz-main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start}@media(max-width:1000px){.kz-main{grid-template-columns:minmax(0,1fr)}}
+.kz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.kz-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px}
+.kz-pr{display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;border-left:8px solid var(--c);background:linear-gradient(90deg,color-mix(in srgb,var(--c) 10%,var(--card)),var(--card) 60%)}
+.kz-ph{width:96px;height:96px;border-radius:16px;overflow:hidden;background:var(--soft);cursor:pointer}.kz-body{display:grid;gap:6px;min-width:0}
+.kz-head{display:flex;justify-content:space-between;align-items:center;gap:8px}.kz-head b{font-size:20px}.kz-badge{background:var(--c);color:#fff;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:700;white-space:nowrap}
+.kz-job{font-weight:600;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.kz-mut{color:var(--mut);font-size:14px}
+.kz-pct{font-size:40px;font-weight:800;line-height:1;color:var(--c)}.kz-bar{height:12px;border-radius:99px;background:var(--soft);overflow:hidden}.kz-bar i{display:block;height:100%;background:var(--c,var(--pri));border-radius:99px}.kz-bar.ksm{height:6px;margin-top:4px;--c:#12a150}
+.kz-row{display:flex;gap:8px;margin-top:4px}.kz-row .kz-btn{flex:1}
+@media(max-width:560px){.kz-pr{grid-template-columns:64px minmax(0,1fr)}.kz-ph{width:64px;height:64px}.kz-clock{font-size:22px;margin-left:auto}.kz-pct{font-size:32px}.kz-row .kz-btn{font-size:15px;padding:0 8px}.kz-stats{order:3;flex-basis:100%;font-size:13px;gap:10px}.kz-actions{margin-left:auto}.kz-top{gap:10px}}
+.kz-q{display:grid;gap:10px}.kz-qi{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.kz-qth{width:52px;height:52px;border-radius:12px;background:var(--soft);display:grid;place-items:center;font-size:24px;overflow:hidden}.kz-qth img{width:100%;height:100%;object-fit:cover}
+.kz-qtx b{display:block;font-size:16px}.kz-qtx span{font-size:13px;color:var(--mut)}.kz-qb{display:flex;gap:6px}.kz-urg{background:#ef4b4b;color:#fff;font-size:11px;padding:2px 6px;border-radius:6px;vertical-align:middle}
 .backb{margin:0 0 12px;min-height:38px;padding:0 14px;font-size:14px;width:auto!important;display:inline-flex!important;justify-self:start;align-self:start}
 .pfoot{margin:28px 0 8px;text-align:center;font-size:12.5px;color:var(--mut);line-height:1.8}.pfoot a,.pfoot button{color:var(--pri);font-weight:600;background:none;border:0;padding:0;font-size:inherit;min-height:0;cursor:pointer}
 .news h3{font-size:15px;margin:14px 0 6px}.news ul{margin:0;padding-left:20px;display:grid;gap:4px;font-size:14px}
@@ -275,6 +294,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
  <button class="nv" data-v="filamentos"><svg class="i"><use href="#i-spool"/></svg>Filamentos</button>
  <button class="nv" data-v="impresoras"><svg class="i"><use href="#i-farm"/></svg>Impresoras 3D</button>
  <button class="nv" data-v="granja" id="navfarm" hidden><svg class="i"><use href="#i-farm"/></svg>Granja</button>
+ <button class="nv" data-v="taller" id="navkiosk"><svg class="i"><use href="#i-farm"/></svg>Modo taller</button>
  <button class="nv" data-v="movimientos"><svg class="i"><use href="#i-swap"/></svg>Movimientos</button>
  <div class="grp">Servicios</div>
  <button class="nv" data-v="presupuestos"><svg class="i"><use href="#i-calc"/></svg>Calculadora</button>
@@ -320,7 +340,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
 <script>
 {
 /* ======================= ESTADO ======================= */
-const S={products:[],customers:[],collabs:[],sales:[],expenses:[],prints:[],moves:[],spools:[],farm:[],farmlog:[],farmLive:{},farmEnabled:false,fmOpen:'',fmq:'',fmf:'todas',
+const S={products:[],customers:[],collabs:[],sales:[],expenses:[],prints:[],moves:[],spools:[],farm:[],farmlog:[],queue:[],farmLive:{},farmEnabled:false,fmOpen:'',fmq:'',fmf:'todas',
  cfg:{name:'Mi taller 3D',owner:'Yo',currency:'EUR',printers:['Impresora 1','Impresora 2'],fleet:[],footer:'¡Gracias por tu compra!',phone:'',logo:'',vat:0,vatIncl:true,kwh:0.18,labor:15,margin:60,fail:5,cats:[],email:''},
  view:'panel',cart:[],cat:'Todas',q:'',pay:'Efectivo',cust:'',seller:'',cash:'',range:30,layout:'galeria',scanMode:'vender',beep:true,askQty:false,last:null,
  tkq:'',tksel:'',mvf:'todos',gcat:'Todas',who:'clientes',lowOnly:false,appusers:[],profiles:[],jobs:[],quotes:[],jobf:'abiertos',qtab:'calc',garea:'todas',calc:null};
@@ -839,7 +859,7 @@ function farmState(f){const l=farmLive(f.id);
  const m=FST[f.status||'libre']||FST.libre;return {t:m[0],c:m[1],live:false,l}}
 const fmtMin=m=>m==null?'':m>=60?Math.floor(m/60)+' h '+String(m%60).padStart(2,'0')+' min':m+' min';
 async function fetchFarmLive(){if(IN_ARTIFACT)return;try{const r=await api('GET','api/farm/live');S.farmEnabled=!!r.enabled;S.farmLive=r.printers||{};render();paintFarmModal()}catch(e){}}
-function onFarmLive(m){if(!m||!m.id)return;S.farmLive[m.id]={...(S.farmLive[m.id]||{hasAccess:true}),live:m.live};if(S.view==='granja')render();paintFarmModal()}
+function onFarmLive(m){if(!m||!m.id)return;S.farmLive[m.id]={...(S.farmLive[m.id]||{hasAccess:true}),live:m.live};if(S.view==='granja'||S.view==='taller')render();paintFarmModal()}
 function farmTrays(l){return (l&&l.trays||[]).map(t=>`<span title="${esc(t.type)}${t.remain!=null&&t.remain>=0?' · '+t.remain+'%':''}" style="display:inline-flex;align-items:center;gap:4px;font-size:12px"><i style="width:14px;height:14px;border-radius:50%;background:${/^#[0-9a-f]{6}$/i.test(t.color)?t.color:'#888'};border:1px solid var(--line)"></i>${esc(t.type||'?')}</span>`).join(' ')}
 const FMF=[['todas','Todas'],['trabajando','Trabajando'],['libres','Libres'],['aviso','Con aviso']];
 const fmMatch=(k,s)=>k==='trabajando'?/Imprimiendo|Preparando|pausa/.test(s.t):k==='libres'?(s.t==='Libre'||s.t==='Terminada'):k==='aviso'?/Averiada|Fallida|Mantenimiento/.test(s.t)||!!(s.l&&(s.l.errors||s.l.printError)):true;
@@ -849,7 +869,7 @@ function vGranja(){
  const l=idx.map(i=>all[i]),st=idx.map(i=>stAll[i]);
  const busy=stAll.filter(s=>/Imprimiendo|Preparando|pausa/.test(s.t)).length,free=stAll.filter(s=>s.t==='Libre'||s.t==='Terminada').length,bad=stAll.filter(s=>/Averiada|Fallida|Mantenimiento/.test(s.t)).length,lan=all.filter(f=>f.lan).length;
  return `<div class="ph"><div><h1>Granja de impresoras</h1><div class="sub">Cada impresora con su QR: escanéalo para ver qué está haciendo, cambiar su estado o controlarla</div></div>
- <div class="btns"><button class="btn gh" id="fmlab">${ico('qr')}Etiquetas QR</button><button class="btn gh" id="bulkfm">+ Varias</button><button class="btn" id="newfm">+ Añadir impresora</button></div></div>
+ <div class="btns"><button class="btn gh" id="kgo">Modo taller</button><button class="btn gh" id="fmlab">${ico('qr')}Etiquetas QR</button><button class="btn gh" id="bulkfm">+ Varias</button><button class="btn" id="newfm">+ Añadir impresora</button></div></div>
  <div class="sum"><div class="sm"><div class="l">Impresoras</div><div class="v">${all.length}</div></div><div class="sm" style="border-left-color:var(--pri)"><div class="l">Trabajando</div><div class="v">${busy}</div></div><div class="sm" style="border-left-color:var(--inc)"><div class="l">Libres</div><div class="v">${free}</div></div><div class="sm" style="border-left-color:var(--exp)"><div class="l">Paradas o con aviso</div><div class="v ${bad?'dn':''}">${bad}</div></div></div>
  ${DEMO?`<p class="note" style="margin:0;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--ink)"><b>Demo:</b> estas 10 impresoras son simuladas y van rápido (1 segundo = 1 minuto). Terminan, fallan y empiezan trabajos solas; puedes pausarlas, pararlas, cambiar la luz o la velocidad. Nada se conecta a impresoras reales.</p>`:IN_ARTIFACT?`<p class="note" style="margin:0">Aquí llevas el estado de cada impresora a mano. El control en directo de las Bambu Lab por LAN (progreso, temperaturas, pausar, parar…) funciona en la versión instalada en tu red (Docker o servidor de casa).</p>`
   :lan&&!S.farmEnabled?`<p class="note" style="margin:0">El control LAN está desactivado en este servidor (FARM_LAN=0).</p>`:''}
@@ -953,6 +973,7 @@ function farmLog(pid,ev,extra={}){const f=S.farm.find(x=>x.id===pid);return put(
 let farmSeen=null;
 function farmNotify(){const ids=new Set(S.farmlog.map(e=>e.id));if(farmSeen===null){farmSeen=ids;return}
  const nw=S.farmlog.filter(e=>!farmSeen.has(e.id)&&(e.ev==='finish'||e.ev==='fail')&&Date.now()-e.date<120000);farmSeen=ids;
+ if(nw.length&&S.view==='taller')kChime(nw.some(e=>e.ev==='finish'));
  for(const e of nw){const msg=(e.name||'Impresora')+(e.ev==='finish'?' ha terminado':' ha fallado o se ha cancelado')+(e.file?': '+e.file:'');toast(msg);
   try{if(window.Notification&&Notification.permission==='granted'&&S.cfg.farmOn)new Notification('Taller3D · Granja',{body:msg,icon:'icons/icon-192.png',tag:e.id})}catch(_){}}}
 function farmNotifBtn(){if(!window.Notification)return '';const p=Notification.permission;return p==='granted'?'':`<button class="btn gh" id="fmnot" type="button">${ico('bell')}Avisarme al terminar</button>`}
@@ -1044,7 +1065,7 @@ async function demoTick(){
    else{s.nozzle=heat(s.nozzle,26);s.bed=heat(s.bed,26);if(s.chamber)s.chamber=heat(s.chamber,27);
     if((s.state==='FINISH'||s.state==='FAILED'||s.state==='IDLE')&&++s.idle>(s.state==='IDLE'?40:25)){s.idle=0;s.errors=0;demoNewJob(s);farmLog(f.id,'start',{file:s.file})}}}
   S.farmLive[f.id]={hasAccess:true,live:demoSummary(s)}}
- if(S.view==='granja'&&!$('#ov').classList.contains('show'))render();paintFarmModal()}
+ if((S.view==='granja'||S.view==='taller')&&!$('#ov').classList.contains('show'))render();paintFarmModal()}
 function demoCmd(id,cmd,value){const s=demoSim[id];if(!s||!s.online){toast('La impresora no está conectada');return}
  const f=S.farm.find(x=>x.id===id);
  if(cmd==='pause'&&s.state==='RUNNING'){s.state='PAUSE';farmLog(id,'pause',{file:s.file,percent:Math.floor(s.pct)})}
@@ -1052,6 +1073,80 @@ function demoCmd(id,cmd,value){const s=demoSim[id];if(!s||!s.online){toast('La i
  else if(cmd==='stop'&&(s.state==='RUNNING'||s.state==='PAUSE')){s.state='FAILED';s.idle=0;farmLog(id,'fail',{file:s.file,mins:Math.round(s.total*s.pct/100),percent:Math.floor(s.pct)})}
  else if(cmd==='light')s.light=!!value;else if(cmd==='speed')s.speed=Math.max(1,Math.min(4,+value||2));
  toast('Orden enviada a '+(f?f.name:'la impresora')+' (simulada)');S.farmLive[id]={hasAccess:true,live:demoSummary(s)};paintFarmModal();if(S.view==='granja')render()}
+
+/* ======================= MODO TALLER (tablet / móvil de producción) =======================
+   Pantalla reducida para la producción: una tarjeta grande por impresora, la cola de piezas por
+   imprimir y botones grandes de «Terminada» / «Falló». Usa los mismos datos que la app. */
+let kWake=null,kClock=setInterval(()=>{const c=document.getElementById('kclock');if(c)c.textContent=new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});if(S.view==='taller'&&!$('#ov').classList.contains('show')&&S.farm.some(f=>f.since))render()},30000);
+const KST={libre:['Libre','#12a150'],imprimiendo:['Imprimiendo','#5750f1'],mantenimiento:['Mantenimiento','#e0a100'],averiada:['Averiada','#ef4b4b']};
+function kioskState(f){const s=farmState(f);const col=/Imprimiendo|Preparando/.test(s.t)?'#5750f1':/pausa|Mantenimiento/.test(s.t)?'#e0a100':/Averiada|Fallida/.test(s.t)?'#ef4b4b':/Terminada/.test(s.t)?'#0ea5e9':s.l&&!s.l.online&&f.lan?'#8a8f98':'#12a150';return {...s,col}}
+const qLeft=q=>Math.max(0,(+q.qty||0)-(+q.done||0));
+function vTaller(){
+ const fs=S.farm.slice().sort((a,b)=>(a.n||0)-(b.n||0)),qs=S.queue.filter(q=>qLeft(q)>0).sort((a,b)=>(b.prio?1:0)-(a.prio?1:0)||(a.date||0)-(b.date||0));
+ const st=fs.map(kioskState),busy=st.filter(s=>/Imprimiendo|Preparando|pausa/.test(s.t)).length,warn=st.filter(s=>/Averiada|Fallida|Mantenimiento/.test(s.t)).length;
+ const now=new Date();
+ return `<div class="kz">
+ <div class="kz-top"><div class="kz-brand">${S.cfg.logo&&okImg(S.cfg.logo)?`<img src="${S.cfg.logo}" alt="">`:''}<div><b>${esc(S.cfg.name||'Taller')}</b><span>Modo taller</span></div></div>
+  <div class="kz-stats"><span><i style="background:#5750f1"></i>${busy} imprimiendo</span><span><i style="background:#12a150"></i>${fs.length-busy-warn} libres</span>${warn?`<span><i style="background:#ef4b4b"></i>${warn} con aviso</span>`:''}<span><i style="background:#e0a100"></i>${qs.reduce((t,q)=>t+qLeft(q),0)} piezas en cola</span></div>
+  <div class="kz-clock" id="kclock">${now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</div>
+  <div class="kz-actions"><button class="kz-btn" id="kq">+ Cola</button><button class="kz-btn gh" id="kexit">Salir</button></div></div>
+ ${fs.length?'':`<div class="kz-card" style="text-align:center;padding:30px"><h2 style="margin-bottom:8px">Aún no hay impresoras en el taller</h2><p class="note">Se crean a partir de tus impresoras (Impresoras 3D) y cada una tendrá su QR.</p><button class="kz-btn" id="kseed" style="margin-top:12px">Usar mis ${fleet().length} impresoras</button></div>`}
+ <div class="kz-main"><div class="kz-grid">${fs.map((f,i)=>{const s=st[i],l=s.l&&s.l.online?s.l:null,pct=l&&l.percent!=null?Math.max(0,Math.min(100,l.percent)):null;
+  const printing=/Imprimiendo|Preparando|pausa/.test(s.t)||f.status==='imprimiendo',fin=s.t==='Terminada'||s.t==='Fallida';
+  const mins=f.since?Math.round((Date.now()-f.since)/60000):null;
+  return `<div class="kz-card kz-pr" style="--c:${s.col}">
+  <div class="kz-ph" data-fm="${esc(f.id)}">${prPic(f)}</div>
+  <div class="kz-body"><div class="kz-head"><b>${esc(f.name)}</b><span class="kz-badge">${s.live?'● ':''}${esc(s.t)}</span></div>
+   ${f.job||l&&l.file?`<div class="kz-job">${esc(f.job||l.file)}</div>`:'<div class="kz-job kz-mut">Sin trabajo</div>'}
+   ${pct!=null&&printing?`<div class="kz-pct">${pct}%</div><div class="kz-bar"><i style="width:${pct}%"></i></div><div class="kz-mut">Quedan ${fmtMin(l.remaining)}${l.layers?' · capa '+l.layer+'/'+l.layers:''}</div>`
+    :printing&&mins!=null?`<div class="kz-mut">Imprimiendo desde hace ${fmtMin(mins)}</div>`:''}
+   <div class="kz-row">${printing||fin||f.job?`<button class="kz-btn ok" data-kdone="${esc(f.id)}">✓ Terminada</button><button class="kz-btn bad" data-kfail="${esc(f.id)}">✕ Falló</button>`
+    :f.status==='averiada'||f.status==='mantenimiento'?`<button class="kz-btn" data-kfree="${esc(f.id)}">Ya está bien</button>`
+    :`<button class="kz-btn" data-kasg="${esc(f.id)}">Asignar pieza</button>`}</div></div></div>`}).join('')}</div>
+ <div class="kz-card kz-q"><div class="kz-head"><b>Cola de impresión</b><button class="kz-btn ksm" id="kq2">+ Añadir</button></div>
+  ${qs.length?qs.map(q=>{const p=S.products.find(x=>x.id===q.pid),inp=S.farm.filter(f=>f.jobQ===q.id).length;
+   return `<div class="kz-qi"><div class="kz-qth">${p&&okImg(p.photo)?`<img src="${p.photo}" alt="">`:'🧩'}</div><div class="kz-qtx"><b>${esc(q.name)}${q.prio?' <span class="kz-urg">Urgente</span>':''}</b><span>Faltan ${qLeft(q)} de ${q.qty}${inp?' · '+inp+' imprimiendo':''}${q.note?' · '+esc(q.note):''}</span><div class="kz-bar ksm"><i style="width:${Math.round((+q.done||0)/(+q.qty||1)*100)}%"></i></div></div>
+   <div class="kz-qb"><button class="kz-btn ksm" data-kqp="${esc(q.id)}">Imprimir</button><button class="kz-btn ksm gh" data-kqd="${esc(q.id)}" aria-label="Quitar">✕</button></div></div>`}).join('')
+  :'<div class="kz-mut" style="padding:10px 0">No hay piezas en cola. Añade lo que tengas que imprimir y ve asignándolo a las impresoras libres.</div>'}
+ </div></div></div>`}
+function kioskEnter(){try{localStorage.setItem('t3d-kiosk','1')}catch(e){}go('taller');kioskWake()}
+function kioskExit(){try{localStorage.removeItem('t3d-kiosk')}catch(e){}try{kWake&&kWake.release()}catch(e){}kWake=null;go('granja')}
+async function kioskWake(){try{if('wakeLock' in navigator&&!kWake){kWake=await navigator.wakeLock.request('screen');kWake.addEventListener('release',()=>{kWake=null})}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&S.view==='taller')kioskWake()});
+function kChime(ok){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();[0,.18,.36].forEach((t,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=ok?[880,1100,1320][i]:[440,330,220][i];o.type='sine';g.gain.value=.12;o.connect(g);g.connect(actx.destination);o.start(actx.currentTime+t);o.stop(actx.currentTime+t+.16)})}catch(e){}}
+async function kioskSeed(){const fl=fleet();if(!fl.length){toast('Primero añade tus impresoras en «Impresoras 3D»');go('impresoras');return}
+ let n=Math.max(0,...S.farm.map(x=>+x.n||0));for(const p of fl){n++;await put('farm','',{name:p.alias,model:[p.brand,p.model].filter(Boolean).join(' '),fleetId:p.id,k:p.k,lan:false,ip:'',serial:'',port:8883,notes:'',status:'libre',n,code:'IMP-'+String(n).padStart(4,'0')})}
+ if(!S.cfg.farmOn&&(!ME||ME.role==='admin'))await saveCfg({farmOn:true}).catch(()=>{});toast('Impresoras añadidas al taller')}
+function kQueueAdd(){const ps=catalog().slice().sort((a,b)=>a.name.localeCompare(b.name));
+ modal(`<h2>Añadir a la cola</h2><form id="fkq" style="display:grid;gap:12px">
+ <label>Pieza<select name="pid" required>${ps.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}${p.stock!=null?' · '+num(p.stock)+' en stock':''}</option>`).join('')}<option value="">— Otra (escribir) —</option></select></label>
+ <label id="kqn" hidden>Nombre<input name="name" placeholder="Pieza para cliente…"></label>
+ <div class="f2"><label>Cantidad<input name="qty" type="number" min="1" step="1" value="1" required></label><label>Nota<input name="note" placeholder="Color, cliente…"></label></div>
+ <label style="flex-direction:row;display:flex;gap:8px;align-items:center"><input type="checkbox" name="prio" style="width:20px;height:20px;min-height:0">Urgente (sale la primera)</label>
+ <div class="acts"><button type="button" class="btn gh" data-close>Cancelar</button><button class="btn">Añadir</button></div></form>`);
+ const f=$('#fkq');f.pid.onchange=()=>{$('#kqn').hidden=!!f.pid.value};$('#kqn').hidden=!!f.pid.value;
+ f.onsubmit=async e=>{e.preventDefault();const p=ps.find(x=>x.id===f.pid.value),name=p?p.name:f.name.value.trim();if(!name){toast('Escribe qué pieza es');return}
+  await put('queue','',{pid:p?p.id:'',name,qty:Math.max(1,Math.round(+f.qty.value||1)),done:0,note:f.note.value.trim(),prio:f.prio.checked,date:Date.now()});closeModal();toast('Añadido a la cola')}}
+function kAssign(fid,qid){const f=S.farm.find(x=>x.id===fid);const qs=S.queue.filter(q=>qLeft(q)>0);
+ const free=S.farm.filter(x=>x.status!=='imprimiendo'&&!x.job&&x.status!=='averiada'&&x.status!=='mantenimiento');
+ if(qid&&!fid){if(!free.length){toast('No hay impresoras libres');return}
+  modal(`<h2>¿En qué impresora?</h2><div style="display:grid;gap:10px">${free.map(x=>`<button class="kz-btn big" data-kpick="${esc(x.id)}|${esc(qid)}">${esc(x.name)}</button>`).join('')}</div><div class="acts"><button class="btn gh" data-close>Cancelar</button></div>`);return}
+ modal(`<h2>¿Qué imprime ${esc(f.name)}?</h2><div style="display:grid;gap:10px">${qs.map(q=>`<button class="kz-btn big" data-kpick="${esc(fid)}|${esc(q.id)}">${esc(q.name)} <small>· faltan ${qLeft(q)}</small></button>`).join('')||'<p class="note">La cola está vacía.</p>'}</div>
+ <form id="fka" style="display:grid;gap:10px;margin-top:12px"><div class="f2"><label>U otra pieza<select name="pid"><option value="">— Elegir —</option>${catalog().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label><label>Cantidad en esta tanda<input name="qty" type="number" min="1" value="1"></label></div><button class="btn">Empezar</button></form>
+ <div class="acts"><button class="btn gh" data-close>Cancelar</button></div>`);
+ $('#fka').onsubmit=e=>{e.preventDefault();const p=catalog().find(x=>x.id===e.target.pid.value);if(!p){toast('Elige una pieza');return}kStart(fid,null,p,Math.max(1,+e.target.qty.value||1))}}
+async function kStart(fid,qid,p0,qty0){const q=qid&&S.queue.find(x=>x.id===qid),p=p0||(q&&S.products.find(x=>x.id===q.pid)),name=q?q.name:p.name;
+ const qty=qty0||(q?Math.min(qLeft(q),Math.max(1,+(p&&p.perPlate)||1)):1);
+ await patch('farm',fid,{status:'imprimiendo',job:name+(qty>1?' ×'+qty:''),jobPid:p?p.id:'',jobQty:qty,jobQ:q?q.id:'',since:Date.now()});
+ farmLog(fid,'start',{file:name+(qty>1?' ×'+qty:'')});closeModal();toast(name+' → '+(S.farm.find(x=>x.id===fid)||{}).name)}
+async function kDone(fid){const f=S.farm.find(x=>x.id===fid);if(!f)return;const p=S.products.find(x=>x.id===f.jobPid),qty=+f.jobQty||1,fl=fleet().find(x=>x.id===f.fleetId);
+ const mins=f.since?Math.round((Date.now()-f.since)/60000):null;
+ try{if(p){await put('prints','',{pid:p.id,name:p.name,qty,printer:fl?fl.alias:f.name,grams:(+p.grams||0)*qty,hours:mins!=null?mins/60:(+p.hours||0)*qty,date:Date.now(),spool:''});await stockMove(p,qty,'impresion',fl?fl.alias:f.name)}
+  const q=f.jobQ&&S.queue.find(x=>x.id===f.jobQ);if(q)await patch('queue',q.id,{done:Math.min(+q.qty||0,(+q.done||0)+qty)});
+  await farmLog(fid,'finish',{file:f.job||'',mins});await patch('farm',fid,{status:'libre',job:'',jobPid:'',jobQty:0,jobQ:'',since:0,last:f.job||'',lastAt:Date.now()});
+  kChime(true);toast(p?'+'+qty+' '+p.name+' al stock':'Terminada')}catch(e){}}
+function kFail(fid){const f=S.farm.find(x=>x.id===fid);if(!f)return;confirmBox('¿Marcar como fallida la impresión de '+f.name+'? Lo de la cola vuelve a quedar pendiente.',async()=>{
+ await farmLog(fid,'fail',{file:f.job||'',mins:f.since?Math.round((Date.now()-f.since)/60000):null});await patch('farm',fid,{status:'libre',job:'',jobPid:'',jobQty:0,jobQ:'',since:0});kChime(false)})}
 
 /* ======================= MOVIMIENTOS ======================= */
 const MVT={venta:'Venta',impresion:'Impresión',ajuste:'Ajuste',anulacion:'Anulación',compra:'Compra'};
@@ -1822,16 +1917,16 @@ addEventListener('popstate',e=>{if(skipPop){skipPop--;return}
  if($('#side').classList.contains('open')){closeSide()}
  const v=(e.state&&e.state.v)||location.hash.slice(1)||'panel';if(V[v]&&v!==S.view){S.view=v;S.q='';render();scrollTo(0,0)}});
 function confirmBox(msg,fn){modal(`<h2>¿Seguro?</h2><p style="margin:0">${esc(msg)}</p><div class="acts"><button class="btn gh" data-close>Cancelar</button><button class="btn" id="yes" style="background:var(--exp)">Sí, continuar</button></div>`);$('#yes').onclick=async()=>{$('#yes').disabled=true;try{await fn()}finally{closeModal();render()}}}
-function moreSheet(){modal(`<div class="ch" style="margin:0"><h2>Más secciones</h2><button class="btn gh" data-close>Cerrar</button></div><div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${[['presupuestos','calc','Calculadora'],['presu','rcpt','Presupuestos'],['servicios','pc','Informática'],['tickets','rcpt','Tickets'],['disenos','pen','Diseños 3D'],['filamentos','spool','Filamentos'],['impresoras','farm','Impresoras 3D'],...(S.cfg.farmOn?[['granja','farm','Granja']]:[]),['movimientos','swap','Movimientos'],['clientes','user','Clientes'],['colaboradores','team','Colaboradores'],['usuarios','user','Usuarios'],['ajustes','cog','Ajustes']].map(([v,i,l])=>`<button class="card" data-go="${v}" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(i)}${l}</button>`).join('')}<button class="card" id="mth" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(isDark()?'sun':'moon')}${isDark()?'Modo claro':'Modo oscuro'}</button></div>`)}
+function moreSheet(){modal(`<div class="ch" style="margin:0"><h2>Más secciones</h2><button class="btn gh" data-close>Cerrar</button></div><div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${[['presupuestos','calc','Calculadora'],['presu','rcpt','Presupuestos'],['servicios','pc','Informática'],['tickets','rcpt','Tickets'],['disenos','pen','Diseños 3D'],['filamentos','spool','Filamentos'],['impresoras','farm','Impresoras 3D'],['taller','farm','Modo taller'],...(S.cfg.farmOn?[['granja','farm','Granja']]:[]),['movimientos','swap','Movimientos'],['clientes','user','Clientes'],['colaboradores','team','Colaboradores'],['usuarios','user','Usuarios'],['ajustes','cog','Ajustes']].map(([v,i,l])=>`<button class="card" data-go="${v}" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(i)}${l}</button>`).join('')}<button class="card" id="mth" style="display:flex;gap:10px;align-items:center;padding:14px;font-weight:600">${ico(isDark()?'sun':'moon')}${isDark()?'Modo claro':'Modo oscuro'}</button></div>`)}
 const closeSide=()=>{$('#side').classList.remove('open');$('#scrim').classList.remove('show')};
 
 /* ======================= RENDER ======================= */
-const V={panel:vPanel,vender:vVender,tickets:vTickets,piezas:vPiezas,disenos:vDisenos,filamentos:vFilamentos,movimientos:vMovimientos,clientes:vClientes,colaboradores:vColaboradores,gastos:vGastos,ajustes:vAjustes,usuarios:vUsuariosPage,servicios:vServicios,presupuestos:vPresupuestos,presu:vPresupuestos,impresoras:vImpresoras,granja:vGranja};
+const V={panel:vPanel,vender:vVender,tickets:vTickets,piezas:vPiezas,disenos:vDisenos,filamentos:vFilamentos,movimientos:vMovimientos,clientes:vClientes,colaboradores:vColaboradores,gastos:vGastos,ajustes:vAjustes,usuarios:vUsuariosPage,servicios:vServicios,presupuestos:vPresupuestos,presu:vPresupuestos,impresoras:vImpresoras,taller:vTaller,granja:vGranja};
 let rq=0;const render=()=>{if(rq)return;rq=requestAnimationFrame(()=>{rq=0;doRender()})};
 function doRender(){
  const a=document.activeElement,fid=a&&a.id,pos=a&&a.selectionStart,keep=['q','tkq','scan','cash','fmq'].includes(fid)?fid:'';if(S.view==='presupuestos'&&a&&a.closest&&a.closest('#calcf'))return;
  const scanVal=$('#scan')?.value||'';
- $('#main').innerHTML=backBtn()+V[S.view]()+footHTML();{const bb=$('#backb');if(bb)bb.onclick=()=>history.back()}{const fn=$('#footnews');if(fn)fn.onclick=()=>showNews()}$('#vchip').textContent='v'+webVer();if(ME&&!window.__newsChk){window.__newsChk=1;if(!DEMO)newsIfUpdated()}
+ document.body.classList.toggle('kiosk',S.view==='taller');$('#main').innerHTML=S.view==='taller'?vTaller():backBtn()+V[S.view]()+footHTML();{const bb=$('#backb');if(bb)bb.onclick=()=>history.back()}{const fn=$('#footnews');if(fn)fn.onclick=()=>showNews()}$('#vchip').textContent='v'+webVer();if(ME&&!window.__newsChk){window.__newsChk=1;if(!DEMO)newsIfUpdated()}
  if(DEMO&&ME&&window.__cfgLoaded){if(!S.cfg.demoSeeded&&!S.farm.length)demoSeed();else if(S.farm.length&&!demoSeeding)demoInit()}
  document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
  const low=lowList().length,lc=$('#lowc');lc.hidden=!low;lc.textContent=low;$('#pip').hidden=!low;
@@ -1924,6 +2019,9 @@ document.addEventListener('click',async e=>{
  else if(d.qtab){S.qtab=d.qtab;render()}else if(d.vq)viewQuote(d.vq);else if(d.garea){S.garea=d.garea;render()}
  else if(d.farmon!=null){saveCfg({farmOn:d.farmon==='1'}).then(()=>toast(d.farmon==='1'?'Granja activada: la tienes en el menú «Taller»':'Granja desactivada')).catch(()=>{})}
  else if(d.swu)switchUser(d.swu);
+ else if(d.kdone)kDone(d.kdone);else if(d.kfail)kFail(d.kfail);else if(d.kasg)kAssign(d.kasg);else if(d.kqp)kAssign(null,d.kqp);else if(d.kpick){const [a,b]=d.kpick.split('|');kStart(a,b)}
+ else if(d.kqd){const q=S.queue.find(x=>x.id===d.kqd);if(q)confirmBox('¿Quitar «'+q.name+'» de la cola?',()=>del('queue',q.id))}
+ else if(d.kfree)patch('farm',d.kfree,{status:'libre'}).then(()=>farmLog(d.kfree,'status',{status:'libre'}));
  else if(d.fm)farmDetail(d.fm);else if(d.fmr)farmDetail(d.fmr);else if(d.efm)editFarm(d.efm);else if(d.fmf){S.fmf=d.fmf;render()}
  else if(d.fms){const id=S.fmOpen;farmLog(id,'status',{status:d.fms});patch('farm',id,{status:d.fms,...(d.fms!=='imprimiendo'?{}:{since:Date.now()})}).then(()=>farmDetail(id)).catch(()=>{})}
  else if(d.fmc)farmCmd(S.fmOpen,d.fmc,d.fmv!=null?+d.fmv:undefined);
@@ -1933,7 +2031,7 @@ document.addEventListener('click',async e=>{
   case 'clr':S.cart=[];S.cash='';syncCart();break;case 'cobrar':cobrar();break;
   case 'newp':editProduct('');break;case 'newd':editProduct('',{estado:'idea',stock:0,code:''});break;case 'labels':labelsSheet();break;
   case 'newsp':editSpool('');break;case 'newc':editCustomer('');break;case 'newb':editCollab('');break;case 'newg':editExpense('');break;
-  case 'bmore':moreSheet();break;case 'newfm':editFarm('');break;case 'fmnot':Notification.requestPermission().then(p=>{toast(p==='granted'?'Te avisaré cuando una impresora termine o falle (con la web abierta)':'El navegador no ha dado permiso para avisos');render()});break;case 'bulkfm':bulkFarm();break;case 'fmlab':farmLabels();break;
+  case 'bmore':moreSheet();break;case 'newfm':editFarm('');break;case 'kgo':kioskEnter();break;case 'kexit':kioskExit();break;case 'kq':case 'kq2':kQueueAdd();break;case 'kseed':kioskSeed();break;case 'fmnot':Notification.requestPermission().then(p=>{toast(p==='granted'?'Te avisaré cuando una impresora termine o falle (con la web abierta)':'El navegador no ha dado permiso para avisos');render()});break;case 'bulkfm':bulkFarm();break;case 'fmlab':farmLabels();break;
   case 'quickp':quickPiece();break;case 'quickc':case 'quickc2':quickClient();break;case 'camscan':cameraScan(v=>handleScan(v));break;
   case 'newj':editJob('');break;case 'newq':editQuote('');break;case 'scansp':scanSpool();break;case 'addpr':case 'addpr2':pickPrinter();break;case 'nologo':saveCfg({logo:''});break;
   case 'c2q':{const c=calcRead(),r=calcCompute(c);editQuote('',{title:c.name||'',lines:[{d:(c.name||'Pieza impresa en 3D'),q:c.qty,u:+r.price.toFixed(2)}]});break}
@@ -1944,6 +2042,7 @@ document.addEventListener('click',async e=>{
  }
 });
 const h=location.hash.slice(1);if(V[h])S.view=h;else if(/^granja\/IMP-\d+$/i.test(h)){S.view='granja';S.pendingFarm=h.slice(7)}
+try{if(localStorage.getItem('t3d-kiosk')==='1'&&!location.hash.slice(1))S.view='taller'}catch(e){}
 try{history.replaceState({v:S.view,d:0},'','#'+S.view)}catch(e){}
 doRender();
 
@@ -1954,7 +2053,7 @@ function subscribeAll(){
  const fail=()=>{clearTimeout(timer);status(false,'Error de conexión')};
  const sub=(col,q)=>q.onSnapshot(snap=>{S[col]=snap.docs.map(d=>({id:d.id,...d.data()}));if(col==='farmlog')farmNotify();ok(snap);if(col==='farm'&&S.pendingFarm){const pf=farmFromCode(S.pendingFarm);if(pf){S.pendingFarm='';setTimeout(()=>farmDetail(pf.id),50)}}if(col==='products')S.cart=S.cart.filter(l=>l.custom||S.products.some(p=>p.id===l.id));render()},fail);
  if(IN_ARTIFACT)db.collection('appusers').onSnapshot(snap=>{if(snap.metadata.fromCache&&snap.empty&&!authReady)return;S.appusers=snap.docs.map(d=>({id:d.id,...d.data()}));checkLocalAuth()},()=>{authReady=true;$('#login').hidden=true});
- ['products','customers','collabs','spools','quotes','profiles','farm'].forEach(c=>sub(c,db.collection(c)));
+ ['products','customers','collabs','spools','quotes','profiles','farm','queue'].forEach(c=>sub(c,db.collection(c)));
  ['sales','expenses','prints','moves','jobs','farmlog'].forEach(c=>sub(c,db.collection(c).orderBy('date','desc').limit(1000)));
  db.doc('config/main').onSnapshot(s=>{window.__cfgLoaded=true;if(s.exists){const d=s.data()||{};S.cfg={...S.cfg,...d,printers:Array.isArray(d.printers)&&d.printers.length?d.printers.map(String):S.cfg.printers};_fmt=null;render()}},()=>{});
 }

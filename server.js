@@ -34,7 +34,7 @@ const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 const REQUIRE_EMAIL = process.env.REQUIRE_EMAIL === '1';
 const VERSION = (process.env.TALLER3D_VERSION || '').replace(/^v/i, '').trim() ||
   (() => { try { return fs.readFileSync(path.join(ROOT, 'VERSION'), 'utf8').trim(); } catch { return '?'; } })();
-const COLLECTIONS = new Set(['products', 'customers', 'collabs', 'sales', 'expenses', 'prints', 'moves', 'spools', 'jobs', 'quotes', 'config', 'profiles', 'farm', 'farmlog']);
+const COLLECTIONS = new Set(['products', 'customers', 'collabs', 'sales', 'expenses', 'prints', 'moves', 'spools', 'jobs', 'quotes', 'config', 'profiles', 'farm', 'farmlog', 'queue']);
 const MAX_BODY = 3 * 1024 * 1024; // fotos y logos van como imagen reducida dentro del documento
 const SESSION_DAYS = 60;
 const FARM_LAN = process.env.FARM_LAN !== '0';

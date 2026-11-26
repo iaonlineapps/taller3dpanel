@@ -49,6 +49,10 @@ una base de datos SQLite propia, dentro de tu instalación.
   **en directo** (progreso, tiempo, temperaturas, AMS) y se **controlan** (pausar, reanudar, parar,
   luz, velocidad), con **historial** (encendida, empezó, terminó, falló y cuánto tardó), **estadísticas** y **avisos al terminar**. La propia instalación hace de **servidor de impresión**: ver la
   [guía de la granja](docs/GRANJA.md).
+- **Modo taller** para una tablet o el móvil en la zona de impresoras: pantalla reducida y táctil
+  con una tarjeta grande por impresora (estado, %, tiempo que queda), **cola de piezas por imprimir**,
+  botones grandes de «Terminada» (suma al stock) y «Falló», aviso con sonido y pantalla siempre
+  encendida. Usa los mismos datos que la app.
 - **Movimientos** de stock (kardex): cada entrada y salida con el stock antes y después.
 - **Usuarios** con nick, email y contraseña, y permisos (administrador, puede editar, solo ver).
   **Cambiar de usuario rápido**: las cuentas con las que entras en un dispositivo quedan guardadas y
