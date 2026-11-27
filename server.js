@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
 CREATE TABLE IF NOT EXISTS farm_secret(id TEXT PRIMARY KEY, access TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS cloud(k TEXT PRIMARY KEY, v TEXT NOT NULL);`);
 try { db.exec('ALTER TABLE users ADD COLUMN email TEXT'); } catch { /* ya existe */ }
+try { db.exec('ALTER TABLE users ADD COLUMN recovery TEXT'); } catch { /* ya existe */ } // SHA-256 del código de recuperación
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_email ON users(email COLLATE NOCASE) WHERE email IS NOT NULL AND email<>\'\'');
 
 const q = {
@@ -91,6 +92,20 @@ function checkEmail(e, required, exceptId) {
   if (!validEmail(e)) throw httpErr(400, 'El email no es válido');
   const o = q.userByEmail.get(e); if (o && o.id !== exceptId) throw httpErr(409, 'Ese email ya lo usa otra cuenta');
   return e;
+}
+// ---------- código de recuperación ----------
+// Cada cuenta tiene un código (XXXX-XXXX-XXXX) que se ve una sola vez. Con él se pone una contraseña
+// nueva y se sabe el usuario aunque se hayan olvidado los dos, sin servidor de correo. Es largo y al
+// azar (60 bits), así que se guarda su SHA-256: no se puede leer, pero sí buscar la cuenta solo con él.
+const REC_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin 0/O ni 1/I para no confundirse
+const recNorm = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const recHash = c => sha('recovery:' + recNorm(c));
+const setRecovery = db.prepare('UPDATE users SET recovery=? WHERE id=?');
+const userByRecovery = db.prepare('SELECT * FROM users WHERE recovery=?');
+function newRecovery(id) {
+  let raw = ''; for (const b of crypto.randomBytes(12)) raw += REC_ALPHA[b % 32];
+  setRecovery.run(recHash(raw), id);
+  return raw.slice(0, 4) + '-' + raw.slice(4, 8) + '-' + raw.slice(8);
 }
 const validName = s => /^[a-zA-Z0-9._-]{3,32}$/.test(s || '');
 
@@ -311,19 +326,34 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/me' && M === 'GET') return send(res, 200, { user: pubUser(me), needSetup: q.countUsers.get().n === 0, allowRegister: ALLOW_REGISTER, requireEmail: REQUIRE_EMAIL, version: VERSION });
     if (p === '/api/setup' && M === 'POST') {
       if (q.countUsers.get().n > 0) return send(res, 403, { error: 'Ya hay usuarios creados' });
-      const b = await readBody(req); const u = createUser({ ...b, role: 'admin', active: true, needEmail: REQUIRE_EMAIL }); startSession(req, res, u); return send(res, 200, { user: pubUser(u) });
+      const b = await readBody(req); const u = createUser({ ...b, role: 'admin', active: true, needEmail: REQUIRE_EMAIL }); startSession(req, res, u); return send(res, 200, { user: pubUser(u), recovery_code: newRecovery(u.id) });
     }
     if (p === '/api/login' && M === 'POST') {
       const ip = clientIp(req); if (tooMany(ip)) return send(res, 429, { error: 'Demasiados intentos. Espera 15 minutos.' });
       const b = await readBody(req); const login = String(b.username || '').trim(); const u = q.userByLogin.get(login, login);
       if (!u || !checkPass(String(b.password || ''), u.pass)) { failed(ip); return send(res, 401, { error: 'Usuario o contraseña incorrectos' }); }
       if (!u.active) return send(res, 403, { error: 'Tu cuenta está pendiente de que un administrador la active' });
-      fails.delete(ip); startSession(req, res, u); return send(res, 200, { user: pubUser(u) });
+      fails.delete(ip); startSession(req, res, u);
+      // las cuentas de antes no tenían código de recuperación: se les da uno al entrar (se ve una vez)
+      return send(res, 200, { user: pubUser(u), ...(u.recovery ? {} : { recovery_code: newRecovery(u.id) }) });
     }
     if (p === '/api/register' && M === 'POST') {
       if (!ALLOW_REGISTER) return send(res, 403, { error: 'El registro está cerrado. Pide una cuenta al administrador.' });
       const ip = clientIp(req); if (tooMany(ip)) return send(res, 429, { error: 'Demasiados intentos' }); failed(ip);
-      const b = await readBody(req); createUser({ username: b.username, name: b.name, email: b.email, password: b.password, role: 'editor', active: false, needEmail: REQUIRE_EMAIL }); return send(res, 200, { ok: true });
+      const b = await readBody(req); const u = createUser({ username: b.username, name: b.name, email: b.email, password: b.password, role: 'editor', active: false, needEmail: REQUIRE_EMAIL }); return send(res, 200, { ok: true, recovery_code: newRecovery(u.id) });
+    }
+    // ----- he olvidado mi usuario o mi contraseña: con el código de recuperación -----
+    // El usuario o email es opcional: si no se recuerda, basta con el código.
+    if (p === '/api/recover' && M === 'POST') {
+      const ip = clientIp(req); if (tooMany(ip)) return send(res, 429, { error: 'Demasiados intentos. Espera 15 minutos.' });
+      const b = await readBody(req); const login = String(b.username || '').trim().toLowerCase(), pw = String(b.password || '');
+      if (pw.length < 4) return send(res, 400, { error: 'La contraseña debe tener al menos 4 caracteres' });
+      const u = recNorm(b.code).length === 12 ? userByRecovery.get(recHash(b.code)) : null;
+      if (!u || (login && login !== u.username.toLowerCase() && login !== String(u.email || '').toLowerCase())) {
+        failed(ip); await new Promise(r => setTimeout(r, 700)); return send(res, 400, { error: 'El código de recuperación no es correcto' });
+      }
+      fails.delete(ip); q.setPass.run(hashPass(pw), u.id); q.delUserSess.run(u.id); // fuera de todas partes
+      return send(res, 200, { ok: true, username: u.username, active: !!u.active, recovery_code: newRecovery(u.id) });
     }
     // ----- cambiar de usuario -----
     if (p === '/api/accounts' && M === 'GET') {
@@ -347,6 +377,10 @@ const server = http.createServer(async (req, res) => {
       const b = await readBody(req); if (!checkPass(String(b.old || ''), me.pass)) return send(res, 400, { error: 'La contraseña actual no es correcta' });
       if (String(b.password || '').length < 4) return send(res, 400, { error: 'Mínimo 4 caracteres' });
       q.setPass.run(hashPass(String(b.password)), me.id); return send(res, 200, { ok: true });
+    }
+    if (p === '/api/recovery' && M === 'POST') { // código nuevo (el anterior deja de valer)
+      const b = await readBody(req); if (!checkPass(String(b.password || ''), me.pass)) return send(res, 400, { error: 'La contraseña actual no es correcta' });
+      return send(res, 200, { ok: true, recovery_code: newRecovery(me.id) });
     }
     if (p === '/api/me' && M === 'PATCH') {
       const b = await readBody(req);
@@ -459,7 +493,7 @@ const server = http.createServer(async (req, res) => {
     }
     // ----- usuarios -----
     if (p === '/api/users' && M === 'GET') { if (me.role !== 'admin') return send(res, 403, { error: 'Solo administradores' }); return send(res, 200, q.users.all().map(pubUser)); }
-    if (p === '/api/users' && M === 'POST') { if (me.role !== 'admin') return send(res, 403, { error: 'Solo administradores' }); const b = await readBody(req); return send(res, 200, pubUser(createUser({ ...b, needEmail: false }))); }
+    if (p === '/api/users' && M === 'POST') { if (me.role !== 'admin') return send(res, 403, { error: 'Solo administradores' }); const b = await readBody(req); const u = createUser({ ...b, needEmail: false }); return send(res, 200, { ...pubUser(u), recovery_code: newRecovery(u.id) }); }
     m = p.match(/^\/api\/users\/([\w-]+)$/);
     if (m) {
       if (me.role !== 'admin') return send(res, 403, { error: 'Solo administradores' });

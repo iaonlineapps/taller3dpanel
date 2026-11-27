@@ -248,6 +248,11 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
  .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top));transform:translate(-50%,-160px)}
 }
 #login[hidden]{display:none!important}
+/* código de recuperación: grande, fácil de leer y de copiar a mano; la ventana va por encima de la pantalla de entrada */
+.ov.top{z-index:95}
+.rec-code{font:700 clamp(20px,6vw,28px)/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.08em;text-align:center;padding:16px 10px;border:2px dashed var(--acc,#2563eb);border-radius:14px;user-select:all;word-break:break-all}
+.rec-wa{background:#25d366!important;color:#fff!important;border-color:#25d366!important}
+.rec-tg{background:#29a9eb!important;color:#fff!important;border-color:#29a9eb!important}
 [hidden]{display:none!important}
 .scrim{position:fixed;inset:0;background:rgba(8,10,25,.45);z-index:75;display:none}.scrim.show{display:block}
 @media(max-width:600px){table{font-size:14px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--line)}.stack tr:last-child{border-bottom:0}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8.5em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:8em;margin-inline-start:-8.5em;color:var(--mute);font-size:13px}.stack td:empty{display:none}.stack .spk{margin-left:0}
@@ -1932,6 +1937,51 @@ async function cameraScan(cb){
 /* En la app instalada (Docker / Raspberry Pi / Android) los datos viven en la base de datos SQLite del propio
    servidor. Este adaptador ofrece la misma interfaz que usa el resto de la app. */
 let ME=null,SRV={};
+/* ---------- código de recuperación ----------
+   Cada cuenta tiene un código que se enseña una sola vez (al crearla, o al entrar la primera vez si la
+   cuenta es de antes). Con él se ve el usuario y se pone una contraseña nueva, aunque se hayan olvidado
+   los dos. No hace falta servidor de correo. Devuelve una promesa que se cumple al cerrar la ventana. */
+function recCode(code,user,other){return new Promise(done=>{
+ const name=T('Código de recuperación de Taller3D Panel');
+ const text=name+(user?' ('+T('usuario')+' '+user+')':'')+': '+code+'\n'+location.origin+'\n'+T('Sirve para entrar si olvidas el usuario o la contraseña: «¿Has olvidado tu usuario o contraseña?».');
+ const inApp=!!window.T3DApp,open=u=>window.open(u,'_blank','noopener');
+ modal(`<h2>${other?T('Código de recuperación de {}').replace('{}','<span translate="no">'+esc(user)+'</span>'):'Tu código de recuperación'}</h2>
+  ${user&&!other?`<div>Tu usuario es <b translate="no">${esc(user)}</b></div>`:''}
+  <div class="note">${other?'Pásaselo junto con su contraseña. Con este código podrá entrar si olvida su usuario o su contraseña. Solo se enseña ahora.':'Si algún día olvidas tu usuario o tu contraseña, con este código podrás entrar otra vez. Apúntalo o hazle una foto y guárdalo en un sitio seguro: solo se enseña ahora.'}</div>
+  <div class="rec-code" translate="no">${esc(code)}</div>
+  <div class="note">Guárdalo donde quieras: cópialo, mándatelo por WhatsApp o Telegram (a ti mismo o a «Mensajes guardados») o bájalo como archivo.</div>
+  <div class="btns" id="recbtns"><button type="button" class="btn gh" data-r="copy">Copiar</button><button type="button" class="btn rec-wa" data-r="wa">WhatsApp</button><button type="button" class="btn rec-tg" data-r="tg">Telegram</button><button type="button" class="btn gh" data-r="mail">Correo</button>${inApp?'':'<button type="button" class="btn gh" data-r="file">Bajar archivo</button>'}${navigator.share?'<button type="button" class="btn gh" data-r="more">Otras apps</button>':''}</div>
+  <div class="acts"><button type="button" class="btn" id="recok">Ya lo he guardado</button></div>`);
+ $('#ov').classList.add('top');
+ $('#recbtns').onclick=async e=>{e.stopPropagation();const b=e.target.closest('[data-r]');if(!b)return;const a=b.dataset.r;
+  if(a==='copy'){try{await navigator.clipboard.writeText(text)}catch(er){const x=document.createElement('textarea');x.value=text;document.body.appendChild(x);x.select();try{document.execCommand('copy')}catch(e2){}x.remove()}toast(T('Copiado'))}
+  if(a==='wa')open('https://wa.me/?text='+encodeURIComponent(text));
+  if(a==='tg')open('https://t.me/share/url?url='+encodeURIComponent(location.origin)+'&text='+encodeURIComponent(text.replace('\n'+location.origin,'')));
+  if(a==='mail')location.href='mailto:?subject='+encodeURIComponent(name)+'&body='+encodeURIComponent(text);
+  if(a==='file'){const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([text.replace(/\n/g,'\r\n')+'\r\n'],{type:'text/plain'}));l.download='Taller3DPanel-'+T('codigo-recuperacion')+(user?'-'+user:'')+'.txt';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(l.href),5000)}
+  if(a==='more')navigator.share({title:name,text}).catch(()=>{})};
+ $('#recok').onclick=e=>{e.stopPropagation();closeModal();$('#ov').classList.remove('top');done()}})}
+// «¿Has olvidado tu usuario o contraseña?»: código + contraseña nueva. Devuelve {username, active} o null.
+function forgotDlg(){return new Promise(done=>{let res=null;
+ modal(`<h2>Recuperar mi cuenta</h2><div class="note">Escribe tu código de recuperación (te lo enseñamos al crear la cuenta) y elige una contraseña nueva. Si no tienes el código, pide al administrador que te ponga una contraseña nueva.</div>
+  <form id="ffg" style="display:grid;gap:12px"><label>Código de recuperación<input name="code" placeholder="XXXX-XXXX-XXXX" required autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40"></label>
+  <label>Usuario o email (si no lo recuerdas, déjalo vacío)<input name="username" autocomplete="username" autocapitalize="none"></label>
+  <label>Contraseña nueva (mínimo 4)<input name="p1" type="password" required minlength="4" autocomplete="new-password"></label>
+  <label>Repite la contraseña nueva<input name="p2" type="password" required minlength="4" autocomplete="new-password"></label>
+  <div class="note dn" id="fgerr"></div>
+  <div class="acts"><button type="button" class="btn gh" id="fgno">Cancelar</button><button class="btn">Recuperar</button></div></form>`);
+ $('#ov').classList.add('top');
+ const end=()=>{closeModal();$('#ov').classList.remove('top');done(res)};
+ $('#fgno').onclick=e=>{e.stopPropagation();end()};
+ $('#ffg').onsubmit=async e=>{e.preventDefault();const f=e.target;$('#fgerr').textContent='';
+  if(f.p1.value!==f.p2.value){$('#fgerr').textContent=T('Las contraseñas no coinciden');return}
+  try{const r=await api('POST','api/recover',{code:f.code.value,username:f.username.value.trim(),password:f.p1.value});closeModal();await new Promise(ok=>setTimeout(ok,50));await recCode(r.recovery_code,r.username);res=r;$('#ov').classList.remove('top');done(res)}
+  catch(err){$('#fgerr').textContent=err.message||'No se pudo'}}})}
+// Desde Mi cuenta: código nuevo (pide la contraseña actual; el anterior deja de valer)
+function recNew(){modal(`<h2>Código de recuperación</h2><div class="note">Te damos un código nuevo y el anterior deja de valer. Sirve para entrar si olvidas tu usuario o tu contraseña.</div>
+ <form id="frn" style="display:grid;gap:12px"><label>Tu contraseña actual<input name="pw" type="password" required autocomplete="current-password"></label>
+ <div class="acts"><button type="button" class="btn gh" data-close>Cancelar</button><button class="btn">Crear código nuevo</button></div></form>`);
+ $('#frn').onsubmit=async e=>{e.preventDefault();try{const r=await api('POST','api/recovery',{password:e.target.pw.value});closeModal();setTimeout(()=>recCode(r.recovery_code,ME&&ME.username),50)}catch(err){toast(err.message||'No se pudo')}}}
 async function api(method,url,body){
  const r=await fetch(url,{method,credentials:'same-origin',headers:body!==undefined?{'content-type':'application/json'}:{},body:body!==undefined?JSON.stringify(body):undefined});
  if(r.status===401){ME=null;showLogin();throw {code:'revoked',message:'Sesión caducada'}}
@@ -2008,7 +2058,7 @@ function showLogin(){
   <label>${m==='login'?'Usuario o email':'Usuario (nick)'}<input name="username" required autocomplete="username" autocapitalize="none"></label>${m!=='login'&&SRV.requireEmail?'<label>Email<input name="email" type="email" required autocomplete="email"></label>':m!=='login'?'<label>Email (opcional)<input name="email" type="email" autocomplete="email"></label>':''}
   <label>${m==='login'?'Contraseña':'Contraseña (mínimo 4, números o letras)'}<input name="password" type="password" required minlength="${m==='login'?1:4}" autocomplete="${m==='login'?'current-password':'new-password'}"></label>
   <div class="note dn" id="lerr"></div><button class="btn big">${m==='setup'?'Registrarme y entrar':m==='register'?'Registrarme':'Entrar'}</button></form>
-  ${m==='login'&&(SRV.allowRegister||IN_ARTIFACT)?'<button class="btn gh" id="toreg">¿No tienes cuenta? Regístrate</button>':''}${m==='register'?'<button class="btn gh" id="tolog">Ya tengo cuenta</button>':''}${window.__adding&&ME?'<button class="btn gh" id="cancadd">Volver a la cuenta de '+esc(ME.name||ME.username)+'</button>':''}
+  ${m==='login'&&(SRV.allowRegister||IN_ARTIFACT)?'<button class="btn gh" id="toreg">¿No tienes cuenta? Regístrate</button>':''}${m==='register'?'<button class="btn gh" id="tolog">Ya tengo cuenta</button>':''}${m==='login'&&!IN_ARTIFACT?'<button class="btn gh" id="forgot">¿Has olvidado tu usuario o contraseña?</button>':''}${window.__adding&&ME?'<button class="btn gh" id="cancadd">Volver a la cuenta de '+esc(ME.name||ME.username)+'</button>':''}
   ${langTabs()}
   <div class="note" style="text-align:center">${IN_ARTIFACT&&m==='setup'?'Protege tu app con un usuario y contraseña. El email es opcional.<br>':''}v${esc(SRV.version||WEB_VERSION)}</div></div>`;
  const f=$('#flog');setTimeout(()=>f.querySelector('input').focus(),30);
@@ -2019,8 +2069,10 @@ function showLogin(){
     const login=String(b.username||'').trim().toLowerCase(),u=S.appusers.find(x=>x.username.toLowerCase()===login||(x.email||'').toLowerCase()===login);
     if(!u||u.active===false||await pbk(String(b.password||''),u.salt)!==u.hash){$('#lerr').textContent='Usuario o contraseña incorrectos';return}
     localStartSession(u)}catch(err){box.dataset.mode=m;$('#lerr').textContent=err.message||'No se pudo'}finally{bt.disabled=false}return}
-  try{const r=await api('POST',m==='setup'?'api/setup':m==='register'?'api/register':'api/login',b);if(m==='register'){$('#lerr').className='note up';$('#lerr').textContent='Cuenta pedida. Avisa al administrador para que la active.';return}if(window.__adding||live){location.reload();return}ME=r.user;SRV.needSetup=false;box.hidden=true;box.innerHTML='';startServer()}
+  try{const r=await api('POST',m==='setup'?'api/setup':m==='register'?'api/register':'api/login',b);if(r&&r.recovery_code)await recCode(r.recovery_code,(r.user&&r.user.username)||String(b.username||'').trim());if(m==='register'){$('#lerr').className='note up';$('#lerr').textContent='Cuenta pedida. Avisa al administrador para que la active.';return}if(window.__adding||live){location.reload();return}ME=r.user;SRV.needSetup=false;box.hidden=true;box.innerHTML='';startServer()}
   catch(err){$('#lerr').textContent=err.message||'No se pudo entrar'}};
+ const fg=$('#forgot');if(fg)fg.onclick=async()=>{const r=await forgotDlg();if(!r)return;f.username.value=r.username;f.password.value='';f.password.focus();
+  $('#lerr').className=r.active?'note up':'note dn';$('#lerr').textContent=r.active?'Contraseña cambiada. Ya puedes entrar con la nueva.':'Contraseña cambiada, pero tu cuenta aún está pendiente de que un administrador la active'};
  const ca=$('#cancadd');if(ca)ca.onclick=()=>{window.__adding=false;box.hidden=true;box.innerHTML=''};
  if(m==='login'&&!SRV.needSetup)deviceAccounts().then(l=>{const q=$('#accq');l=l.filter(a=>!(window.__adding&&a.current));if(!q||!l.length)return;
   q.innerHTML=`<div class="note"><b>Cuentas en este dispositivo</b> · toca para entrar</div>${l.map(accRow).join('')}<div class="note" style="text-align:center;margin-top:4px">o entra con otra cuenta</div>`;
@@ -2051,11 +2103,11 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  <div class="acts">${!isNew&&ME&&u.id!==ME.id?'<button type="button" class="btn rd" id="delu" style="margin-right:auto">Borrar</button>':''}<button type="button" class="btn gh" data-close>Cancelar</button><button class="btn">Guardar</button></div></form>`);
  const f=$('#fu');f.onsubmit=async e=>{e.preventDefault();const b={name:f.name.value.trim()||f.username.value.trim(),email:f.email.value.trim(),role:f.role.value,active:f.active.value==='1'};if(f.password.value)b.password=f.password.value;
   if(IN_ARTIFACT){try{if(isNew)await localCreate({...b,username:f.username.value.trim()},b.role);else{const cur=S.appusers.find(x=>x.id===u.id);const admins=S.appusers.filter(x=>x.role==='admin'&&x.active!==false);if(cur.role==='admin'&&(b.role!=='admin'||!b.active)&&admins.length<=1)throw {message:'Tiene que quedar al menos un administrador activo'};const d={name:b.name,email:b.email,role:b.role,active:b.active};if(b.password){if(b.password.length<4)throw {message:'Mínimo 4 caracteres'};d.salt=rhex(16);d.hash=await pbk(b.password,d.salt)}await patch('appusers',u.id,d)}closeModal();toast('Usuario guardado');render()}catch(err){toast(err.message||'No se pudo guardar')}return}
-  try{if(isNew)await api('POST','api/users',{...b,username:f.username.value.trim()});else await api('PATCH','api/users/'+encodeURIComponent(u.id),b);closeModal();toast('Usuario guardado');render()}catch(err){toast(err.message||'No se pudo guardar')}};
+  try{if(isNew){const nu=await api('POST','api/users',{...b,username:f.username.value.trim()});closeModal();toast('Usuario guardado');render();if(nu&&nu.recovery_code)recCode(nu.recovery_code,nu.username,true);return}else await api('PATCH','api/users/'+encodeURIComponent(u.id),b);closeModal();toast('Usuario guardado');render()}catch(err){toast(err.message||'No se pudo guardar')}};
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.16';
+const WEB_VERSION='1.0.17';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/iaonlineapps/taller3dpanel',APK_URL='app/Taller3DPanel.apk';
 /* La APK viaja con la web (public/app/): version.json dice cuál es la última. Si abres la web desde una app
@@ -2068,6 +2120,7 @@ async function appUpdateCheck(){const mine=appVersion();if(!mine)return;let v=''
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.17',['**¿Has olvidado tu usuario o tu contraseña?** Ahora cada cuenta tiene un **código de recuperación**. Te lo enseñamos una vez al crear la cuenta (si tu cuenta ya existía, la próxima vez que entres). Puedes copiarlo, mandártelo por WhatsApp, Telegram o correo, o bajarlo como archivo.','Si olvidas el usuario o la contraseña, en la pantalla de entrada toca «¿Has olvidado tu usuario o contraseña?», pon el código y una contraseña nueva, y verás también tu usuario.','Si lo pierdes, en **Ajustes → Mi cuenta → Código de recuperación** puedes sacar uno nuevo. El administrador sigue pudiendo poner una contraseña nueva a cualquiera.']],
  ['1.0.16',['En el **Panel**, en «Colaboradores», cada colaborador enseña ahora **lo que ha ganado** con su margen en ese periodo, en vez de lo gastado. Debajo ves lo que ha vendido, lo que ha gastado y si te debe algo.']],
  ['1.0.15',['La lista de **materiales** ya tiene todos los tipos que venden Bambu Lab, eSUN, Elegoo, Smart Materials 3D y Winkle: PLA HD, PLA Mate, PLA Seda (Silk), PLA+, PLA reciclado, PLA-CF, PETG reciclado, PETG-CF, ABS-GF, ASA, TPU, Nylon, PVA… ordenados por grupos. Si falta alguno, elige «Otro (escribir)». Sale al crear o editar una pieza, en Filamentos y en la Calculadora.']],
  ['1.0.14',['Las **fotos de las piezas** ya se ven bien en la barra que se mueve arriba del Panel (antes salían cortadas).']],
@@ -2117,7 +2170,7 @@ function taxRows(t){const v=+S.cfg.vat||0;if(!v)return '';const base=S.cfg.vatIn
 const sec=(t,body,extra='')=>`<div class="card" style="display:grid;gap:14px;align-content:start"><div class="ch" style="margin:0"><h2>${t}</h2>${extra}</div>${body}</div>`;
 function vAjustes(){const c=S.cfg,ej=['products','customers','sales','prints','spools','expenses','collabs','moves','jobs','quotes'].reduce((t,k)=>t+S[k].filter(x=>/^ej/.test(x.id)).length,0);
  const user=IN_ARTIFACT&&!ME?sec('Mi usuario',`<form id="fme" style="display:grid;gap:12px"><div class="f2"><label>Tu nombre<input name="owner" value="${esc(c.owner)}"></label><label>Tu email<input name="email" type="email" value="${esc(c.email)}"></label></div><div class="acts"><button class="btn">Guardar</button></div></form><p class="note" style="margin:0">En esta versión personal entras con tu cuenta de Claude. En la versión instalable (Docker o Android) cada persona entra con su usuario y contraseña.</p>`)
-  :sec('Mi cuenta',`<div style="display:flex;gap:12px;align-items:center"><span class="av" style="overflow:hidden">${avatarHTML(ME,38)}</span><div><b>${esc(ME?ME.name||ME.username:'')}</b><div class="note">@${esc(ME?ME.username:'')} · ${esc({admin:'Administrador',editor:'Puede editar',lector:'Solo ver'}[ME&&ME.role]||'')}</div></div></div><div class="btns"><button class="btn gh" id="chpw">Cambiar contraseña</button><button class="btn rd" id="logout">${ico('out')}Salir</button></div>`);
+  :sec('Mi cuenta',`<div style="display:flex;gap:12px;align-items:center"><span class="av" style="overflow:hidden">${avatarHTML(ME,38)}</span><div><b>${esc(ME?ME.name||ME.username:'')}</b><div class="note">@${esc(ME?ME.username:'')} · ${esc({admin:'Administrador',editor:'Puede editar',lector:'Solo ver'}[ME&&ME.role]||'')}</div></div></div><div class="btns"><button class="btn gh" id="chpw">Cambiar contraseña</button>${IN_ARTIFACT?'':'<button class="btn gh" id="recnew">Código de recuperación</button>'}<button class="btn rd" id="logout">${ico('out')}Salir</button></div>`);
  return `<div class="ph"><div><h1>Ajustes</h1><div class="sub">Tu empresa, tus impresoras, tus costes y tu cuenta</div></div><span class="tag">${esc(versionText())}</span></div>
  <div class="g2" style="align-items:start"><div style="display:grid;gap:16px">
  ${sec('Datos de la empresa',`<div style="display:flex;gap:14px;align-items:center"><div style="width:84px;height:84px;border-radius:16px;background:var(--soft);display:grid;place-items:center;overflow:hidden;flex:none">${okImg(c.logo)?`<img src="${c.logo}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain">`:DEF_MARK}</div><div style="display:grid;gap:8px"><div class="btns"><span class="btn sf filebtn">${c.logo?'Cambiar logo':'Subir logo'}<input type="file" accept="image/*" id="logof"></span>${c.logo?'<button type="button" class="btn rd" id="nologo">Quitar</button>':''}</div><span class="note">Sale en el menú, los tickets, los presupuestos y las etiquetas. Mejor PNG con fondo transparente.</span></div></div>
@@ -2234,7 +2287,7 @@ function accountModal(){
   <p class="note" style="margin:0"><b>Web ${esc(webVer())}</b> · ${appVersion()?'<b>App Android '+esc(appVersion())+'</b>':`<a href="${APK_URL}" target="_blank" rel="noopener">App de Android</a>`} · <a href="#" id="accnews">Novedades</a></p>
   <p class="note" style="margin:0">Tu foto es solo tuya. El logo de la empresa (tickets y presupuestos) se cambia en Ajustes → Datos de la empresa.</p>
   <form id="fme3" style="display:grid;gap:12px"><div class="f2"><label>Nombre<input name="name" value="${esc(ME.name||'')}"></label><label>Email${SRV.requireEmail&&!IN_ARTIFACT?'':' (opcional)'}<input name="email" type="email" value="${esc(ME.email||'')}" ${SRV.requireEmail&&!IN_ARTIFACT?'required':''}></label></div>
-  <div class="acts" style="justify-content:space-between"><div class="btns"><button type="button" class="btn gh" id="chpw">Cambiar contraseña</button>${ME.role==='admin'?'<button type="button" class="btn gh" data-go="usuarios">Usuarios</button>':''}<button type="button" class="btn rd" id="logout">${ico('out')}Salir</button></div><button class="btn">Guardar</button></div></form>`);
+  <div class="acts" style="justify-content:space-between"><div class="btns"><button type="button" class="btn gh" id="chpw">Cambiar contraseña</button>${IN_ARTIFACT?'':'<button type="button" class="btn gh" id="recnew">Código de recuperación</button>'}${ME.role==='admin'?'<button type="button" class="btn gh" data-go="usuarios">Usuarios</button>':''}<button type="button" class="btn rd" id="logout">${ico('out')}Salir</button></div><button class="btn">Guardar</button></div></form>`);
  $('#addacc').onclick=addAccount;$('#accnews').onclick=e=>{e.preventDefault();showNews()};
  deviceAccounts().then(l=>{const b=$('#accl');if(!b)return;const o=l.filter(a=>!a.current);
   b.innerHTML=o.length?o.map(accRow).join('')+(l.length>1?'<button type="button" class="btn gh" id="logoutall" style="justify-self:start">Salir de todas las cuentas de este dispositivo</button>':''):'<div class="note">Solo tienes esta cuenta abierta aquí. Con «+ Añadir cuenta» entras con otra y luego cambias entre ellas con un toque, sin volver a poner la contraseña.</div>';
@@ -2268,7 +2321,7 @@ document.addEventListener('submit',async e=>{const f=e.target,id=f.id;if(!['fcfg
   toast('Guardado')}catch(_){}});
 document.addEventListener('click',async e=>{
  if($('#ctxm')){const inMenu=e.target.closest('#ctxm');setTimeout(closeCtx,0);if(!inMenu)return}
- if(e.target.id==='ov'){closeModal();return}
+ if(e.target.id==='ov'){if($('#dlg .rec-code'))return;closeModal();return}
  const t=e.target.closest('button,tr,.sm[data-low],.kpi[data-k]');if(!t)return;const d=t.dataset;
  if(d.k&&t.classList.contains('kpi')){kpiGo(d.k);return}
  if('close' in d){closeModal();return}
@@ -2310,6 +2363,7 @@ document.addEventListener('click',async e=>{
   case 'c2q':{const c=calcRead(),r=calcCompute(c);editQuote('',{title:c.name||'',lines:[{d:(c.name||'Pieza impresa en 3D'),q:c.qty,u:+r.price.toFixed(2)}]});break}
   case 'c2p':calcRead();applyToPiece();break;case 'c2s':{const c=calcRead();saveCfg({kwh:c.kwh,labor:c.laborRate,margin:c.margin,fail:c.fail}).then(()=>toast('Valores guardados por defecto'));break}
   case 'newu':editUser(null);break;case 'logout':if(IN_ARTIFACT){const cu=sessGet();if(cu)accsSet(accsGet().filter(a=>a.uid!==cu.uid));sessSet(null);ME=null;closeModal();$('#login').dataset.mode='login';showLogin();break}api('POST','api/logout').catch(()=>{}).then(()=>location.reload());break;
+  case 'recnew':recNew();break;
   case 'chpw':modal(`<h2>Cambiar contraseña</h2><form id="fpw" style="display:grid;gap:12px"><label>Contraseña actual<input name="old" type="password" required autocomplete="current-password"></label><label>Nueva contraseña<input name="pw" type="password" minlength="4" required autocomplete="new-password"></label><div class="acts"><button type="button" class="btn gh" data-close>Cancelar</button><button class="btn">Cambiar</button></div></form>`);$('#fpw').onsubmit=async ev=>{ev.preventDefault();const f=ev.target;try{if(IN_ARTIFACT){const u=S.appusers.find(x=>x.id===ME.id);if(!u||await pbk(f.old.value,u.salt)!==u.hash)throw {message:'La contraseña actual no es correcta'};if(f.pw.value.length<4)throw {message:'Mínimo 4 caracteres'};const salt=rhex(16),hash=await pbk(f.pw.value,salt);await patch('appusers',u.id,{salt,hash});sessSet({uid:u.id,h:hash.slice(0,16)});closeModal();toast('Contraseña cambiada');return}await api('POST','api/password',{old:f.old.value,password:f.pw.value});closeModal();toast('Contraseña cambiada')}catch(err){toast(err.message||'No se pudo cambiar')}};break;case 'mth':closeModal();toggleTheme();break;
   case 'delej':confirmBox('Se borrarán solo los registros de ejemplo. Lo que hayas creado tú se queda.',async()=>{for(const k of ['sales','moves','prints','expenses','jobs','quotes','products','customers','collabs','spools'])for(const x of S[k].filter(x=>/^ej/.test(x.id)))await del(k,x.id);toast('Datos de ejemplo borrados')});break;
  }
