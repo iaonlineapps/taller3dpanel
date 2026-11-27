@@ -67,7 +67,7 @@ Así tienes la app accesible desde cualquier sitio y el servidor de impresión d
 ```bash
 curl -fsSL https://get.docker.com | sh            # instala Docker (si no lo tienes)
 sudo usermod -aG docker $USER && newgrp docker    # para usar Docker sin sudo
-git clone https://github.com/pctecnikk/taller3dpanel.git
+git clone https://github.com/iaonlineapps/taller3dpanel.git
 cd taller3dpanel
 ./install.sh      # la primera vez crea el archivo .env
 nano .env         # elige DATA_DIR (dónde se guardan los datos) y el puerto

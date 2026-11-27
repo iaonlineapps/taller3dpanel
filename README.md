@@ -117,7 +117,7 @@ Necesitas un ordenador con **Docker** (una Raspberry Pi 4/5 va perfecta). Si no 
 `curl -fsSL https://get.docker.com | sh`
 
 ```bash
-git clone https://github.com/pctecnikk/taller3dpanel.git
+git clone https://github.com/iaonlineapps/taller3dpanel.git
 cd taller3dpanel
 ./install.sh       # crea el .env, instala y arranca
 ```
@@ -146,7 +146,7 @@ margen).
 ```yaml
 services:
   taller3d-panel:
-    image: ghcr.io/pctecnikk/taller3dpanel:latest
+    image: ghcr.io/iaonlineapps/taller3dpanel:latest
     container_name: taller3d-panel
     restart: unless-stopped
     ports: ["8095:8095"]
@@ -185,7 +185,7 @@ conecta: **[docs/GRANJA.md](docs/GRANJA.md)**.
 
 ## App para Android
 
-Descarga **Taller3DPanel.apk** desde [Releases](https://github.com/pctecnikk/taller3dpanel/releases)
+Descarga **Taller3DPanel.apk** desde [Releases](https://github.com/iaonlineapps/taller3dpanel/releases)
 (las versiones `android-vX.Y.Z`), ábrela en el móvil y toca **Instalar**. La primera vez pide la
 dirección de tu servidor (en casa, por ejemplo `192.168.1.x:8095`). Desde la app puedes leer códigos
 con la **cámara**, subir fotos de tus piezas y archivos STL, 3MF o STEP, y guardar tickets y presupuestos en
@@ -213,7 +213,7 @@ también la de la app (por ejemplo `Taller3D Panel 1.0.0 · App Android 1.0.0`).
 ## Actualizar
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pctecnikk/taller3dpanel/main/update.sh | bash
+curl -fsSL https://raw.githubusercontent.com/iaonlineapps/taller3dpanel/main/update.sh | bash
 ```
 
 o, desde la carpeta: `./update.sh`. No toca tus datos ni tu `.env`.
@@ -242,9 +242,9 @@ printer catalogue with profiles, stock movements, sales on credit, Instagram pos
 with roles, CSV export and full backups. Light and dark mode, Android app, and all data in its own
 SQLite database inside your installation. The interface is in Spanish.
 
-**Install:** `git clone https://github.com/pctecnikk/taller3dpanel.git && cd taller3dpanel && ./install.sh`
+**Install:** `git clone https://github.com/iaonlineapps/taller3dpanel.git && cd taller3dpanel && ./install.sh`
 (it creates `.env`, builds and starts). Open `http://YOUR-IP:8095` and
-create the admin account. Docker image: `ghcr.io/pctecnikk/taller3dpanel` (amd64, arm64, armv7).
+create the admin account. Docker image: `ghcr.io/iaonlineapps/taller3dpanel` (amd64, arm64, armv7).
 Android APK in Releases.
 
 **License:** source-available for **non-commercial use** (PolyForm Noncommercial 1.0.0): free for personal, family, school and non-profit use; commercial use (for example in a business) is not allowed. Taller3D Panel is not affiliated with Bambu Lab or any other brand it mentions.
@@ -253,5 +253,5 @@ Android APK in Releases.
 
 ---
 
-Hecho por [pctecnikk](https://github.com/pctecnikk). Si te falta algo o tienes una idea, cuéntalo en
-[Issues](https://github.com/pctecnikk/taller3dpanel/issues).
+Hecho por [IA Online Apps](https://github.com/iaonlineapps). Si te falta algo o tienes una idea, cuéntalo en
+[Issues](https://github.com/iaonlineapps/taller3dpanel/issues).

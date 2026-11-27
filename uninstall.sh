@@ -9,9 +9,9 @@ set -uo pipefail
 APP="Taller3D Panel"
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONTAINER="taller3d-panel"
-IMAGES="taller3d-panel:latest ghcr.io/pctecnikk/taller3dpanel"
+IMAGES="taller3d-panel:latest ghcr.io/iaonlineapps/taller3dpanel"
 BACKUP="taller3dpanel"
-REPO="https://github.com/pctecnikk/taller3dpanel"
+REPO="https://github.com/iaonlineapps/taller3dpanel"
 DATA_DIR="./data"
 # si hay .env con DATA_DIR, manda ese
 if [ -f "$APP_DIR/.env" ]; then

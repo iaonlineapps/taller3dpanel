@@ -2057,7 +2057,7 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
 /* ======================= AJUSTES ======================= */
 const WEB_VERSION='1.0.16';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
-const REPO_URL='https://github.com/pctecnikk/taller3dpanel',APK_URL='app/Taller3DPanel.apk';
+const REPO_URL='https://github.com/iaonlineapps/taller3dpanel',APK_URL='app/Taller3DPanel.apk';
 /* La APK viaja con la web (public/app/): version.json dice cuál es la última. Si abres la web desde una app
    Android más vieja, sale un aviso para actualizarla (también la avisa la propia app desde la 1.0.4). */
 async function appUpdateCheck(){const mine=appVersion();if(!mine)return;let v='';

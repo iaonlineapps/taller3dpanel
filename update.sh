@@ -2,7 +2,7 @@
 # Actualiza Taller3D Panel a la última versión de GitHub, sin tocar tus datos.
 #
 # Uso en la Pi (o en cualquier Linux con Docker), por SSH:
-#   curl -fsSL https://raw.githubusercontent.com/pctecnikk/taller3dpanel/main/update.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/iaonlineapps/taller3dpanel/main/update.sh | bash
 # o, desde la carpeta de Taller3D Panel:
 #   ./update.sh
 #
@@ -12,7 +12,7 @@
 set -euo pipefail
 
 NAME="Taller3D Panel"
-REPO="https://github.com/pctecnikk/taller3dpanel.git"
+REPO="https://github.com/iaonlineapps/taller3dpanel.git"
 CONTAINER="taller3d-panel"
 PORT_DEFAULT="8095"
 URL_PATH=""

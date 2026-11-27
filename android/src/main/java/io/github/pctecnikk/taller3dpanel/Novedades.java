@@ -30,9 +30,9 @@ import java.util.regex.Pattern;
  * Si el servidor no la tiene, se mira en las Releases de GitHub (etiquetas android-vX.Y.Z).
  */
 final class Novedades {
-    static final String REPO = "https://github.com/pctecnikk/taller3dpanel";
+    static final String REPO = "https://github.com/iaonlineapps/taller3dpanel";
     static final String RELEASES_PAGE = REPO + "/releases";
-    private static final String API = "https://api.github.com/repos/pctecnikk/taller3dpanel/releases?per_page=20";
+    private static final String API = "https://api.github.com/repos/iaonlineapps/taller3dpanel/releases?per_page=20";
     private static final String KEY_SKIP = "update_skipped";
     private static final String KEY_SKIP_AT = "update_skipped_at";
     private static final long SKIP_MS = 24L * 60 * 60 * 1000;
