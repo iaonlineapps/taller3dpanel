@@ -17,6 +17,7 @@ window.setLang=function(l){if(l!=='es'&&l!=='en')return;try{localStorage.setItem
  try{window.T3DApp&&T3DApp.setLang&&T3DApp.setLang(l)}catch(e){}
  if(l!==LANG){var u=location.href.replace(/([?&])lang=(es|en)&?/,'$1').replace(/[?&]$/,'');location.replace(u)}};
 var EN={
+"**Pie de página nuevo:** abajo del todo sale ahora «Proyecto sin ánimo de lucro, gratis y sin anuncios · App creada con ayuda de inteligencia artificial (IA) · © 2026 IA Online Apps · Uso personal no comercial».":"**New footer:** at the very bottom you now see «Non-profit project, free and ad-free · App made with the help of artificial intelligence (AI) · © 2026 IA Online Apps · Personal, non-commercial use».",
 "**¿Has olvidado tu usuario o tu contraseña?** Ahora cada cuenta tiene un **código de recuperación**. Te lo enseñamos una vez al crear la cuenta (si tu cuenta ya existía, la próxima vez que entres). Puedes copiarlo, mandártelo por WhatsApp, Telegram o correo, o bajarlo como archivo.":"**Forgot your username or password?** Every account now has a **recovery code**. It's shown once when the account is created (if your account already existed, the next time you sign in). You can copy it, send it to yourself on WhatsApp, Telegram or email, or download it as a file.",
 "Si olvidas el usuario o la contraseña, en la pantalla de entrada toca «¿Has olvidado tu usuario o contraseña?», pon el código y una contraseña nueva, y verás también tu usuario.":"If you forget your username or password, tap «Forgot your username or password?» on the sign-in screen, enter the code and a new password, and you'll also see your username.",
 "Si lo pierdes, en **Ajustes → Mi cuenta → Código de recuperación** puedes sacar uno nuevo. El administrador sigue pudiendo poner una contraseña nueva a cualquiera.":"If you lose it, get a new one in **Settings → My account → Recovery code**. The administrator can still set a new password for anyone.",
@@ -1605,7 +1606,10 @@ var EN={
 "Usuario o email (si no lo recuerdas, déjalo vacío)":"Username or email (leave it empty if you don't remember it)",
 "Contraseña nueva (mínimo 4)":"New password (at least 4)",
 "Contraseña cambiada, pero tu cuenta aún está pendiente de que un administrador la active":"Password changed, but your account is still waiting for an administrator to activate it",
-"Demasiados intentos. Espera 15 minutos.":"Too many attempts. Wait 15 minutes."
+"Demasiados intentos. Espera 15 minutos.":"Too many attempts. Wait 15 minutes.",
+"Proyecto sin ánimo de lucro, gratis y sin anuncios":"Non-profit project, free and ad-free",
+"App creada con ayuda de inteligencia artificial (IA)":"App made with the help of artificial intelligence (AI)",
+"Uso personal no comercial":"Personal, non-commercial use"
 };
 var exact=Object.create(null),pats=[];
 function rx(s){return s.replace(/[.*+?^$()|[\]\\]/g,'\\$&').replace(/[{}]/g,function(c){return '\\'+c})}
