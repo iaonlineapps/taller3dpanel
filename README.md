@@ -10,8 +10,9 @@ empresa**, calcula **cuánto te cuesta cada impresión** a partir de un STL, 3MF
 una base de datos SQLite propia, dentro de tu instalación.
 
 > **Licencia:** código abierto para **uso no comercial** ([PolyForm Noncommercial 1.0.0](LICENSE.md)).
-> Puedes descargarlo, usarlo en tu taller o tu pyme, modificarlo y compartirlo gratis; lo que no se
-> permite es venderlo ni ofrecerlo como servicio de pago.
+> Puedes descargarlo, usarlo gratis en casa, para ti, tu familia, un colegio o una asociación sin ánimo
+> de lucro, modificarlo y compartirlo. **No se permite venderlo ni usarlo con fines comerciales** (por
+> ejemplo, en un negocio o como servicio de pago). Si quieres usarlo en tu negocio, escribe al autor por GitHub.
 >
 > El lector de STEP usa [occt-import-js](https://github.com/kovacsv/occt-import-js) (OpenCascade), con su propia licencia
 > **LGPL-2.1**, sin modificar y en [`public/vendor/occt`](public/vendor/occt).
@@ -246,7 +247,7 @@ SQLite database inside your installation. The interface is in Spanish.
 create the admin account. Docker image: `ghcr.io/pctecnikk/taller3dpanel` (amd64, arm64, armv7).
 Android APK in Releases.
 
-**License:** source-available for **non-commercial use** (PolyForm Noncommercial 1.0.0).
+**License:** source-available for **non-commercial use** (PolyForm Noncommercial 1.0.0): free for personal, family, school and non-profit use; commercial use (for example in a business) is not allowed. Taller3D Panel is not affiliated with Bambu Lab or any other brand it mentions.
 
 </details>
 
