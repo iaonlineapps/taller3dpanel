@@ -17,6 +17,9 @@ window.setLang=function(l){if(l!=='es'&&l!=='en')return;try{localStorage.setItem
  try{window.T3DApp&&T3DApp.setLang&&T3DApp.setLang(l)}catch(e){}
  if(l!==LANG){var u=location.href.replace(/([?&])lang=(es|en)&?/,'$1').replace(/[?&]$/,'');location.replace(u)}};
 var EN={
+"**¿Has olvidado tu usuario o tu contraseña?** Ahora cada cuenta tiene un **código de recuperación**. Te lo enseñamos una vez al crear la cuenta (si tu cuenta ya existía, la próxima vez que entres). Puedes copiarlo, mandártelo por WhatsApp, Telegram o correo, o bajarlo como archivo.":"**Forgot your username or password?** Every account now has a **recovery code**. It's shown once when the account is created (if your account already existed, the next time you sign in). You can copy it, send it to yourself on WhatsApp, Telegram or email, or download it as a file.",
+"Si olvidas el usuario o la contraseña, en la pantalla de entrada toca «¿Has olvidado tu usuario o contraseña?», pon el código y una contraseña nueva, y verás también tu usuario.":"If you forget your username or password, tap «Forgot your username or password?» on the sign-in screen, enter the code and a new password, and you'll also see your username.",
+"Si lo pierdes, en **Ajustes → Mi cuenta → Código de recuperación** puedes sacar uno nuevo. El administrador sigue pudiendo poner una contraseña nueva a cualquiera.":"If you lose it, get a new one in **Settings → My account → Recovery code**. The administrator can still set a new password for anyone.",
 "gastado":"spent",
 "Quién compra, gasta y gana":"Who buys, spends and earns",
 "gastado {}":"spent {}",
@@ -1568,7 +1571,41 @@ var EN={
 "Tienes la app Android {} y ya está la {}. Pulsa «Actualizar»: se descarga y se abre el instalador (o ábrela desde Descargas). Se instala encima y no se pierde nada.":"You have Android app {} and {} is now available. Tap «Update»: it downloads and the installer opens (or open it from Downloads). It installs on top and nothing is lost.",
 "Actualizar":"Update",
 "Ahora no":"Not now",
-"La web y la app tienen **cada una su color de logo**: la **web en verde** («Taller3D Panel Web») y la **app de Android en índigo**, para distinguirlas.":"The web and the app each have **their own logo colour**: the **web in green** («Taller3D Panel Web») and the **Android app in indigo**, so you can tell them apart."
+"La web y la app tienen **cada una su color de logo**: la **web en verde** («Taller3D Panel Web») y la **app de Android en índigo**, para distinguirlas.":"The web and the app each have **their own logo colour**: the **web in green** («Taller3D Panel Web») and the **Android app in indigo**, so you can tell them apart.",
+"¿Has olvidado tu usuario o contraseña?":"Forgot your username or password?",
+"Código de recuperación":"Recovery code",
+"Tu código de recuperación":"Your recovery code",
+"Tu usuario es":"Your username is",
+"Si algún día olvidas tu usuario o tu contraseña, con este código podrás entrar otra vez. Apúntalo o hazle una foto y guárdalo en un sitio seguro: solo se enseña ahora.":"If you ever forget your username or password, this code lets you get back in. Write it down or take a photo and keep it somewhere safe: it's only shown now.",
+"Pásaselo junto con su contraseña. Con este código podrá entrar si olvida su usuario o su contraseña. Solo se enseña ahora.":"Give it to them along with their password. With this code they can get back in if they forget their username or password. It's only shown now.",
+"Guárdalo donde quieras: cópialo, mándatelo por WhatsApp o Telegram (a ti mismo o a «Mensajes guardados») o bájalo como archivo.":"Save it wherever you like: copy it, send it to yourself on WhatsApp or Telegram (to yourself or «Saved Messages») or download it as a file.",
+"Copiado":"Copied",
+"Correo":"Email",
+"Bajar archivo":"Download file",
+"Otras apps":"Other apps",
+"Ya lo he guardado":"I've saved it",
+"Recuperar mi cuenta":"Recover my account",
+"Escribe tu código de recuperación (te lo enseñamos al crear la cuenta) y elige una contraseña nueva. Si no tienes el código, pide al administrador que te ponga una contraseña nueva.":"Enter your recovery code (we showed it to you when the account was created) and choose a new password. If you don't have the code, ask the administrator to set a new password for you.",
+"Contraseña nueva":"New password",
+"Repite la contraseña nueva":"Repeat the new password",
+"Recuperar":"Recover",
+"Contraseña cambiada. Ya puedes entrar con la nueva.":"Password changed. You can now sign in with the new one.",
+"Contraseña cambiada, pero tu cuenta aún está pendiente de aprobación":"Password changed, but your account is still waiting for approval",
+"Contraseña cambiada, pero tu cuenta está bloqueada":"Password changed, but your account is blocked",
+"Te damos un código nuevo y el anterior deja de valer. Sirve para entrar si olvidas tu usuario o tu contraseña.":"You'll get a new code and the old one will stop working. It lets you get in if you forget your username or password.",
+"Tu contraseña actual":"Your current password",
+"Crear código nuevo":"Create a new code",
+"El código de recuperación no es correcto":"The recovery code is not correct",
+"usuario":"username",
+"codigo-recuperacion":"recovery-code",
+"Sirve para entrar si olvidas el usuario o la contraseña: «¿Has olvidado tu usuario o contraseña?».":"Use it to get in if you forget your username or password: «Forgot your username or password?».",
+"Las contraseñas no coinciden":"Passwords don't match",
+"Código de recuperación de {}":"Recovery code for {}",
+"Código de recuperación de Taller3D Panel":"Taller3D Panel recovery code",
+"Usuario o email (si no lo recuerdas, déjalo vacío)":"Username or email (leave it empty if you don't remember it)",
+"Contraseña nueva (mínimo 4)":"New password (at least 4)",
+"Contraseña cambiada, pero tu cuenta aún está pendiente de que un administrador la active":"Password changed, but your account is still waiting for an administrator to activate it",
+"Demasiados intentos. Espera 15 minutos.":"Too many attempts. Wait 15 minutes."
 };
 var exact=Object.create(null),pats=[];
 function rx(s){return s.replace(/[.*+?^$()|[\]\\]/g,'\\$&').replace(/[{}]/g,function(c){return '\\'+c})}
