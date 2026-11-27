@@ -1,0 +1,25 @@
+Bibliotecas de terceros incluidas en Taller3D Panel
+===================================================
+
+qrcode.js — QR Code Generator for JavaScript (sin cambios)
+Copyright (c) 2009 Kazuhiko Arase. Licencia MIT (texto completo en qrcode-generator-LICENSE.txt).
+https://github.com/kazuhikoarase/qrcode-generator
+
+jsQR.js — jsQR (sin cambios)
+Copyright (c) Cosmo Wolfe. Licencia Apache 2.0 (texto completo en jsQR-LICENSE.txt).
+https://github.com/cozmo/jsQR
+
+JsBarcode.all.min.js — JsBarcode 3.12.3 (sin cambios)
+Copyright (c) Johan Lindell. Licencia MIT (texto completo en JsBarcode-LICENSE.txt).
+https://github.com/lindell/JsBarcode
+
+occt/ — occt-import-js (OpenCascade), sin cambios. Licencia LGPL-2.1
+(textos en occt/license.occt-import-js.txt y occt/license.occt.txt).
+https://github.com/kovacsv/occt-import-js
+
+Todo lo demás (código, diseño e iconos) es original de Taller3D Panel.
+
+Marcas: "QR Code" es una marca registrada de DENSO WAVE INCORPORATED. Bambu Lab, Prusa,
+Creality, Elegoo, Anycubic y el resto de marcas de impresoras y filamentos que se citan
+son de sus dueños. Taller3D Panel no está afiliado ni patrocinado por ninguna de ellas;
+los nombres solo se usan para indicar compatibilidad.
