@@ -144,7 +144,7 @@ public class MainActivity extends Activity {
         box.addView(go, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)));
 
         TextView ver = new TextView(this);
-        ver.setText(Lang.t(this, "App Android ", "Android app ") + version(this) + Lang.t(this, "  ·  ¿Aún no tienes servidor? Mira github.com/pctecnikk/taller3dpanel", "  ·  No server yet? See github.com/pctecnikk/taller3dpanel"));
+        ver.setText(Lang.t(this, "App Android ", "Android app ") + version(this) + Lang.t(this, "  ·  ¿Aún no tienes servidor? Mira github.com/iaonlineapps/taller3dpanel", "  ·  No server yet? See github.com/iaonlineapps/taller3dpanel"));
         ver.setTextSize(12);
         ver.setTextColor(Color.parseColor("#646b80"));
         ver.setPadding(0, dp(24), 0, 0);

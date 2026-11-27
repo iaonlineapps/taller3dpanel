@@ -1,4 +1,4 @@
-# Publica la imagen Docker de Taller3D Panel en GitHub (ghcr.io/pctecnikk/taller3dpanel)
+# Publica la imagen Docker de Taller3D Panel en GitHub (ghcr.io/iaonlineapps/taller3dpanel)
 # para PC (amd64), Raspberry Pi 4/5 (arm64) y Raspberry Pi de 32 bits (arm/v7).
 # Se lanza al crear una versión (etiqueta v1.2.3) o a mano desde Actions (Run workflow).
 name: Publicar imagen Docker

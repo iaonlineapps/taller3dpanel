@@ -1,4 +1,4 @@
-Required Notice: Copyright (c) 2026 pctecnikk (https://github.com/pctecnikk)
+Required Notice: Copyright (c) 2026 IA Online Apps (https://github.com/iaonlineapps)
 
 # PolyForm Noncommercial License 1.0.0
 
