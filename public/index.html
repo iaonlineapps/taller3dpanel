@@ -76,6 +76,7 @@ aside.side{background:var(--side);border-right:1px solid var(--line);position:st
 .kz-qtx b{display:block;font-size:16px}.kz-qtx span{font-size:13px;color:var(--mut)}.kz-qb{display:flex;gap:6px}.kz-urg{background:#ef4b4b;color:#fff;font-size:11px;padding:2px 6px;border-radius:6px;vertical-align:middle}
 .backb{margin:0 0 12px;min-height:38px;padding:0 14px;font-size:14px;width:auto!important;display:inline-flex!important;justify-self:start;align-self:start}
 .pfoot{margin:28px 0 8px;text-align:center;font-size:12.5px;color:var(--mut);line-height:1.8}.pfoot a,.pfoot button{color:var(--pri);font-weight:600;background:none;border:0;padding:0;font-size:inherit;min-height:0;cursor:pointer}
+.pfoot .madeby{display:block;font-size:11.5px;line-height:1.6;opacity:.85}.pfoot .madeby a{font-weight:500}
 .news h3{font-size:15px;margin:14px 0 6px}.news ul{margin:0;padding-left:20px;display:grid;gap:4px;font-size:14px}
 .ib{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);display:grid;place-items:center;background:var(--card);color:var(--ink);position:relative}
 .ib .pip{position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--exp)}
@@ -2107,7 +2108,7 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.17';
+const WEB_VERSION='1.0.18';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/iaonlineapps/taller3dpanel',APK_URL='app/Taller3DPanel.apk';
 /* La APK viaja con la web (public/app/): version.json dice cuál es la última. Si abres la web desde una app
@@ -2120,6 +2121,7 @@ async function appUpdateCheck(){const mine=appVersion();if(!mine)return;let v=''
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.18',['**Pie de página nuevo:** abajo del todo sale ahora «Proyecto sin ánimo de lucro, gratis y sin anuncios · App creada con ayuda de inteligencia artificial (IA) · © 2026 IA Online Apps · Uso personal no comercial».']],
  ['1.0.17',['**¿Has olvidado tu usuario o tu contraseña?** Ahora cada cuenta tiene un **código de recuperación**. Te lo enseñamos una vez al crear la cuenta (si tu cuenta ya existía, la próxima vez que entres). Puedes copiarlo, mandártelo por WhatsApp, Telegram o correo, o bajarlo como archivo.','Si olvidas el usuario o la contraseña, en la pantalla de entrada toca «¿Has olvidado tu usuario o contraseña?», pon el código y una contraseña nueva, y verás también tu usuario.','Si lo pierdes, en **Ajustes → Mi cuenta → Código de recuperación** puedes sacar uno nuevo. El administrador sigue pudiendo poner una contraseña nueva a cualquiera.']],
  ['1.0.16',['En el **Panel**, en «Colaboradores», cada colaborador enseña ahora **lo que ha ganado** con su margen en ese periodo, en vez de lo gastado. Debajo ves lo que ha vendido, lo que ha gastado y si te debe algo.']],
  ['1.0.15',['La lista de **materiales** ya tiene todos los tipos que venden Bambu Lab, eSUN, Elegoo, Smart Materials 3D y Winkle: PLA HD, PLA Mate, PLA Seda (Silk), PLA+, PLA reciclado, PLA-CF, PETG reciclado, PETG-CF, ABS-GF, ASA, TPU, Nylon, PVA… ordenados por grupos. Si falta alguno, elige «Otro (escribir)». Sale al crear o editar una pieza, en Filamentos y en la Calculadora.']],
@@ -2163,7 +2165,7 @@ function showNews(since){const l=since?NEWS.filter(([v])=>newer(v,since)):NEWS;i
  <div class="news">${l.map(([v,it])=>`<h3>Versión ${esc(v)}${v===webVer()?' <span class="tag">la tuya</span>':''}</h3><ul>${it.map(i=>`<li>${mdl(i)}</li>`).join('')}</ul>`).join('')}</div>
  <p class="note" style="margin:0">Web ${esc(webVer())} · ${appVersion()?'App Android '+esc(appVersion()):`<a href="${APK_URL}" target="_blank" rel="noopener">Descargar la app Android</a>`}</p>`)}
 function newsIfUpdated(){setTimeout(appUpdateCheck,1500);let seen='';try{seen=localStorage.getItem('t3d-visto')||'';localStorage.setItem('t3d-visto',webVer())}catch(e){}if(seen&&newer(webVer(),seen))setTimeout(()=>showNews(seen),600)}
-const footHTML=()=>`<footer class="pfoot">Taller3D Panel · Web ${esc(webVer())} · ${appVersion()?'App Android '+esc(appVersion()):`<a href="${APK_URL}" target="_blank" rel="noopener">App Android</a>`} · <button type="button" id="footnews">Novedades</button></footer>`;
+const footHTML=()=>`<footer class="pfoot">Taller3D Panel · Web ${esc(webVer())} · ${appVersion()?'App Android '+esc(appVersion()):`<a href="${APK_URL}" target="_blank" rel="noopener">App Android</a>`} · <button type="button" id="footnews">Novedades</button><span class="madeby">💛 <span>Proyecto sin ánimo de lucro, gratis y sin anuncios</span> · 🤖 <span>App creada con ayuda de inteligencia artificial (IA)</span> · © 2026 <a href="https://github.com/iaonlineapps/taller3dpanel" target="_blank" rel="noopener" translate="no">IA Online Apps</a> · <span>Uso personal no comercial</span></span></footer>`;
 const versionText=()=>`Taller3D Panel ${SRV.version||WEB_VERSION}`+(appVersion()?` · App Android ${appVersion()}`:'');
 const compLines=()=>{const c=S.cfg;return [c.legal&&c.legal!==c.name?c.legal:'',c.nif?'NIF/CIF: '+c.nif:'',c.addr,c.city,c.phone?'Tel. '+c.phone:'',c.email,c.web].filter(Boolean)};
 function taxRows(t){const v=+S.cfg.vat||0;if(!v)return '';const base=S.cfg.vatIncl===false?t:t/(1+v/100),iva=S.cfg.vatIncl===false?t*v/100:t-base;return `<div class="r"><span>Base imponible</span><span>${base.toFixed(2)}</span></div><div class="r"><span>IVA ${num(v,2)}%${S.cfg.vatIncl===false?'':' (incluido)'}</span><span>${iva.toFixed(2)}</span></div>`}
