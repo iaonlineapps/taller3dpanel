@@ -15,6 +15,10 @@ una base de datos SQLite propia, dentro de tu instalación.
 >
 > El lector de STEP usa [occt-import-js](https://github.com/kovacsv/occt-import-js) (OpenCascade), con su propia licencia
 > **LGPL-2.1**, sin modificar y en [`public/vendor/occt`](public/vendor/occt).
+>
+> Taller3D Panel no está afiliado ni patrocinado por Bambu Lab ni por ninguna otra marca de impresoras o
+> filamentos: sus nombres solo se citan para indicar compatibilidad. Licencias de terceros en
+> [`public/vendor/LICENSES.txt`](public/vendor/LICENSES.txt).
 
 **Qué incluye:**
 
