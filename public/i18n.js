@@ -17,6 +17,23 @@ window.setLang=function(l){if(l!=='es'&&l!=='en')return;try{localStorage.setItem
  try{window.T3DApp&&T3DApp.setLang&&T3DApp.setLang(l)}catch(e){}
  if(l!==LANG){var u=location.href.replace(/([?&])lang=(es|en)&?/,'$1').replace(/[?&]$/,'');location.replace(u)}};
 var EN={
+"**Desactivar una pieza o un producto** que por ahora no vas a hacer más: pulsa **«Desactivar»** en su foto (o en la lista, en su ficha o con el botón derecho). Desaparece de Vender, de «Por reponer», de los avisos y del bot de Telegram, pero no se borra nada.":"**Deactivate a part or a product** you are not making for now: press **«Deactivate»** on its photo (or in the list, in its details or with right-click). It disappears from Sell, «To restock», the alerts and the Telegram bot, but nothing is deleted.",
+"Para verlas, pulsa **«Desactivadas»** en Piezas y stock (o **«Desactivados»** en Productos de reventa). Con **«Activar»** vuelven a estar como antes.":"To see them, press **«Deactivated»** in Parts and stock (or in Resale products). With **«Activate»** they are back as before.",
+"Activar":"Activate",
+"Desactivar":"Deactivate",
+"▶ Activar":"▶ Activate",
+"⏸ Desactivar":"⏸ Deactivate",
+"← Volver a las activas":"← Back to active ones",
+"Desactivados ({})":"Deactivated ({})",
+"Desactivadas ({})":"Deactivated ({})",
+"Productos desactivados":"Deactivated products",
+"Piezas desactivadas":"Deactivated parts",
+"No salen en Vender, ni en «Por reponer», ni en los avisos ni en el bot de Telegram. Pulsa «Activar» para volver a usarlas.":"They do not show in Sell, «To restock», the alerts or the Telegram bot. Press «Activate» to use them again.",
+"No hay piezas desactivadas.":"There are no deactivated parts.",
+"No hay productos desactivados.":"There are no deactivated products.",
+"Desactivada: {}":"Deactivated: {}",
+"Activada: {}":"Activated: {}",
+"No se pudo cambiar":"Could not change it",
 "**Ventas con su fecha.** Al vender, en el ticket hay un campo nuevo **«Fecha de la venta»** (por defecto, ahora). Pon una fecha pasada para **pasar ventas antiguas** de otra app: cuentan en el panel, los informes y las ganancias **en el día que pones**, no hoy.":"**Sales with their date.** When selling, the ticket has a new **«Sale date»** field (now by default). Set a past date to **enter old sales** from another app: they count on the dashboard, reports and profits **on the day you set**, not today.",
 "Con fecha pasada eliges si **se restan las piezas del stock** o no. Sin marcar (lo normal al pasar ventas antiguas), tu stock no cambia y puedes añadir piezas aunque estén agotadas. La fecha se queda puesta para pasar varias seguidas; con «Hoy» vuelves a ahora.":"With a past date you choose whether **the parts are taken from stock** or not. Unticked (the usual when entering old sales), your stock does not change and you can add parts even if they are out of stock. The date stays set so you can enter several in a row; «Today» takes you back to now.",
 "Al **editar un ticket** también puedes cambiar su fecha.":"When **editing a ticket** you can also change its date.",
