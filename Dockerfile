@@ -5,7 +5,7 @@ ENV NODE_ENV=production DATA_DIR=/data PORT=8095 NODE_NO_WARNINGS=1
 ARG TALLER3D_VERSION=
 ENV TALLER3D_VERSION=${TALLER3D_VERSION}
 WORKDIR /app
-COPY server.js bambu.js VERSION seed.json ./
+COPY server.js bambu.js printers.js telegram.js VERSION seed.json ./
 COPY public ./public
 COPY entrypoint.sh /entrypoint.sh
 # el contenedor corre como usuario normal: el codigo tiene que ser legible

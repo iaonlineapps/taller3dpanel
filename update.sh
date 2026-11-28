@@ -17,7 +17,7 @@ CONTAINER="taller3d-panel"
 PORT_DEFAULT="8095"
 URL_PATH=""
 # Archivos que se copian además de public/ (si la carpeta no es una copia de git)
-COPY_FILES="server.js VERSION Dockerfile entrypoint.sh update.sh uninstall.sh"
+COPY_FILES="server.js bambu.js printers.js telegram.js VERSION Dockerfile entrypoint.sh update.sh uninstall.sh etiquetas.sh"
 export GIT_TERMINAL_PROMPT=0
 
 say() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }

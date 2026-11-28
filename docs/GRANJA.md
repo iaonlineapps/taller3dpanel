@@ -123,7 +123,7 @@ verificación en dos pasos con app de autenticación (con código por email sí)
 
 ## 4. Añadir las impresoras en la app
 
-1. **Ajustes → Granja de impresoras → Activada.** En el menú aparece **«Granja»**.
+1. **Administración → Granja de impresoras → Activada.** En el menú aparece **«Granja»**.
 2. **+ Añadir impresora**, o **+ Varias** para crear muchas de golpe (A1 01, A1 02…).
 3. Abre cada una → **Editar** y rellena:
    - marca **«Bambu Lab en modo LAN»**;

@@ -165,7 +165,7 @@ impresión**. No hace falta nada más.
 1. Instala como arriba y dale **IP fija** al equipo en tu router.
 2. En cada Bambu Lab: **Ajustes → Red → «Solo LAN» + «Modo desarrollador»**. Funciona por Wi-Fi o
    cable. Apunta la IP, el código de acceso y el nº de serie.
-3. En la app: **Ajustes → Granja → Activada**, añade las impresoras (una a una o varias de golpe), pon
+3. En la app: **Administración → Granja → Activada**, añade las impresoras (una a una o varias de golpe), pon
    IP, serie y código, e imprime sus **etiquetas QR**.
 
 Todos los pasos, qué equipo elegir, cómo entrar desde fuera de casa y qué hacer si una impresora no
@@ -177,11 +177,37 @@ conecta: **[docs/GRANJA.md](docs/GRANJA.md)**.
 
 ![Estadísticas, costes y actividad de la granja](docs/capturas/granja-estadisticas.png)
 
+**Otras marcas:** además de las Bambu Lab, la granja ve en directo (y puede pausar, seguir o parar)
+las impresoras con **Klipper (Moonraker)**, **OctoPrint** y **PrusaLink** (Prusa MK4, XL, MINI…). Al
+añadir la impresora, elige su tipo en «Conexión» y pon su IP.
+
+![Impresora con Klipper en la granja](docs/capturas/granja-klipper.png)
+
 ### Modo taller (tablet o móvil)
 
 ![Modo taller](docs/capturas/modo-taller.png)
 
 <img src="docs/capturas/modo-taller-movil.png" width="300" alt="Modo taller en el móvil">
+
+## Bot de Telegram
+
+Tu propio bot de Telegram te **avisa en el móvil** cuando una impresora empieza, va por el 25, 50 y
+75 %, se pausa, termina o falla, cuando una pieza se agota y cuando entra una venta. Y te **contesta**
+si le preguntas: `/estado`, `/stock`, `/ventas`, `/resumen`. Solo te habla a ti.
+
+Se crea en 2 minutos con **@BotFather** y se pone en **Administración → Bot de Telegram** (pegas el
+token, «Buscar mi chat», «Probar» y «Guardar»). Va dentro del mismo servidor: no hay que instalar nada
+más. Paso a paso, todos los mensajes y qué hacer si algo falla: **[docs/TELEGRAM.md](docs/TELEGRAM.md)**.
+
+<img src="docs/capturas/bot-telegram-mensajes.png" width="300" alt="Avisos del bot de Telegram"> <img src="docs/capturas/bot-telegram-movil.png" width="300" alt="Bot de Telegram en Administración">
+
+## Administración
+
+Solo la ve el **administrador** (el dueño del taller): **usuarios** y permisos, **granja de
+impresoras**, **bot de Telegram** y **copias de seguridad**. En **Ajustes** queda lo de tu empresa, tu
+cuenta, el idioma, las impresoras de la calculadora y los costes.
+
+![Administración](docs/capturas/bot-telegram-ajustes.png)
 
 ## App para Android
 
@@ -220,7 +246,7 @@ o, desde la carpeta: `./update.sh`. No toca tus datos ni tu `.env`.
 
 ## Copia de seguridad
 
-En **Ajustes → Tus datos → Copia de seguridad completa** descargas un archivo con todo, y desde ahí
+En **Administración → Copias de seguridad → Copia de seguridad completa** descargas un archivo con todo, y desde ahí
 mismo lo puedes restaurar. También basta con copiar la carpeta `DATA_DIR` con el contenedor parado.
 
 ## Desinstalar
@@ -237,7 +263,7 @@ Self-hosted management for a **3D printing workshop** (plus an **IT repair servi
 printed parts with photos, a point of sale with **QR / barcode scanner** support, receipts and quotes
 with your company logo and tax details, a **print cost calculator** that reads **STL and 3MF** files
 (exact grams and time from sliced Bambu Studio 3MF files, or an estimate from your printer profile),
-customers, expenses, collaborators, an optional **printer farm** (QR per printer, live status and control of Bambu Lab printers in LAN Only + Developer Mode over MQTT; the install itself acts as the print server, see docs/GRANJA.md), filament spools (with a brand catalogue and spool QR reading),
+customers, expenses, collaborators, an optional **printer farm** (QR per printer, live status and control of Bambu Lab printers in LAN Only + Developer Mode over MQTT; the install itself acts as the print server, see docs/GRANJA.md), filament spools (with a brand catalogue and spool QR reading), Klipper (Moonraker), OctoPrint and PrusaLink printers in the farm too, an optional **Telegram bot** that alerts you when a print starts, reaches 25/50/75 %, finishes or fails, when stock runs out and when a sale comes in, and answers `/status`, `/stock`, `/sales` (see docs/TELEGRAM.md), an **Administration** section for the owner (users, farm, Telegram bot, backups),
 printer catalogue with profiles, stock movements, sales on credit, Instagram post generator, users
 with roles, CSV export and full backups. Light and dark mode, Android app, and all data in its own
 SQLite database inside your installation. The interface is in Spanish.
