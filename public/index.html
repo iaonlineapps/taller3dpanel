@@ -822,7 +822,7 @@ async function anular(id){const s=S.sales.find(x=>x.id===id);if(!s)return;
 function vPiezas(){
  const offN=offAll().filter(p=>!isRes(p)).length,all=pieces(),list=S.showOff?offFiltered('piezas'):filtered('piezas'),units=all.reduce((s,p)=>s+(+p.stock||0),0),val=all.reduce((s,p)=>s+(+p.cost||0)*(+p.stock||0),0),pv=all.reduce((s,p)=>s+(+p.price||0)*(+p.stock||0),0),low=all.filter(isLow).length,lowR=resales().filter(isLow).length;
  return `<div class="ph"><div><h1>Piezas y stock</h1><div class="sub">Tu catálogo de piezas terminadas, con su foto, código y existencias</div></div>
- <div class="btns"><button class="btn gh" id="labels">${ico('qr')}Etiquetas QR</button><button class="btn" id="newp">+ Nueva pieza</button></div></div>
+ <div class="btns"><button class="btn gh" data-mcats="piezas">Categorías</button><button class="btn gh" id="labels">${ico('qr')}Etiquetas QR</button><button class="btn" id="newp">+ Nueva pieza</button></div></div>
  <div class="sum"><div class="sm"><div class="l">Unidades en mano</div><div class="v">${num(units)}</div></div><div class="sm" style="border-left-color:var(--inc)"><div class="l">Valor a precio de venta</div><div class="v">${money(pv)}</div></div>
  <div class="sm" style="border-left-color:var(--or)"><div class="l">Coste del stock</div><div class="v">${money(val)}</div></div><button class="sm" data-low style="text-align:left;border-left-color:var(--exp)"><div class="l">Por reponer ${S.lowOnly?'(filtrando)':''}</div><div class="v ${low?'dn':''}">${low}</div></button></div>
  ${S.lowOnly?`<div class="last" style="background:color-mix(in srgb,var(--warn) 12%,var(--card));border-color:color-mix(in srgb,var(--warn) 35%,transparent)"><span><b>Solo ves las piezas por reponer</b> (${num(low)}/${num(all.length)})<small class="note" style="display:block">¿Alguna no la vas a reponer? Ábrela, pulsa «Editar» y marca «No la voy a reponer».</small></span><button class="btn sf" data-low style="min-height:34px;padding:4px 12px">Ver todas</button></div>${lowR?`<div class="last"><span>También hay <b>${num(lowR)}</b> productos de reventa por reponer</span><button class="btn sf" data-lowp style="min-height:34px;padding:4px 12px">Ver productos</button></div>`:''}`:''}
@@ -861,7 +861,7 @@ function vProductos(){
  const units=all.reduce((t,p)=>t+(+p.stock||0),0),val=all.reduce((t,p)=>t+(+p.cost||0)*(+p.stock||0),0),pv=all.reduce((t,p)=>t+(+p.price||0)*(+p.stock||0),0),low=all.filter(isLow).length,st=resStats(day0(Date.now())-29*D);
  const gpu=p=>(+p.price||0)-(+p.cost||0),pc=p=>+p.price>0?' · '+num(gpu(p)/(+p.price)*100)+' %':'';
  return `<div class="ph"><div><h1>Productos de reventa</h1><div class="sub">Lo que compras hecho para venderlo suelto (pilas, cables, cargadores…): coste por unidad del pack, precio de venta, ganancia y stock</div></div>
- <div class="btns"><button class="btn" id="newr">+ Nuevo producto</button></div></div>
+ <div class="btns"><button class="btn gh" data-mcats="productos">Categorías</button><button class="btn" id="newr">+ Nuevo producto</button></div></div>
  <div class="sum"><div class="sm"><div class="l">Unidades en mano</div><div class="v">${num(units)}</div></div><div class="sm" style="border-left-color:var(--or)"><div class="l">Coste del stock</div><div class="v">${money(val)}</div></div>
  <div class="sm" style="border-left-color:var(--inc)"><div class="l">Ganarías si lo vendes todo</div><div class="v up">${money(pv-val)}</div></div><button class="sm" data-low style="text-align:left;border-left-color:var(--exp)"><div class="l">Por reponer ${S.lowOnly?'(filtrando)':''}</div><div class="v ${low?'dn':''}">${low}</div></button></div>
  ${st.u?`<div class="last"><span>Últimos 30 días: <b>${num(st.u)}</b> vendidas por <b>${money(st.inc)}</b></span><b class="up">+${money(st.gan)} de ganancia</b></div>`:''}
@@ -890,7 +890,7 @@ function showResale(id){const p=S.products.find(x=>x.id===id);if(!p)return;
  paintBarcodes($('#dlg'))}
 function editResale(id,pre={}){
  const p=Object.assign({name:'',cat:'Pilas',price:2,packPrice:'',packUnits:'',stock:'',min:5,code:nextRCode(),noRestock:false,buy:'',notes:'',photo:''},S.products.find(x=>x.id===id)||{},pre);let ph=p.photo||'';
- const rcats=[...new Set(['Pilas','Cables','Cargadores','Baterías',...resales().map(x=>x.cat).filter(Boolean)])];
+ const rcats=allRCats();
  modal(`<h2>${id?'Editar producto':'Nuevo producto de reventa'}</h2><p class="note" style="margin:-6px 0 0">Algo que compras hecho (por ejemplo un pack de pilas) y vendes suelto. El coste por unidad sale solo: precio del pack ÷ unidades.</p><form id="fr" style="display:grid;gap:12px">
  <div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:center"><div class="ph2" id="rph" style="border-radius:14px">${photo(p)}</div>
   <div class="btns"><span class="btn sf filebtn">${p.photo?'Cambiar foto':'Añadir foto'}<input type="file" accept="image/*" id="rfile"></span>${p.photo?'<button type="button" class="btn rd" id="rnoph">Quitar</button>':''}</div></div>
@@ -1981,6 +1981,35 @@ function quickClient(after){
 }
 const PRESET_CATS=['Llaveros 3D','Navidad','Diseño 3D (piezas especiales)','Hogar','Decoración','Figuras','Escritorio','Repuestos y recambios','Regalos','Otros'];
 const allCats=()=>[...new Set([...(S.cfg.cats&&S.cfg.cats.length?S.cfg.cats:PRESET_CATS),...cats()])];
+const PRESET_RCATS=['Pilas','Cables','Cargadores','Baterías'];
+const allRCats=()=>[...new Set([...(S.cfg.rcats&&S.cfg.rcats.length?S.cfg.rcats:PRESET_RCATS),...resales().map(x=>x.cat).filter(Boolean)])];
+/* Gestor de categorías: crear, renombrar, unir (pon el mismo nombre que otra) y borrar (sus piezas pasan a «Otros») */
+function manageCats(kind){const res=kind==='productos',isK=p=>(p.estado||'listo')==='listo'&&(res?isRes(p):!isRes(p)),items=()=>S.products.filter(isK),other=res?'Productos':'Otros';
+ const cnt=c=>items().filter(p=>(p.cat||other)===c).length;
+ let rows=(res?allRCats():allCats()).map(c=>({old:c,name:c}));
+ const draw=()=>{$('#catl').innerHTML=rows.map((r,k)=>`<div class="vrow" style="grid-template-columns:minmax(0,1fr) 92px 40px"><input data-cn="${k}" value="${esc(r.name)}" placeholder="${res?'Pilas, Cables…':'Figuras, Llaveros 3D…'}"${r.del?' disabled style="text-decoration:line-through;opacity:.5"':''}><span class="note" style="text-align:right">${r.old?`<span>${num(cnt(r.old))} ${res?'productos':'piezas'}</span>`:'<span>nueva</span>'}</span><button type="button" class="btn ${r.del?'gh':'rd'}" data-cx="${k}" style="min-height:36px;padding:0" aria-label="${r.del?'Recuperar':'Borrar'}" title="${r.del?'Recuperar':'Borrar'}">${r.del?'↺':'×'}</button></div>`).join('')};
+ modal(`<h2>${res?'Categorías de productos':'Categorías de piezas'}</h2>
+ <p class="note" style="margin:0">${res?'Cambia el nombre y se cambia en todos sus productos. Para unir dos, pon a una el mismo nombre que la otra. Si borras una que se usa, sus productos pasan a «Productos».':'Cambia el nombre y se cambia en todas sus piezas. Para unir dos, pon a una el mismo nombre que la otra. Si borras una que se usa, sus piezas pasan a «Otros».'}</p>
+ <p class="note" style="margin:0">${res?'Para cambiar la categoría de un solo producto, ábrelo y pulsa «Editar».':'Para cambiar la categoría de una sola pieza, ábrela y pulsa «Editar».'}</p>
+ <div class="note vrow" style="grid-template-columns:minmax(0,1fr) 92px 40px"><span>Categoría</span><span style="text-align:right">En uso</span><span></span></div><div id="catl" style="display:grid;gap:6px;max-height:50vh;overflow:auto"></div>
+ <div style="display:flex;gap:8px"><input id="catnew" placeholder="Nueva categoría (por ejemplo Figuras)" style="flex:1"><button type="button" class="btn sf" id="catadd">+ Añadir</button></div>
+ <div class="acts"><button type="button" class="btn gh" data-close>Cancelar</button><button type="button" class="btn" id="catsave">Guardar</button></div>`);
+ draw();
+ $('#catl').addEventListener('input',e=>{const t=e.target;if(t.dataset.cn)rows[+t.dataset.cn].name=t.value});
+ $('#catl').addEventListener('click',e=>{const b=e.target.closest('[data-cx]');if(!b)return;const r=rows[+b.dataset.cx];if(!r.old){rows.splice(+b.dataset.cx,1)}else r.del=!r.del;draw()});
+ const add=()=>{const v=$('#catnew').value.trim();if(!v)return;if(rows.some(r=>!r.del&&r.name.trim().toLowerCase()===v.toLowerCase())){toast('Esa categoría ya está');return}rows.push({old:'',name:v});$('#catnew').value='';draw();const l=$('#catl');l.scrollTop=l.scrollHeight};
+ $('#catadd').onclick=add;$('#catnew').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();add()}};
+ $('#catsave').onclick=async()=>{
+  const canon=n=>{const t=n.trim();const ex=rows.find(r=>!r.del&&r.name.trim().toLowerCase()===t.toLowerCase());return ex?ex.name.trim():t};
+  const map={};for(const r of rows){if(!r.old)continue;const to=r.del?other:canon(r.name)||other;if(to!==r.old)map[r.old]=to}
+  const list=[...new Set(rows.filter(r=>!r.del&&r.name.trim()).map(r=>canon(r.name)))];
+  const ch=items().filter(p=>map[p.cat||other]!=null);
+  const go2=async()=>{const b=$('#catsave');if(b)b.disabled=true;
+   try{for(const p of ch)await patch('products',p.id,{cat:map[p.cat||other]});
+    const ids=new Set(items().map(p=>p.id));for(const sv of S.sales){if(!(sv.items||[]).some(i=>ids.has(i.pid)&&map[i.cat]!=null))continue;await patch('sales',sv.id,{items:sv.items.map(i=>ids.has(i.pid)&&map[i.cat]!=null?{...i,cat:map[i.cat]}:i)})}
+    if(!ME||ME.role==='admin')await saveCfg(res?{rcats:list}:{cats:list});
+    closeModal();render();toast(ch.length?'Categorías guardadas · '+ch.length+' cambiadas':'Categorías guardadas')}catch(e){toast('No se pudo guardar');if(b)b.disabled=false}};
+  if(ch.length)confirmBox(`Se cambia la categoría de ${ch.length} ${res?'productos':'piezas'} (y de sus ventas, para que los informes cuadren). ¿Seguimos?`,go2);else go2()}}
 const custOpts=(v,none='Sin cliente')=>`<option value="">${esc(none)}</option>`+S.customers.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${esc(c.id)}" ${c.id===v?'selected':''}>${esc(c.name)}</option>`).join('');
 
 /* ======================= SERVICIO INFORMÁTICO ======================= */
@@ -2506,7 +2535,7 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.26';
+const WEB_VERSION='1.0.27';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/iaonlineapps/taller3dpanel',APK_URL='app/Taller3DPanel.apk';
 /* La APK viaja con la web (public/app/): version.json dice cuál es la última. Si abres la web desde una app
@@ -2519,6 +2548,7 @@ async function appUpdateCheck(){const mine=appVersion();if(!mine)return;let v=''
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.27',['**Gestiona tus categorías.** En **Piezas y stock** (y en **Productos de reventa**) hay un botón nuevo **«Categorías»**: crea categorías nuevas (por ejemplo «Figuras»), cámbiales el nombre, únelas (pon a una el mismo nombre que otra) o bórralas (sus piezas pasan a «Otros»). El cambio se aplica a todas sus piezas y a sus ventas, para que los informes cuadren.','Para cambiar la categoría de **una sola pieza** (por ejemplo la copa grande de 23 cm a «Figuras»), ábrela, pulsa **«Editar»** y elige la categoría.']],
  ['1.0.26',['**El bot de Telegram ya no se calla las piezas desactivadas que aún tienen stock.** Al final de **/stock** sale «Desactivadas que aún tienen stock», con sus unidades, para que veas todo lo que tienes de verdad. Para volver a usarlas: Piezas y stock → «Desactivadas» → «Activar».']],
  ['1.0.25',["**Aviso de versión nueva.** Si tienes la web instalada como app (acceso directo en el escritorio o en el móvil), ya no se queda en la versión vieja: cuando actualizas la Raspberry sale arriba **«Hay una versión nueva»** y con **«Actualizar»** se recarga con la nueva. Lo mira al abrirla, cada 5 minutos y al volver a la ventana.","**Botón para recargar:** arriba, junto a la versión, está el botón **↻** (y en **Ajustes**, **«Recargar o buscar actualizaciones»**). Recarga la página y te dice si ya tienes la última versión.","Arreglado: las traducciones al inglés de una versión nueva podían tardar hasta un día en verse."]],
  ['1.0.24',['**Varias marcas en un mismo producto de reventa.** En «Editar producto» marca **«Tengo varias marcas»** y pon cada marca con **su pack** (precio y unidades) y su stock: por ejemplo pilas AA de Duracell (pack de 20) y de Varta (pack de 40). Cada marca tiene **su coste por unidad** y lo que **ganas** con ella.','El stock del producto es la **suma de todas las marcas**. Al vender **eliges la marca**, se descuenta de esa marca y la ganancia se calcula con su coste. La marca sale en el ticket.','En la ficha del producto ves una tabla **«Por marca»** con el pack, el coste, lo que ganas, lo vendido y el stock de cada marca. En **«+ Compré otro pack»** eliges la marca (o escribes una nueva).']],
@@ -2624,7 +2654,7 @@ function vAjustes(){const c=S.cfg,ej=['products','customers','sales','prints','s
  ${sec('Mis impresoras',`<div class="lst">${fleet().map(printerCard).join('')||'<div class="empty">Añade tus impresoras desde el catálogo</div>'}</div><p class="note" style="margin:0">Toca una impresora para ver y ajustar su perfil (consumo, velocidad, boquilla, relleno, precio y vida útil). La calculadora lo usa para estimar los costes.</p>`,'<button class="btn" id="addpr">+ Añadir</button>')}
  ${sec('Costes para la calculadora',`<form id="fcost" style="display:grid;gap:12px"><div class="f2"><label>Precio de la luz (/kWh)<input name="kwh" type="number" min="0" step="0.01" value="${esc(c.kwh)}"></label><label>Tu hora de trabajo vale<input name="labor" type="number" min="0" step="0.5" value="${esc(c.labor)}"></label></div><div class="f2"><label>Margen de beneficio (%)<input name="margin" type="number" min="0" step="5" value="${esc(c.margin)}"></label><label>Impresiones fallidas (%)<input name="fail" type="number" min="0" step="1" value="${esc(c.fail)}"></label></div><div class="acts"><button class="btn">Guardar costes</button></div></form>`)}
  ${sec('Categorías de informática',`<form id="fjcats" style="display:grid;gap:12px"><label>Una por línea: nombre | precio habitual<textarea name="jcats" rows="8">${esc(jcats().map(x=>x.n+(+x.p?' | '+x.p:'')).join('\n'))}</textarea></label><p class="note" style="margin:0">Al crear un trabajo marcas una o varias y el precio se suma solo (luego lo puedes cambiar).</p><div class="acts"><button class="btn">Guardar categorías</button></div></form>`)}
- ${sec('Categorías de piezas',`<form id="fcats" style="display:grid;gap:12px"><label>Una por línea<textarea name="cats" rows="6">${esc((c.cats&&c.cats.length?c.cats:PRESET_CATS).join('\n'))}</textarea></label><div class="acts"><button class="btn">Guardar categorías</button></div></form>`)}
+ ${sec('Categorías',`<p class="note" style="margin:0">Crea, cambia de nombre, une o borra las categorías de tus piezas y de tus productos de reventa.</p><div class="btns"><button type="button" class="btn gh" data-mcats="piezas">Categorías de piezas</button><button type="button" class="btn gh" data-mcats="productos">Categorías de productos</button></div>`)}
  ${sec('Tus datos',`<p class="note" style="margin:0">${IN_ARTIFACT?'Todo se guarda automáticamente en la base de datos de esta app.':'Todo se guarda en la base de datos de tu servidor (archivo SQLite dentro de la carpeta de datos).'} Puedes exportarlo cuando quieras.</p>
   <div class="btns"><button class="btn gh" id="csvs">${ico('down')}Ventas</button><button class="btn gh" id="csvg">${ico('down')}Gastos</button><button class="btn gh" id="csvp">${ico('down')}Piezas</button><button class="btn gh" id="csvm">${ico('down')}Movimientos</button><button class="btn gh" id="csvj">${ico('down')}Servicios</button><button class="btn gh" id="csvq">${ico('down')}Presupuestos</button></div>
   ${ej?`<div style="border-top:1px solid var(--line);padding-top:12px"><p class="note" style="margin:0 0 10px">Hay ${ej} registros de ejemplo para enseñarte cómo funciona.</p><button class="btn rd" id="delej">Borrar datos de ejemplo</button></div>`:''}`)}
@@ -2807,6 +2837,7 @@ document.addEventListener('click',async e=>{
  if(d.add||d.inc)addCart(d.add||d.inc,1,d.vc);else if(d.dec)addCart(d.dec,-1,d.vc);
  else if(d.cat){S.cat=d.cat;render()}else if(d.pay){S.pay=d.pay;syncCart()}else if(d.lay){S.layout=d.lay;render()}
  else if(d.range!=null){S.range=+d.range;render()}else if(d.who){S.who=d.who;render()}else if(d.mvf){S.mvf=d.mvf;render()}else if(d.gcat){S.gcat=d.gcat;render()}
+ else if(d.mcats){closeModal();manageCats(d.mcats)}
  else if('showoff' in d){S.showOff=!S.showOff;S.lowOnly=false;render()}
  else if('low' in d){S.lowOnly=!S.lowOnly;S.showOff=false;render()}
  else if('lowp' in d){go('productos');S.lowOnly=true;render()}
