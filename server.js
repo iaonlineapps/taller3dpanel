@@ -24,6 +24,8 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
 const { BambuLink, BambuCloud, BambuCloudLink, CloudView } = require('./bambu');
+const { NetLink, KINDS } = require('./printers');
+const { createTelegram } = require('./telegram');
 
 const ROOT = __dirname;
 const PUB = path.join(ROOT, 'public');
@@ -181,6 +183,13 @@ const fails = new Map();
 function tooMany(ip) { const f = fails.get(ip); return f && f.n >= 10 && Date.now() - f.t < 9e5; }
 function failed(ip) { const f = fails.get(ip); if (!f || Date.now() - f.t > 9e5) fails.set(ip, { n: 1, t: Date.now() }); else f.n++; }
 
+// ---------- bot de Telegram (opcional, en Ajustes → Bot de Telegram) ----------
+const bot = createTelegram({
+  getMeta: k => (q.getMeta.get(k) || {}).v, setMeta: (k, v) => q.setMeta.run(k, v), allData: () => allData(), version: VERSION,
+  appName: () => { try { return JSON.parse((q.getDoc.get('config', 'main') || {}).data || '{}').name || 'Taller3D Panel'; } catch { return 'Taller3D Panel'; } },
+  livePrinters: () => farmDocs.all().map(r => { let doc = {}; try { doc = JSON.parse(r.data); } catch { } const l = links.get(r.id); return { id: r.id, doc, live: l ? l.link.summary() : null }; }).sort((a, b) => (+a.doc.n || 0) - (+b.doc.n || 0)),
+});
+
 // ---------- tiempo real ----------
 const clients = new Set();
 function broadcast(msg) { const s = `data: ${JSON.stringify(msg)}\n\n`; for (const c of clients) { try { c.write(s); } catch { } } }
@@ -207,6 +216,7 @@ function logEv(pid, ev, extra = {}) {
   const d = { pid, name, ev, date: Date.now(), auto: true, ...extra };
   q.putDoc.run('farmlog', id, JSON.stringify(d), Date.now(), 'farm'); broadcast({ col: 'farmlog', id, data: d });
   if (Math.random() < 0.02) delOldLog.run();
+  { const l = links.get(pid); bot.printerEvent(ev, d, l ? l.link.summary() : null); }
 }
 const RUN = new Set(['RUNNING', 'PREPARE', 'SLICING']);
 function track(id, link) {
@@ -227,6 +237,7 @@ function track(id, link) {
   }
   if (sm.online && st) t.first = false;
   tracks.set(id, t);
+  if (!t.first) { let doc = null; try { doc = JSON.parse((q.getDoc.get('farm', id) || {}).data || 'null'); } catch { } bot.printerLive(id, doc, sm); }
 }
 // ---- nube de Bambu (solo ver): credenciales solo aquí, nunca se mandan al navegador ----
 const cloudGet = db.prepare('SELECT v FROM cloud WHERE k=?'), cloudPut = db.prepare('INSERT INTO cloud(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v'), cloudDel = db.prepare('DELETE FROM cloud WHERE k=?');
@@ -256,13 +267,15 @@ function farmSync() {
     const sec = getSecret.get(r.id);
     if (d.lan && d.ip && d.serial && sec) want.set(r.id, { host: String(d.ip).trim(), serial: String(d.serial).trim(), code: sec.access, port: +d.port || 8883 });
     else if (d.cloud && d.serial) want.set(r.id, { cloud: true, serial: String(d.serial).trim().toUpperCase() });
+    else if (KINDS[d.net] && d.url) want.set(r.id, { net: d.net, url: String(d.url).trim(), user: String(d.user || '').trim(), secret: sec ? sec.access : '' });
   }
   const conn = cloudEnsure([...want.values()].filter(w => w.cloud).map(w => w.serial));
   if (conn) for (const [id, w] of want) if (w.cloud) w.tok = conn.token.slice(-8);
   for (const [id, l] of links) { const w = want.get(id); if (!w || JSON.stringify(w) !== l.key) { l.link.close(); links.delete(id); broadcast({ farm: { id, live: null } }); } }
   for (const [id, w] of want) if (!links.has(id)) {
     if (w.cloud) { if (conn) { links.set(id, { link: new CloudView(conn, w.serial), key: JSON.stringify(w) }); pushLive(id); } continue; }
-    const link = new BambuLink(w); link.on('update', () => { track(id, link); pushLive(id); }); links.set(id, { link, key: JSON.stringify(w) });
+    const link = w.net ? new NetLink({ kind: w.net, url: w.url, user: w.user, secret: w.secret }) : new BambuLink(w);
+    link.on('update', () => { track(id, link); pushLive(id); }); links.set(id, { link, key: JSON.stringify(w) });
   }
 }
 function farmLive() { const o = {}; for (const r of farmDocs.all()) { const l = links.get(r.id); o[r.id] = { hasAccess: !!getSecret.get(r.id) || !!(cloudCreds() && cloudCreds().token), cloud: !!(l && l.link.readOnly), live: l ? l.link.summary() : null }; } return o; }
@@ -401,8 +414,10 @@ const server = http.createServer(async (req, res) => {
       if (col === 'config' && me.role !== 'admin') return send(res, 403, { error: 'Solo un administrador puede cambiar los ajustes' });
       if (M === 'PUT' || M === 'PATCH') {
         let d = cleanDoc(await readBody(req));
-        if (M === 'PATCH') { const r = q.getDoc.get(col, id); if (!r) return send(res, 404, { error: 'No existe' }); d = { ...JSON.parse(r.data), ...d }; }
-        q.putDoc.run(col, id, JSON.stringify(d), Date.now(), me.id); broadcast({ col, id, data: d }); if (col === 'farm') farmSync(); return send(res, 200, { ok: true });
+        const prevRow = q.getDoc.get(col, id);
+        if (M === 'PATCH') { if (!prevRow) return send(res, 404, { error: 'No existe' }); d = { ...JSON.parse(prevRow.data), ...d }; }
+        q.putDoc.run(col, id, JSON.stringify(d), Date.now(), me.id);
+        if (col === 'products' || col === 'sales') { try { bot.docChanged(col, prevRow ? JSON.parse(prevRow.data) : null, d); } catch (e) { console.error('Telegram:', e.message); } } broadcast({ col, id, data: d }); if (col === 'farm') farmSync(); return send(res, 200, { ok: true });
       }
       if (M === 'DELETE') { q.delDoc.run(col, id); broadcast({ col, id, data: null }); if (col === 'farm') { delSecret.run(id); farmSync(); } return send(res, 200, { ok: true }); }
     }
@@ -479,7 +494,10 @@ const server = http.createServer(async (req, res) => {
       if (what === 'access') {
         if (me.role !== 'admin') return send(res, 403, { error: 'Solo un administrador puede guardar el código de acceso' });
         const code = String(b.code || '').trim();
-        if (!code) delSecret.run(id); else if (!/^[A-Za-z0-9]{4,32}$/.test(code)) return send(res, 400, { error: 'El código de acceso son 8 caracteres (letras y números) que salen en la pantalla de la impresora' }); else putSecret.run(id, code);
+        let fd = {}; try { fd = JSON.parse(q.getDoc.get('farm', id).data); } catch { }
+        if (!code) delSecret.run(id);
+        else if (KINDS[fd.net]) { if (!/^[\x21-\x7e]{1,200}$/.test(code)) return send(res, 400, { error: 'La clave o la contraseña no es válida (sin espacios)' }); putSecret.run(id, code); }
+        else if (!/^[A-Za-z0-9]{4,32}$/.test(code)) return send(res, 400, { error: 'El código de acceso son 8 caracteres (letras y números) que salen en la pantalla de la impresora' }); else putSecret.run(id, code);
         farmSync(); pushLive(id); return send(res, 200, { ok: true, hasAccess: !!code });
       }
       if (!canWrite(me)) return send(res, 403, { error: 'Tu usuario solo puede ver' });
@@ -490,6 +508,16 @@ const server = http.createServer(async (req, res) => {
       if (['stop'].includes(b.cmd) && me.role === 'lector') return send(res, 403, { error: 'No permitido' });
       l.link.command(b.cmd, b.value); setTimeout(() => l.link.command('refresh'), 800);
       return send(res, 200, { ok: true });
+    }
+    // ----- bot de Telegram (solo administrador; el token nunca sale del servidor) -----
+    if (p.startsWith('/api/telegram')) {
+      if (me.role !== 'admin') return send(res, 403, { error: 'Solo un administrador puede configurar el bot de Telegram' });
+      try {
+        if (p === '/api/telegram' && M === 'GET') return send(res, 200, bot.view());
+        if (p === '/api/telegram' && M === 'POST') return send(res, 200, await bot.update(await readBody(req)));
+        if (p === '/api/telegram/test' && M === 'POST') return send(res, 200, await bot.test(await readBody(req)));
+        if (p === '/api/telegram/chats' && M === 'POST') return send(res, 200, await bot.chats(await readBody(req)));
+      } catch (e) { if (typeof e.code === 'number') throw e; return send(res, 400, { error: e.message || 'Error con Telegram' }); }
     }
     // ----- usuarios -----
     if (p === '/api/users' && M === 'GET') { if (me.role !== 'admin') return send(res, 403, { error: 'Solo administradores' }); return send(res, 200, q.users.all().map(pubUser)); }
