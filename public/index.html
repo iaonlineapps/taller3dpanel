@@ -163,6 +163,8 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
 .ph2{aspect-ratio:1;background:var(--soft);position:relative;overflow:hidden}
 .ph2 .offb{position:absolute;bottom:8px;right:8px;height:30px;padding:0 10px;border-radius:999px;display:flex;align-items:center;background:var(--card);box-shadow:0 2px 8px rgba(0,0,0,.15);font-size:12px;font-weight:600;color:var(--mute);cursor:pointer;z-index:2}.ph2 .offb:hover{color:var(--ink)}.it.isoff .ph2>img,.it.isoff .ph2>svg{opacity:.45;filter:grayscale(1)}
 .ph2 .tag{position:absolute;top:10px;left:10px;box-shadow:0 2px 8px rgba(0,0,0,.12);background:var(--card)}
+.ph2 .ctag{position:absolute;top:10px;right:10px;left:auto;max-width:48%;overflow:hidden;text-overflow:ellipsis;background:var(--pri);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.ctag2{background:var(--pri);color:#fff;font-size:13px;padding:4px 11px}
 .it .bd{padding:12px 14px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
 .it b{font-weight:600;line-height:1.3}.it .mt{font-size:13px;color:var(--mute)}
 .it .pr{margin-top:auto;padding-top:6px;display:flex;justify-content:space-between;align-items:center}
@@ -839,9 +841,9 @@ function vPiezas(){
  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><input id="q" placeholder="Buscar pieza, código, material o color…" value="${esc(S.q)}" autocomplete="off" style="flex:1 1 240px">
  ${offToggle('piezas',offN)}<div class="tabs"><button data-lay="galeria" class="${S.layout==='galeria'?'on':''}">Galería</button><button data-lay="lista" class="${S.layout==='lista'?'on':''}">Lista</button></div></div>${S.showOff?offNote('piezas'):catChips(all)}
  ${!list.length?`<div class="card empty">${S.showOff?'No hay piezas desactivadas.':all.length?'Ninguna pieza coincide.':'Aún no hay piezas. Pulsa «+ Nueva pieza» o termina un diseño.'}</div>`:
- S.layout==='galeria'?`<div class="grid">${list.map(p=>`<button class="it${p.off?' isoff':''}" data-show="${esc(p.id)}"><div class="ph2">${photo(p)}${stockTag(p)}${roOK('products')?offBtn(p):''}</div><div class="bd"><b>${esc(p.name)}${dots(p)}</b><div class="mt">${esc([p.material,p.color].filter(Boolean).join(' · ')||p.cat)}</div><div class="pr"><span>${money(p.price)}</span><span class="note">${esc(p.code||'')}</span></div></div></button>`).join('')}</div>`
+ S.layout==='galeria'?`<div class="grid">${list.map(p=>`<button class="it${p.off?' isoff':''}" data-show="${esc(p.id)}"><div class="ph2">${photo(p)}${stockTag(p)}<span class="tag ctag" title="${esc(p.cat||'Otros')}">${esc(p.cat||'Otros')}</span>${roOK('products')?offBtn(p):''}</div><div class="bd"><b>${esc(p.name)}${dots(p)}</b><div class="mt">${esc([p.material,p.color].filter(Boolean).join(' · ')||p.cat)}</div><div class="pr"><span>${money(p.price)}</span><span class="note">${esc(p.code||'')}</span></div></div></button>`).join('')}</div>`
  :`<div class="card"><div class="scroll"><table class="stack"><thead><tr><th>Pieza</th><th>Código</th><th>Material</th><th>Ventas 30 días</th><th class="n">Precio</th><th class="n">Coste</th><th class="n">Stock</th>${roOK('products')?'<th></th>':''}</tr></thead><tbody>
-  ${list.map(p=>`<tr class="ck" data-show="${esc(p.id)}"><td><div class="pc"><span class="th">${photo(p)}</span><b>${esc(p.name)}${dots(p)}</b></div></td><td>${esc(p.code)}</td><td>${esc([p.material,p.color].filter(Boolean).join(' '))}</td><td>${sparkSVG(spark(p.id))}</td><td class="n">${money(p.price)}</td><td class="n">${money(p.cost)}</td><td class="n">${stockTag(p)}</td>${roOK('products')?offCell(p):''}</tr>`).join('')}</tbody></table></div></div>`}`}
+  ${list.map(p=>`<tr class="ck" data-show="${esc(p.id)}"><td><div class="pc"><span class="th">${photo(p)}</span><div><b>${esc(p.name)}${dots(p)}</b><div><span class="tag" style="font-size:11px;padding:1px 8px">${esc(p.cat||'Otros')}</span></div></div></div></td><td>${esc(p.code)}</td><td>${esc([p.material,p.color].filter(Boolean).join(' '))}</td><td>${sparkSVG(spark(p.id))}</td><td class="n">${money(p.price)}</td><td class="n">${money(p.cost)}</td><td class="n">${stockTag(p)}</td>${roOK('products')?offCell(p):''}</tr>`).join('')}</tbody></table></div></div>`}`}
 function soldByColor(p){const by={};let any=false;okSales().forEach(s=>(s.items||[]).forEach(i=>{if(i.pid!==p.id)return;const k=i.color||'';if(k)any=true;const o=by[k]=by[k]||{u:0,m:0};o.u+=+i.qty||0;o.m+=(+i.qty||0)*(+i.price||0)}));
  if(!any&&!hasVars(p))return '';const ks=Object.keys(by).sort((a,b)=>by[b].u-by[a].u);if(!ks.length)return hasVars(p)?'<div><h3 style="margin-bottom:4px">Vendidas por color</h3><div class="note">Aún no has vendido ninguna.</div></div>':'';
  const tot=ks.reduce((t,k)=>t+by[k].u,0)||1;
@@ -850,9 +852,9 @@ function showProduct(id){
  const p=S.products.find(x=>x.id===id);if(!p)return;if(isRes(p))return showResale(id);if((p.estado||'listo')!=='listo')return designCard(id);
  const sold=okSales().reduce((s,v)=>s+(v.items||[]).filter(i=>i.pid===id).reduce((a,i)=>a+i.qty,0),0),printed=S.prints.filter(x=>x.pid===id).reduce((s,x)=>s+(+x.qty||0),0);
  const mv=S.moves.filter(m=>m.pid===id).sort((a,b)=>b.date-a.date).slice(0,5);
- modal(`<div class="det"><div style="display:flex;flex-direction:column;gap:12px"><div class="ph2" style="border-radius:16px">${photo(p)}${stockTag(p)}</div>
+ modal(`<div class="det"><div style="display:flex;flex-direction:column;gap:12px"><div class="ph2" style="border-radius:16px">${photo(p)}${stockTag(p)}<span class="tag ctag">${esc(p.cat||'Otros')}</span></div>
   <div class="codes"><img src="${qrURL(p.code||p.id)}" alt="Código QR"><div style="flex:1"><b>${esc(p.code||'Sin código')}</b><svg class="bc" data-code="${esc(p.code||p.id)}" style="height:44px;width:100%"></svg></div></div></div>
-  <div style="display:flex;flex-direction:column;gap:12px"><div><span class="tag">${esc(p.cat||'Otros')}</span><h2 style="font-size:24px;margin-top:8px">${esc(p.name)}${dots(p,1)}</h2></div>
+  <div style="display:flex;flex-direction:column;gap:12px"><div><span class="tag ctag2">${esc(p.cat||'Otros')}</span><h2 style="font-size:24px;margin-top:8px">${esc(p.name)}${dots(p,1)}</h2></div>
   <div class="big">${money(p.price)}</div>
   <dl class="specs"><dt>Stock</dt><dd>${num(p.stock)} ud · aviso en ${num(p.min)}${hasVars(p)?`<div style="margin-top:4px">${varsLine(p)}</div>`:''}</dd><dt>Coste</dt><dd>${money(p.cost)} · margen ${money((+p.price||0)-(+p.cost||0))}</dd>
   ${p.material||p.color?`<dt>Material</dt><dd>${esc(matsText(p))}</dd>`:''}${p.grams?`<dt>Filamento</dt><dd>${num(p.grams)} g / pieza</dd>`:''}${p.hours?`<dt>Impresión</dt><dd>${num(p.hours,1)} h / pieza</dd>`:''}
@@ -883,9 +885,9 @@ function brandTable(p){if(!hasVars(p))return '';const by={};okSales().forEach(s=
  return `<div><h3 style="margin-bottom:6px">Por marca</h3><div class="scroll"><table class="stack"><thead><tr><th>Marca</th><th class="n">Coste / ud</th><th class="n">Ganas / ud</th><th class="n">Vendidas</th><th class="n">Stock</th></tr></thead><tbody>${p.variants.map(v=>{const c=brandCost(p,v.color),g=(+p.price||0)-c,b=by[v.color]||{u:0,gan:0};return `<tr><td><b>${esc(v.color)}</b>${+v.packUnits?`<div class="note">${esc(num(v.packUnits)+' ud · '+money(v.packPrice))}</div>`:''}</td><td class="n">${money3(c)}</td><td class="n"><b class="${g>=0?'up':'dn'}">${money3(g)}</b>${+p.price>0?`<div class="note">${num(g/(+p.price)*100)} %</div>`:''}</td><td class="n">${num(b.u)}${b.u?`<div class="note">+${money(b.gan)}</div>`:''}</td><td class="n"><b>${num(v.stock)}</b></td></tr>`}).join('')}</tbody></table></div></div>`}
 function showResale(id){const p=S.products.find(x=>x.id===id);if(!p)return;
  const all=resStats(0),b=all.by[id]||{u:0,gan:0},g=(+p.price||0)-(+p.cost||0),mv=S.moves.filter(m=>m.pid===id).sort((a,b)=>b.date-a.date).slice(0,5);
- modal(`<div class="det"><div style="display:flex;flex-direction:column;gap:12px"><div class="ph2" style="border-radius:16px">${photo(p)}${stockTag(p)}</div>
+ modal(`<div class="det"><div style="display:flex;flex-direction:column;gap:12px"><div class="ph2" style="border-radius:16px">${photo(p)}${stockTag(p)}<span class="tag ctag">${esc(p.cat||'Productos')}</span></div>
   <div class="codes"><img src="${qrURL(p.code||p.id)}" alt="Código QR"><div style="flex:1"><b>${esc(p.code||'Sin código')}</b><svg class="bc" data-code="${esc(p.code||p.id)}" style="height:44px;width:100%"></svg></div></div></div>
-  <div style="display:flex;flex-direction:column;gap:12px"><div><span class="tag g">Reventa</span> <span class="tag">${esc(p.cat||'Productos')}</span><h2 style="font-size:24px;margin-top:8px">${esc(p.name)}</h2></div>
+  <div style="display:flex;flex-direction:column;gap:12px"><div><span class="tag g">Reventa</span> <span class="tag ctag2">${esc(p.cat||'Productos')}</span><h2 style="font-size:24px;margin-top:8px">${esc(p.name)}</h2></div>
   <div class="big">${money(p.price)}</div>
   <dl class="specs"><dt>Stock</dt><dd>${num(p.stock)} ud${p.noRestock?' · no lo vas a reponer':' · aviso en '+num(p.min)}${hasVars(p)?`<div style="margin-top:4px">${varsLine(p)}</div>`:''}</dd>
   ${!hasVars(p)&&+p.packUnits?`<dt>Pack</dt><dd>${money(p.packPrice)} ÷ ${num(p.packUnits)} ud</dd>`:''}<dt>Coste</dt><dd>${money3(p.cost)} por unidad${hasVars(p)?' (media)':''}</dd>
@@ -2565,7 +2567,7 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.28';
+const WEB_VERSION='1.0.29';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/iaonlineapps/taller3dpanel',APK_URL='app/Taller3DPanel.apk';
 /* La APK viaja con la web (public/app/): version.json dice cuál es la última. Si abres la web desde una app
@@ -2578,6 +2580,7 @@ async function appUpdateCheck(){const mine=appVersion();if(!mine)return;let v=''
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.29',["**Se ve qué es cada pieza.** En las fichas con foto sale arriba a la derecha su categoría (Llavero, Figura, Imán…), también en la lista y, más grande, al abrir la pieza o el producto."]],
  ['1.0.28',["**Códigos según la categoría.** Las piezas nuevas reciben solas un código de su categoría: **LLV-001** para Llaveros, **IMN-001** para Imanes, **FIG-001** para Figuras, **NAV-001** para Navidad, **PIL-001** para Pilas… Si dejas el código **vacío o pones 0**, se pone solo.","**Cambia el principio del código** de cada categoría en el botón **«Categorías»** (columna «Código»).","**Poner códigos a todo de una vez.** En **«Categorías»** pulsa **«Poner códigos…»**: ves la lista (código viejo → nuevo) y confirmas. El código viejo se guarda, así el lector y las ventas antiguas siguen encontrando la pieza."]],
  ['1.0.27',['**Gestiona tus categorías.** En **Piezas y stock** (y en **Productos de reventa**) hay un botón nuevo **«Categorías»**: crea categorías nuevas (por ejemplo «Figuras»), cámbiales el nombre, únelas (pon a una el mismo nombre que otra) o bórralas (sus piezas pasan a «Otros»). El cambio se aplica a todas sus piezas y a sus ventas, para que los informes cuadren.','Para cambiar la categoría de **una sola pieza** (por ejemplo la copa grande de 23 cm a «Figuras»), ábrela, pulsa **«Editar»** y elige la categoría.']],
  ['1.0.26',['**El bot de Telegram ya no se calla las piezas desactivadas que aún tienen stock.** Al final de **/stock** sale «Desactivadas que aún tienen stock», con sus unidades, para que veas todo lo que tienes de verdad. Para volver a usarlas: Piezas y stock → «Desactivadas» → «Activar».']],
