@@ -440,6 +440,15 @@ const brandCost=(p,c)=>{const v=hasVars(p)&&p.variants.find(x=>x.color===c);retu
 const avgCost=vs=>{const t=vs.reduce((a,v)=>a+(+v.stock||0),0),w=vs.filter(v=>+v.cost>0);return t?+(vs.reduce((a,v)=>a+(+v.cost||0)*(+v.stock||0),0)/t).toFixed(4):w.length?+(w.reduce((a,v)=>a+(+v.cost),0)/w.length).toFixed(4):0};
 const qrURL=t=>{try{const q=qrcode(0,'M');q.addData(String(t));q.make();return q.createDataURL(6,2)}catch(e){return ''}};
 const nextCode=()=>'P-'+String(Math.max(0,...S.products.map(p=>+(String(p.code||'').match(/^P-(\d+)$/)||[0,0])[1]))+1).padStart(4,'0');
+/* códigos por categoría: LLV-001, IMN-001… (prefijo editable en «Categorías») */
+const CAT_PRE=[[/^llaver/,'LLV'],[/^iman/,'IMN'],[/^figur|^copa|^trofeo/,'FIG'],[/^navid/,'NAV'],[/^pila/,'PIL'],[/^cable/,'CAB'],[/^cargad/,'CRG'],[/^bater/,'BAT'],[/^reloj/,'REL'],[/^mascot/,'MAS'],[/^decora/,'DEC'],[/^hogar/,'HOG'],[/^regalo/,'REG'],[/^escritor/,'ESC'],[/^repuest/,'REP'],[/^dise/,'DIS'],[/^otro/,'OTR'],[/^producto/,'PRD'],[/^impresi/,'IMP'],[/^foto/,'FOT']];
+const ntxt=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+function autoPre(cat){const n=ntxt(cat);for(const [r,p] of CAT_PRE)if(r.test(n))return p;const w=(n.match(/[a-z0-9]{2,}/)||['pza'])[0];return (w+'xx').slice(0,3).toUpperCase()}
+const cleanPre=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+function catPre(cat,m=S.cfg.catPre||{}){const k=Object.keys(m).find(x=>ntxt(x)===ntxt(cat));return cleanPre(k?m[k]:'')||autoPre(cat||'Otros')}
+const isAutoCode=c=>!c||c==='0'||/^[A-Z0-9]{2,6}-\d{3,}$/.test(String(c));
+function codeFor(cat,taken,m){const pre=catPre(cat,m),re=new RegExp('^'+pre+'-(\\d+)$','i');let mx=0;for(const c of (taken||S.products.flatMap(p=>[p.code,...(p.oldCodes||[])]))){const x=String(c||'').match(re);if(x)mx=Math.max(mx,+x[1])}return pre+'-'+String(mx+1).padStart(3,'0')}
+
 const nextNum=()=>Math.max(0,...S.sales.map(s=>+s.num||0))+1;
 /* Fecha de la venta: vacía = ahora. Con fecha pasada (para pasar ventas antiguas) se puede no tocar el stock. */
 const dtLocal=ms=>{const d=new Date(ms);return new Date(ms-d.getTimezoneOffset()*6e4).toISOString().slice(0,16)};
@@ -491,7 +500,7 @@ async function saveFile(filename,text,type){
 
 /* ======================= ESCÁNER ======================= */
 let actx=null;function beep(ok=true){if(!S.beep)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=ok?1250:330;o.type='square';g.gain.value=.05;o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+(ok?.09:.25))}catch(e){}}
-const findCode=c=>S.products.find(p=>String(p.code||'').toLowerCase()===c.toLowerCase()||p.id===c);
+const findCode=c=>S.products.find(p=>String(p.code||'').toLowerCase()===c.toLowerCase()||p.id===c)||S.products.find(p=>(p.oldCodes||[]).some(o=>String(o).toLowerCase()===c.toLowerCase()));
 async function handleScan(raw,mode=S.scanMode){
  const code=fixScan(raw).replace(/^TALLER3D:/i,'');if(!code)return;
  {const fm=farmFromCode(code);if(fm){beep();if(S.view!=='granja')go('granja');farmDetail(fm.id);return}}
@@ -889,14 +898,14 @@ function showResale(id){const p=S.products.find(x=>x.id===id);if(!p)return;
  <div class="acts"><button class="btn gh" data-editr="${esc(id)}">Editar</button><button class="btn gh" data-toff="${esc(id)}" style="margin-right:auto">${p.off?'Activar':'Desactivar'}</button><button class="btn gh" data-lab1="p:${esc(id)}">${ico('qr')}Etiqueta</button><button class="btn gh" data-adj="${esc(id)}">Ajustar stock</button><button class="btn sf" data-packr="${esc(id)}">+ Compré otro pack</button><button class="btn" data-sell="${esc(id)}" ${(+p.stock||0)>0?'':'disabled'}>Vender</button></div>`,true);
  paintBarcodes($('#dlg'))}
 function editResale(id,pre={}){
- const p=Object.assign({name:'',cat:'Pilas',price:2,packPrice:'',packUnits:'',stock:'',min:5,code:nextRCode(),noRestock:false,buy:'',notes:'',photo:''},S.products.find(x=>x.id===id)||{},pre);let ph=p.photo||'';
+ const p=Object.assign({name:'',cat:'Pilas',price:2,packPrice:'',packUnits:'',stock:'',min:5,code:'',noRestock:false,buy:'',notes:'',photo:''},S.products.find(x=>x.id===id)||{},pre);let ph=p.photo||'';
  const rcats=allRCats();
  modal(`<h2>${id?'Editar producto':'Nuevo producto de reventa'}</h2><p class="note" style="margin:-6px 0 0">Algo que compras hecho (por ejemplo un pack de pilas) y vendes suelto. El coste por unidad sale solo: precio del pack ÷ unidades.</p><form id="fr" style="display:grid;gap:12px">
  <div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:center"><div class="ph2" id="rph" style="border-radius:14px">${photo(p)}</div>
   <div class="btns"><span class="btn sf filebtn">${p.photo?'Cambiar foto':'Añadir foto'}<input type="file" accept="image/*" id="rfile"></span>${p.photo?'<button type="button" class="btn rd" id="rnoph">Quitar</button>':''}</div></div>
  <div class="f2"><label>Nombre<input name="name" required value="${esc(p.name)}" placeholder="Pila AA, pila de botón CR2032…"></label><label>Categoría<input name="cat" list="rcats" value="${esc(p.cat)}"><datalist id="rcats">${rcats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></label></div>
  <div class="f3"><label>Precio del pack (${esc(S.cfg.currency)})<input name="pp" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(p.packPrice)}" placeholder="9,99"></label><label>Unidades del pack<input name="pu" type="number" step="1" min="1" inputmode="numeric" value="${esc(p.packUnits)}" placeholder="30"></label><label>Coste por unidad<input id="rcu" readonly tabindex="-1" style="background:var(--bg)"></label></div>
- <div class="f3"><label>Precio de venta (por unidad)<input name="price" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(p.price)}" required></label><label>Ganas por unidad<input id="rgu" readonly tabindex="-1" style="background:var(--bg)"></label><label>Código QR / barras<input name="code" value="${esc(p.code)}"></label></div>
+ <div class="f3"><label>Precio de venta (por unidad)<input name="price" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(p.price)}" required></label><label>Ganas por unidad<input id="rgu" readonly tabindex="-1" style="background:var(--bg)"></label><label>Código QR / barras<input name="code" value="${esc(p.code)}" placeholder="Automático"></label></div><div class="note" style="margin-top:-6px">Si dejas el código vacío o pones 0, se pone solo según la categoría (por ejemplo PIL-001).</div>
  <div class="f2"><label>Stock (unidades que tienes)<input name="stock" type="number" step="1" min="0" inputmode="numeric" value="${esc(p.stock)}"></label><label>Aviso si baja de<input name="min" type="number" step="1" min="0" value="${esc(p.min)}"></label></div>
  <div class="matbox"><label style="display:flex;gap:10px;align-items:flex-start;font-weight:600"><input type="checkbox" name="brands" ${hasVars(p)?'checked':''} style="width:auto;margin-top:3px"><span>Tengo varias marcas<small class="note" style="display:block;font-weight:400">Por ejemplo pilas AA de Duracell, Varta y Amazon Basics. Cada marca lleva su pack (precio y unidades), su coste por unidad y su stock. El stock del producto es la suma y al vender eliges la marca.</small></span></label>
   <div id="bbox" style="display:grid;gap:8px" ${hasVars(p)?'':'hidden'}><div class="note brow"><span>Marca</span><span>Precio del pack</span><span>Unidades</span><span>Stock</span><span></span></div><div id="blist" style="display:grid;gap:6px"></div><button type="button" class="btn sf" id="badd" style="justify-self:start">+ Añadir marca</button></div></div>
@@ -919,7 +928,7 @@ function editResale(id,pre={}){
  $('#rfile').onchange=async e=>{const fl=e.target.files[0];if(!fl)return;try{ph=await shrink(fl);$('#rph').innerHTML=`<img src="${ph}" alt="">`}catch(_){toast('No se pudo leer la foto')}};
  {const np=$('#rnoph');if(np)np.onclick=()=>{ph='';$('#rph').innerHTML=photo({cat:f.cat.value})}}
  f.onsubmit=async e=>{e.preventDefault();$('#saver').disabled=true;
-  const code=f.code.value.trim();if(code&&S.products.some(x=>x.id!==id&&String(x.code).toLowerCase()===code.toLowerCase())){toast('Ese código ya lo usa otra pieza');$('#saver').disabled=false;return}
+  let code=f.code.value.trim();if(!code||code==='0')code=codeFor(f.cat.value.trim()||'Productos');if(S.products.some(x=>x.id!==id&&String(x.code).toLowerCase()===code.toLowerCase())){toast('Ese código ya lo usa otra pieza');$('#saver').disabled=false;return}
   const old=S.products.find(x=>x.id===id)||{},{id:_x,...keep}=old,pp=+(+f.pp.value||0).toFixed(2),pu=Math.max(0,Math.round(+f.pu.value||0)),ns=Math.max(0,Math.round(+f.stock.value||0));
   const d={...keep,kind:'reventa',estado:'listo',name:f.name.value.trim(),cat:f.cat.value.trim()||'Productos',packPrice:pp,packUnits:pu,cost:pu?unitCost(pp,pu):(+old.cost||0),price:+(+f.price.value||0).toFixed(2),code,stock:id?(+old.stock||0):ns,min:Math.round(+f.min.value||0),noRestock:!!f.norestock.checked,buy:f.buy.value.trim(),notes:f.notes.value.trim(),photo:ph,created:old.created||Date.now(),fav:!!old.fav};
   const bl=bOn()?brows.map(r=>({color:String(r.b||'').trim().slice(0,40),packPrice:+(+r.pp||0).toFixed(2),packUnits:Math.max(0,Math.round(+r.pu||0)),stock:Math.max(0,Math.round(+r.st||0))})).filter(r=>r.color):[];
@@ -973,14 +982,14 @@ function pieceCost(mats,hours,printer){const pr=fleet().find(f=>f.alias===printe
  return {mat:mat+waste,energy,wear,fail,total,price,pr}}
 function editProduct(id,pre={}){
  if(isRes(S.products.find(x=>x.id===id))||isRes(pre))return editResale(id,pre);
- const p=Object.assign({name:'',cat:'',price:'',cost:'',stock:0,min:2,code:nextCode(),material:'PLA',color:'',grams:'',hours:'',printer:fleet().length===1?fleet()[0].alias:'',notes:'',estado:'listo',file:'',photo:''},S.products.find(x=>x.id===id)||{},pre);let ph=p.photo||'';
+ const p=Object.assign({name:'',cat:'',price:'',cost:'',stock:0,min:2,code:'',material:'PLA',color:'',grams:'',hours:'',printer:fleet().length===1?fleet()[0].alias:'',notes:'',estado:'listo',file:'',photo:''},S.products.find(x=>x.id===id)||{},pre);let ph=p.photo||'';
  let mats=matsOf(p),manual=p.costManual!=null?!!p.costManual:!!(id&&+p.cost>0&&!Array.isArray(p.mats));
  modal(`<h2>${id?'Editar pieza':pre.dupOf?'Duplicar pieza':p.estado==='listo'?'Nueva pieza':'Nueva idea de diseño'}</h2>${pre.dupOf?'<p class="note" style="margin:-6px 0 0">Está todo copiado. Cambia lo que quieras (nombre, color…) y guarda.</p>':''}<form id="fp" style="display:grid;gap:12px">
  <div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:center"><div class="ph2" id="fph" style="border-radius:14px">${photo(p)}</div>
   <div class="btns"><span class="btn sf filebtn">${p.photo?'Cambiar foto':'Añadir foto'}<input type="file" accept="image/*" id="pfile"></span>${p.photo?'<button type="button" class="btn rd" id="nophoto">Quitar</button>':''}</div></div>
  <label><span>Nombre <span id="pdots"></span></span><input name="name" required value="${esc(p.name)}"></label>
  <div class="f2"><label>Categoría<input name="cat" list="cats" value="${esc(p.cat)}" placeholder="Llaveros 3D, Navidad…"><datalist id="cats">${allCats().map(c=>`<option value="${esc(c)}">`).join('')}</datalist></label><label>Estado<select name="estado">${sel(p.estado||'listo',Object.entries(ESTADOS))}</select></label></div>
- <div class="f3"><label>Precio (${esc(S.cfg.currency)})<input name="price" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(p.price)}"></label><label>Coste<input name="cost" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(p.cost)}"></label><label>Código QR / barras<input name="code" value="${esc(p.code)}"></label></div>
+ <div class="f3"><label>Precio (${esc(S.cfg.currency)})<input name="price" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(p.price)}"></label><label>Coste<input name="cost" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(p.cost)}"></label><label>Código QR / barras<input name="code" value="${esc(p.code)}" placeholder="Automático"></label></div><div class="note" style="margin-top:-6px">Si dejas el código vacío o pones 0, se pone solo según la categoría (por ejemplo LLV-001 para Llaveros).</div>
  <div class="f3"><label>Stock<input name="stock" type="number" step="1" min="0" inputmode="numeric" value="${esc(p.stock)}" ${hasVars(p)?'disabled':''}></label><label>Aviso si baja de<input name="min" type="number" step="1" min="0" value="${esc(p.min)}"></label><label>Impresora<select name="printer"><option value="">—</option>${sel(p.printer,fleet().map(f=>[f.alias,f.alias]))}</select></label></div>
  <label style="display:flex;gap:10px;align-items:flex-start;font-weight:500"><input type="checkbox" name="norestock" ${p.noRestock?'checked':''} style="width:auto;margin-top:3px"><span>No la voy a reponer<small class="note" style="display:block;font-weight:400">No cuenta en «Por reponer» ni te avisa (tampoco el bot de Telegram) cuando baja o se agota.</small></span></label>
  <div class="matbox"><label style="display:flex;gap:10px;align-items:flex-start;font-weight:600"><input type="checkbox" name="vars" ${hasVars(p)?'checked':''} style="width:auto;margin-top:3px"><span>La vendo en varios colores<small class="note" style="display:block;font-weight:400">Cada color lleva su propio stock. Al vender eliges el color y en la ficha ves cuántas has vendido de cada uno.</small></span></label>
@@ -1041,7 +1050,7 @@ function editProduct(id,pre={}){
  f.onsubmit=async e=>{e.preventDefault();$('#savep').disabled=true;
   const vOn=f.vars.checked,vl=[];if(vOn){for(const v of vrows){const c=String(v.color||'').trim();if(c&&!vl.some(x=>x.color.toLowerCase()===c.toLowerCase()))vl.push({color:c,stock:Math.max(0,Math.round(+v.stock||0))})}
    if(!vl.length){toast('Escribe al menos un color');$('#savep').disabled=false;return}}
-  const code=f.code.value.trim();if(code&&S.products.some(x=>x.id!==id&&String(x.code).toLowerCase()===code.toLowerCase())){toast('Ese código ya lo usa otra pieza');$('#savep').disabled=false;return}
+  let code=f.code.value.trim();if(!code||code==='0')code=codeFor(f.cat.value.trim()||'Otros');if(S.products.some(x=>x.id!==id&&String(x.code).toLowerCase()===code.toLowerCase())){toast('Ese código ya lo usa otra pieza');$('#savep').disabled=false;return}
   const d={...(p.off?{off:true}:{}),name:f.name.value.trim(),cat:f.cat.value.trim()||'Otros',estado:f.estado.value,price:+f.price.value||0,cost:+f.cost.value||0,code,stock:id?(+p.stock||0):Math.max(0,Math.round(+f.stock.value||0)),min:Math.round(+f.min.value||0),printer:f.printer.value,...matsSave(mats),noRestock:!!(f.norestock&&f.norestock.checked),costManual:manual,hours:+f.hours.value||0,file:f.file.value.trim(),fileId:pf&&pf.id||'',fileName:pf?pf.name:'',fileSize:pf?pf.size:0,notes:f.notes.value.trim(),photo:ph,created:p.created||Date.now(),fav:!!p.fav};
   let vbase=null;if(vOn){const old=id&&hasVars(p)?p.variants:[];
    if(id)for(const o of old)if((+o.stock||0)>0&&!vl.some(v=>v.color===o.color))await stockMove({...p,variants:old.map(x=>({...x}))},-(+o.stock||0),'ajuste','Color quitado',{color:o.color});
@@ -1070,7 +1079,7 @@ function uploadFile(file,prog){return new Promise((ok,ko)=>{const x=new XMLHttpR
 function dropFile(fid,exceptId){if(!fid||IN_ARTIFACT||S.products.some(q=>q.id!==exceptId&&q.fileId===fid))return;fetch('api/files/'+encodeURIComponent(fid),{method:'DELETE',credentials:'same-origin'}).catch(()=>{})}
 const fileChip=(pf,rm)=>`<div class="fchip">${ico('box')}<div class="fcn"><b>${esc(pf.name)}</b><div class="note">${pf.size?fsize(pf.size):''}${pf.id?'':(pf.size?' · ':'')+'solo el nombre (esta versión no guarda archivos)'}</div></div>${pf.id?`<a class="btn gh" href="api/files/${esc(pf.id)}" download="${esc(pf.name)}">Descargar</a>`:''}${rm?'<button type="button" class="btn rd" id="p3dq" aria-label="Quitar el archivo">✕</button>':''}</div>`;
 function dupProduct(id){const p=S.products.find(x=>x.id===id);if(!p)return;closeCtx();closeModal();
- const c=JSON.parse(JSON.stringify(p));delete c.id;Object.assign(c,{name:p.name+' (copia)',code:nextCode(),stock:0,fav:false,created:Date.now(),dupOf:id});if(Array.isArray(c.variants))c.variants=c.variants.map(v=>({color:v.color,stock:0}));delete c.off;
+ const c=JSON.parse(JSON.stringify(p));delete c.id;Object.assign(c,{name:p.name+' (copia)',code:codeFor(p.cat||'Otros'),stock:0,fav:false,created:Date.now(),dupOf:id});if(Array.isArray(c.variants))c.variants=c.variants.map(v=>({color:v.color,stock:0}));delete c.off;
  setTimeout(()=>editProduct('',c),30)}
 /* Menú del botón derecho (o pulsación larga) sobre una pieza: Ver, Editar, Duplicar */
 function closeCtx(){const m=$('#ctxm');if(m)m.remove()}
@@ -1967,7 +1976,7 @@ function quickPiece(){
  <div class="acts"><button type="button" class="btn gh" data-close>Cancelar</button><button class="btn" id="okqp">Añadir al ticket</button></div></form>`);
  const f=$('#fqp');setTimeout(()=>f.name.focus(),40);let qph='';$('#qpfile').onchange=async e=>{const fl=e.target.files[0];if(!fl)return;try{qph=await shrink(fl);$('#qph').innerHTML=`<img src="${qph}" alt="">`;f.keep.checked=true}catch(_){toast('No se pudo leer la foto')}};
  f.onsubmit=async e=>{e.preventDefault();$('#okqp').disabled=true;const name=f.name.value.trim(),price=+f.price.value||0,qty=Math.max(1,Math.round(+f.qty.value||1)),cat=f.cat.value.trim()||'Otros';
-  if(f.keep.checked){const d={name,cat,estado:'listo',price,cost:0,code:nextCode(),stock:0,min:0,printer:'',material:'',color:'',grams:0,hours:0,file:'',notes:'Creada desde la caja',photo:qph,created:Date.now()};
+  if(f.keep.checked){const d={name,cat,estado:'listo',price,cost:0,code:codeFor(cat||'Otros'),stock:0,min:0,printer:'',material:'',color:'',grams:0,hours:0,file:'',notes:'Creada desde la caja',photo:qph,created:Date.now()};
    const id=await put('products','',d);let p=S.products.find(x=>x.id===id);if(!p){p={...d,id};S.products.push(p)}
    await stockMove(p,qty,'ajuste','Alta rápida en caja');closeModal();addCart(id,qty)}
   else{closeModal();S.cart.push({id:'x'+uid(),name,price,cost:0,cat,qty,custom:true});toast('Añadido: '+name);syncCart()}};
@@ -1986,20 +1995,21 @@ const allRCats=()=>[...new Set([...(S.cfg.rcats&&S.cfg.rcats.length?S.cfg.rcats:
 /* Gestor de categorías: crear, renombrar, unir (pon el mismo nombre que otra) y borrar (sus piezas pasan a «Otros») */
 function manageCats(kind){const res=kind==='productos',isK=p=>(p.estado||'listo')==='listo'&&(res?isRes(p):!isRes(p)),items=()=>S.products.filter(isK),other=res?'Productos':'Otros';
  const cnt=c=>items().filter(p=>(p.cat||other)===c).length;
- let rows=(res?allRCats():allCats()).map(c=>({old:c,name:c}));
- const draw=()=>{$('#catl').innerHTML=rows.map((r,k)=>`<div class="vrow" style="grid-template-columns:minmax(0,1fr) 92px 40px"><input data-cn="${k}" value="${esc(r.name)}" placeholder="${res?'Pilas, Cables…':'Figuras, Llaveros 3D…'}"${r.del?' disabled style="text-decoration:line-through;opacity:.5"':''}><span class="note" style="text-align:right">${r.old?`<span>${num(cnt(r.old))} ${res?'productos':'piezas'}</span>`:'<span>nueva</span>'}</span><button type="button" class="btn ${r.del?'gh':'rd'}" data-cx="${k}" style="min-height:36px;padding:0" aria-label="${r.del?'Recuperar':'Borrar'}" title="${r.del?'Recuperar':'Borrar'}">${r.del?'↺':'×'}</button></div>`).join('')};
+ let rows=(res?allRCats():allCats()).map(c=>{const m=S.cfg.catPre||{},k=Object.keys(m).find(x=>ntxt(x)===ntxt(c));return {old:c,name:c,pre:catPre(c),preEd:!!k}});
+ const draw=()=>{$('#catl').innerHTML=rows.map((r,k)=>`<div class="vrow" style="grid-template-columns:minmax(0,1fr) 64px 76px 40px"><input data-cn="${k}" value="${esc(r.name)}" placeholder="${res?'Pilas, Cables…':'Figuras, Llaveros 3D…'}"${r.del?' disabled style="text-decoration:line-through;opacity:.5"':''}><input data-cp="${k}" value="${esc(r.pre)}" maxlength="6" autocapitalize="characters" spellcheck="false" aria-label="Prefijo del código" title="Prefijo del código" style="text-transform:uppercase;font-family:monospace;padding-left:6px;padding-right:6px"${r.del?' disabled':''}><span class="note" style="text-align:right">${r.old?`<span>${num(cnt(r.old))} ${res?'productos':'piezas'}</span>`:'<span>nueva</span>'}</span><button type="button" class="btn ${r.del?'gh':'rd'}" data-cx="${k}" style="min-height:36px;padding:0" aria-label="${r.del?'Recuperar':'Borrar'}" title="${r.del?'Recuperar':'Borrar'}">${r.del?'↺':'×'}</button></div>`).join('')};
  modal(`<h2>${res?'Categorías de productos':'Categorías de piezas'}</h2>
  <p class="note" style="margin:0">${res?'Cambia el nombre y se cambia en todos sus productos. Para unir dos, pon a una el mismo nombre que la otra. Si borras una que se usa, sus productos pasan a «Productos».':'Cambia el nombre y se cambia en todas sus piezas. Para unir dos, pon a una el mismo nombre que la otra. Si borras una que se usa, sus piezas pasan a «Otros».'}</p>
  <p class="note" style="margin:0">${res?'Para cambiar la categoría de un solo producto, ábrelo y pulsa «Editar».':'Para cambiar la categoría de una sola pieza, ábrela y pulsa «Editar».'}</p>
- <div class="note vrow" style="grid-template-columns:minmax(0,1fr) 92px 40px"><span>Categoría</span><span style="text-align:right">En uso</span><span></span></div><div id="catl" style="display:grid;gap:6px;max-height:50vh;overflow:auto"></div>
+ <p class="note" style="margin:0">${res?'«Código» es el principio de las etiquetas de cada categoría (PIL-001, PIL-002…). Puedes cambiarlo.':'«Código» es el principio de las etiquetas de cada categoría (LLV-001, LLV-002…). Puedes cambiarlo.'}</p>
+ <div class="note vrow" style="grid-template-columns:minmax(0,1fr) 64px 76px 40px"><span>Categoría</span><span>Código</span><span style="text-align:right">En uso</span><span></span></div><div id="catl" style="display:grid;gap:6px;max-height:50vh;overflow:auto"></div>
  <div style="display:flex;gap:8px"><input id="catnew" placeholder="Nueva categoría (por ejemplo Figuras)" style="flex:1"><button type="button" class="btn sf" id="catadd">+ Añadir</button></div>
- <div class="acts"><button type="button" class="btn gh" data-close>Cancelar</button><button type="button" class="btn" id="catsave">Guardar</button></div>`);
+ <div class="acts"><button type="button" class="btn gh" data-close>Cancelar</button><button type="button" class="btn sf" id="catrec">Poner códigos…</button><button type="button" class="btn" id="catsave">Guardar</button></div>`);
  draw();
- $('#catl').addEventListener('input',e=>{const t=e.target;if(t.dataset.cn)rows[+t.dataset.cn].name=t.value});
+ $('#catl').addEventListener('input',e=>{const t=e.target;if(t.dataset.cn){const r=rows[+t.dataset.cn];r.name=t.value;if(!r.preEd){r.pre=autoPre(t.value||'Otros');const pi=$(`[data-cp="${t.dataset.cn}"]`);if(pi)pi.value=r.pre}}if(t.dataset.cp){const r=rows[+t.dataset.cp];r.pre=cleanPre(t.value);r.preEd=true}});
  $('#catl').addEventListener('click',e=>{const b=e.target.closest('[data-cx]');if(!b)return;const r=rows[+b.dataset.cx];if(!r.old){rows.splice(+b.dataset.cx,1)}else r.del=!r.del;draw()});
- const add=()=>{const v=$('#catnew').value.trim();if(!v)return;if(rows.some(r=>!r.del&&r.name.trim().toLowerCase()===v.toLowerCase())){toast('Esa categoría ya está');return}rows.push({old:'',name:v});$('#catnew').value='';draw();const l=$('#catl');l.scrollTop=l.scrollHeight};
+ const add=()=>{const v=$('#catnew').value.trim();if(!v)return;if(rows.some(r=>!r.del&&r.name.trim().toLowerCase()===v.toLowerCase())){toast('Esa categoría ya está');return}rows.push({old:'',name:v,pre:catPre(v),preEd:false});$('#catnew').value='';draw();const l=$('#catl');l.scrollTop=l.scrollHeight};
  $('#catadd').onclick=add;$('#catnew').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();add()}};
- $('#catsave').onclick=async()=>{
+ const save=async(then)=>{
   const canon=n=>{const t=n.trim();const ex=rows.find(r=>!r.del&&r.name.trim().toLowerCase()===t.toLowerCase());return ex?ex.name.trim():t};
   const map={};for(const r of rows){if(!r.old)continue;const to=r.del?other:canon(r.name)||other;if(to!==r.old)map[r.old]=to}
   const list=[...new Set(rows.filter(r=>!r.del&&r.name.trim()).map(r=>canon(r.name)))];
@@ -2007,9 +2017,29 @@ function manageCats(kind){const res=kind==='productos',isK=p=>(p.estado||'listo'
   const go2=async()=>{const b=$('#catsave');if(b)b.disabled=true;
    try{for(const p of ch)await patch('products',p.id,{cat:map[p.cat||other]});
     const ids=new Set(items().map(p=>p.id));for(const sv of S.sales){if(!(sv.items||[]).some(i=>ids.has(i.pid)&&map[i.cat]!=null))continue;await patch('sales',sv.id,{items:sv.items.map(i=>ids.has(i.pid)&&map[i.cat]!=null?{...i,cat:map[i.cat]}:i)})}
-    if(!ME||ME.role==='admin')await saveCfg(res?{rcats:list}:{cats:list});
-    closeModal();render();toast(ch.length?'Categorías guardadas · '+ch.length+' cambiadas':'Categorías guardadas')}catch(e){toast('No se pudo guardar');if(b)b.disabled=false}};
-  if(ch.length)confirmBox(`Se cambia la categoría de ${ch.length} ${res?'productos':'piezas'} (y de sus ventas, para que los informes cuadren). ¿Seguimos?`,go2);else go2()}}
+    const cp={...(S.cfg.catPre||{})};for(const r of rows){if(r.old)delete cp[r.old];if(r.del||!r.name.trim())continue;const n=canon(r.name);for(const x of Object.keys(cp))if(ntxt(x)===ntxt(n))delete cp[x];if(r.preEd&&cleanPre(r.pre)&&cleanPre(r.pre)!==autoPre(n))cp[n]=cleanPre(r.pre)}
+    if(!ME||ME.role==='admin')await saveCfg(res?{rcats:list,catPre:cp}:{cats:list,catPre:cp});else S.cfg.catPre=cp;
+    closeModal();render();toast(ch.length?'Categorías guardadas · '+ch.length+' cambiadas':'Categorías guardadas');if(then)then()}catch(e){toast('No se pudo guardar');if(b)b.disabled=false}};
+  if(ch.length)confirmBox(`Se cambia la categoría de ${ch.length} ${res?'productos':'piezas'} (y de sus ventas, para que los informes cuadren). ¿Seguimos?`,go2);else go2()};
+ $('#catsave').onclick=()=>save();$('#catrec').onclick=()=>save(()=>recodeModal(kind))}
+/* poner a todas las piezas el código de su categoría (guarda el código anterior para que el lector y las ventas importadas lo sigan encontrando) */
+function recodeModal(kind){const res=kind==='productos',other=res?'Productos':'Otros',items=S.products.filter(p=>(p.estado||'listo')==='listo'&&(res?isRes(p):!isRes(p)));
+ const plan=all=>{const fits=p=>new RegExp('^'+catPre(p.cat||other)+'-\\d+$','i').test(String(p.code||''));
+  const ch=items.filter(p=>!fits(p)&&(all||isAutoCode(p.code))).sort((a,b)=>String(a.cat||other).localeCompare(String(b.cat||other))||(a.created||0)-(b.created||0));
+  const ids=new Set(ch.map(p=>p.id)),taken=S.products.filter(p=>!ids.has(p.id)).flatMap(p=>[p.code,...(p.oldCodes||[])]);
+  return ch.map(p=>{const n=codeFor(p.cat||other,taken);taken.push(n);return {p,old:String(p.code||''),n}})};
+ const manual=items.filter(p=>!isAutoCode(p.code)&&!new RegExp('^'+catPre(p.cat||other)+'-\\d+$','i').test(String(p.code))).length;
+ modal(`<h2>${res?'Poner códigos a los productos':'Poner códigos a las piezas'}</h2>
+ <p class="note" style="margin:0">${res?'Cada producto recibe el código de su categoría (PIL-001, CAB-001…). Los que ya lo tienen bien no cambian.':'Cada pieza recibe el código de su categoría (LLV-001, FIG-001…). Las que ya lo tienen bien no cambian.'}</p>
+ <p class="note" style="margin:0">El código anterior se guarda: si lees una etiqueta vieja, la pieza se sigue encontrando. Después imprime las etiquetas nuevas.</p>
+ ${manual?`<label style="display:flex;gap:10px;align-items:flex-start;font-weight:500"><input type="checkbox" id="rcall" checked style="width:18px;height:18px;min-height:0;margin-top:2px"><span>Cambiar también los códigos puestos a mano (${num(manual)})</span></label>`:''}
+ <div id="rcl" style="display:grid;gap:4px;max-height:46vh;overflow:auto"></div>
+ <div class="acts"><button type="button" class="btn gh" data-close>Cancelar</button><button type="button" class="btn" id="rcgo">Cambiar códigos</button></div>`);
+ let P=[];const draw=()=>{P=plan(!$('#rcall')||$('#rcall').checked);$('#rcl').innerHTML=P.length?`<div class="note"><span>${num(P.length)}</span> <span>${res?'productos cambian de código':'piezas cambian de código'}</span></div>`+P.map(x=>`<div class="vrow" style="grid-template-columns:minmax(0,1fr) auto;font-size:13px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.p.name)}</span><span style="font-family:monospace;white-space:nowrap"><s class="note">${esc(x.old||'—')}</s> → <b>${esc(x.n)}</b></span></div>`).join(''):`<p class="note">${res?'Todos los productos ya tienen el código de su categoría.':'Todas las piezas ya tienen el código de su categoría.'}</p>`;$('#rcgo').disabled=!P.length};
+ draw();if($('#rcall'))$('#rcall').onchange=draw;
+ $('#rcgo').onclick=()=>confirmBox(`Se cambia el código de ${P.length} ${res?'productos':'piezas'}. ¿Seguimos?`,async()=>{const b=$('#rcgo');if(b)b.disabled=true;let k=0;
+  try{for(const x of P){const oc=[...(x.p.oldCodes||[])];if(x.old&&x.old!=='0'&&!oc.includes(x.old))oc.push(x.old);await patch('products',x.p.id,{code:x.n,oldCodes:oc});k++}
+   closeModal();render();toast('Códigos cambiados · '+k)}catch(e){render();toast('No se pudo terminar · '+k+' cambiados');if(b)b.disabled=false}})}
 const custOpts=(v,none='Sin cliente')=>`<option value="">${esc(none)}</option>`+S.customers.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${esc(c.id)}" ${c.id===v?'selected':''}>${esc(c.name)}</option>`).join('');
 
 /* ======================= SERVICIO INFORMÁTICO ======================= */
@@ -2535,7 +2565,7 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.27';
+const WEB_VERSION='1.0.28';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/iaonlineapps/taller3dpanel',APK_URL='app/Taller3DPanel.apk';
 /* La APK viaja con la web (public/app/): version.json dice cuál es la última. Si abres la web desde una app
@@ -2548,6 +2578,7 @@ async function appUpdateCheck(){const mine=appVersion();if(!mine)return;let v=''
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.28',["**Códigos según la categoría.** Las piezas nuevas reciben solas un código de su categoría: **LLV-001** para Llaveros, **IMN-001** para Imanes, **FIG-001** para Figuras, **NAV-001** para Navidad, **PIL-001** para Pilas… Si dejas el código **vacío o pones 0**, se pone solo.","**Cambia el principio del código** de cada categoría en el botón **«Categorías»** (columna «Código»).","**Poner códigos a todo de una vez.** En **«Categorías»** pulsa **«Poner códigos…»**: ves la lista (código viejo → nuevo) y confirmas. El código viejo se guarda, así el lector y las ventas antiguas siguen encontrando la pieza."]],
  ['1.0.27',['**Gestiona tus categorías.** En **Piezas y stock** (y en **Productos de reventa**) hay un botón nuevo **«Categorías»**: crea categorías nuevas (por ejemplo «Figuras»), cámbiales el nombre, únelas (pon a una el mismo nombre que otra) o bórralas (sus piezas pasan a «Otros»). El cambio se aplica a todas sus piezas y a sus ventas, para que los informes cuadren.','Para cambiar la categoría de **una sola pieza** (por ejemplo la copa grande de 23 cm a «Figuras»), ábrela, pulsa **«Editar»** y elige la categoría.']],
  ['1.0.26',['**El bot de Telegram ya no se calla las piezas desactivadas que aún tienen stock.** Al final de **/stock** sale «Desactivadas que aún tienen stock», con sus unidades, para que veas todo lo que tienes de verdad. Para volver a usarlas: Piezas y stock → «Desactivadas» → «Activar».']],
  ['1.0.25',["**Aviso de versión nueva.** Si tienes la web instalada como app (acceso directo en el escritorio o en el móvil), ya no se queda en la versión vieja: cuando actualizas la Raspberry sale arriba **«Hay una versión nueva»** y con **«Actualizar»** se recarga con la nueva. Lo mira al abrirla, cada 5 minutos y al volver a la ventana.","**Botón para recargar:** arriba, junto a la versión, está el botón **↻** (y en **Ajustes**, **«Recargar o buscar actualizaciones»**). Recarga la página y te dice si ya tienes la última versión.","Arreglado: las traducciones al inglés de una versión nueva podían tardar hasta un día en verse."]],
