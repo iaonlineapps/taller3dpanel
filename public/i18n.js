@@ -17,6 +17,15 @@ window.setLang=function(l){if(l!=='es'&&l!=='en')return;try{localStorage.setItem
  try{window.T3DApp&&T3DApp.setLang&&T3DApp.setLang(l)}catch(e){}
  if(l!==LANG){var u=location.href.replace(/([?&])lang=(es|en)&?/,'$1').replace(/[?&]$/,'');location.replace(u)}};
 var EN={
+"**Al pasar el ratón por los botones de arriba te dice qué es cada uno:** la versión (pulsa para ver las novedades), recargar o buscar actualizaciones, el idioma, el modo oscuro o claro, la campanita y tu cuenta. En español y en inglés.":"**Hover over the buttons at the top and it tells you what each one is:** the version (click to see what's new), reload or check for updates, the language, dark or light mode, the bell and your account. In Spanish and English.",
+"**La campanita es el aviso de «Por reponer».** El punto rojo sale cuando alguna pieza o producto activo está agotado o tiene el mínimo de stock o menos. Al pasar el ratón te dice cuántos hay, y al pulsarla los ves. Si alguno no lo vas a reponer, márcalo con «No la voy a reponer» o desactívalo y deja de contar.":"**The bell is the «To restock» alert.** The red dot appears when an active piece or product is out of stock or at its minimum stock or below. Hover over it to see how many, and click it to see them. If you won't restock one, mark it «I won't restock it» or deactivate it and it stops counting.",
+"Escanear un código":"Scan a code",
+"Escanear un código (QR o de barras)":"Scan a code (QR or barcode)",
+"Versión instalada · pulsa para ver las novedades":"Installed version · click to see what's new",
+"Cambiar a modo oscuro":"Switch to dark mode",
+"Cambiar a modo claro":"Switch to light mode",
+"Por reponer: {} (agotadas o con poco stock) · pulsa para verlas":"To restock: {} (out of stock or running low) · click to see them",
+"Nada por reponer":"Nothing to restock",
 "**Ordenar todas las listas.** Clientes, piezas, productos, colaboradores, tickets, servicios, filamentos, gastos y movimientos tienen un selector **«Ordenar»**: de la A a la Z, de la Z a la A, por fecha (más recientes o más antiguas) y otros (más stock, precio, importe…). Se recuerda lo que eliges.":"**Sort every list.** Customers, parts, products, collaborators, tickets, services, filaments, expenses and movements have a **“Sort”** selector: A to Z, Z to A, by date (newest or oldest) and more (stock, price, amount…). Your choice is remembered.",
 "**Clientes en orden** de la A a la Z y con **buscador** propio.":"**Customers in order** from A to Z, with their own **search box**.",
 "**Una X para borrar la búsqueda** de un toque en todos los buscadores.":"**An X to clear the search** in one tap in every search box.",
@@ -2027,7 +2036,7 @@ window.T=T;
 window.TL=function(s){return LANG==='es'||s==null?s:String(s).split('\n').map(T).join('\n')};
 if(LANG==='es')return;
 var SKIP={SCRIPT:1,STYLE:1,TEXTAREA:1,CODE:1,PRE:1,svg:1,SVG:1};
-var ATTR=['placeholder','title','aria-label','alt','label'];
+var ATTR=['placeholder','title','aria-label','alt','label','data-tip'];
 var doneT=new WeakMap(),doneA=new WeakMap();
 function el(e){if(e.closest&&e.closest('[translate="no"]'))return;var d=doneA.get(e);
  for(var i=0;i<ATTR.length;i++){var v=e.getAttribute(ATTR[i]);if(v&&!(d&&d[ATTR[i]]===v)){var t=T(v);if(t!==v){if(!d){d={};doneA.set(e,d)}d[ATTR[i]]=t;e.setAttribute(ATTR[i],t)}}}

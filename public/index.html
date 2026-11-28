@@ -83,6 +83,8 @@ aside.side{background:var(--side);border-right:1px solid var(--line);position:st
 .pfoot .madeby{display:block;font-size:11.5px;line-height:1.6;opacity:.85}.pfoot .madeby a{font-weight:500}
 .btn.newsup{position:sticky;bottom:0;align-self:flex-end;display:none;box-shadow:0 4px 14px rgba(0,0,0,.25);margin-top:-6px}.btn.newsup.on{display:inline-flex}.news h3{font-size:15px;margin:14px 0 6px}.news ul{margin:0;padding-left:20px;display:grid;gap:4px;font-size:14px}
 .ib{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);display:grid;place-items:center;background:var(--card);color:var(--ink);position:relative}
+.tb [data-tip],.top .burger{position:relative}
+@media(hover:hover){.tb [data-tip]:hover::after,.top .burger[data-tip]:hover::after{content:attr(data-tip);position:absolute;top:calc(100% + 8px);right:0;z-index:80;background:var(--ink);color:var(--card);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;line-height:1.3;white-space:nowrap;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.18)}.top .burger[data-tip]:hover::after{right:auto;left:0}}
 .ib .pip{position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--exp)}
 .me{display:flex;align-items:center;gap:10px;padding:3px 8px 3px 4px;font-weight:600;font-size:14px;border-radius:999px;color:var(--ink)}.me:hover{background:var(--soft)}
 .av{width:38px;height:38px;border-radius:50%;background:var(--btn);color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
@@ -346,16 +348,16 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
 </aside>
 <div>
  <header class="top">
-  <button class="ib burger" id="burger" aria-label="Menú"><svg class="i"><use href="#i-menu"/></svg></button>
+  <button class="ib burger" id="burger" aria-label="Menú" data-tip="Menú"><svg class="i"><use href="#i-menu"/></svg></button>
   <div class="srch"><svg class="i"><use href="#i-search"/></svg><input id="gs" placeholder="Buscar pieza, cliente, ticket…  (Ctrl K)" autocomplete="off"><div class="res" id="gres"></div></div>
   <div class="tb">
-   <button class="ib" id="qscan" aria-label="Escanear"><svg class="i"><use href="#i-qr"/></svg></button>
-   <button class="vchip" id="vchip" title="Versión y novedades"></button>
-   <button class="ib" id="reloadb" data-reload title="Recargar o buscar actualizaciones" aria-label="Recargar o buscar actualizaciones"><svg class="i"><use href="#i-reload"/></svg></button>
+   <button class="ib" id="qscan" aria-label="Escanear un código" data-tip="Escanear un código (QR o de barras)"><svg class="i"><use href="#i-qr"/></svg></button>
+   <button class="vchip" id="vchip" aria-label="Versión y novedades" data-tip="Versión instalada · pulsa para ver las novedades"></button>
+   <button class="ib" id="reloadb" data-reload aria-label="Recargar o buscar actualizaciones" data-tip="Recargar o buscar actualizaciones"><svg class="i"><use href="#i-reload"/></svg></button>
    <button class="ib" id="langchip" translate="no" style="font-size:13px;font-weight:700;width:auto;padding:0 10px"></button>
-   <button class="ib" id="theme" aria-label="Cambiar tema"><svg class="i"><use id="thi" href="#i-moon"/></svg></button>
-   <button class="ib hide-m" id="bell" aria-label="Avisos"><svg class="i"><use href="#i-bell"/></svg><span class="pip" id="pip" hidden></span></button>
-   <button class="me" id="meBtn" aria-label="Mi cuenta"><div class="av" id="avt">T</div><span id="mename">Mi taller</span></button>
+   <button class="ib" id="theme" aria-label="Cambiar a modo oscuro" data-tip="Cambiar a modo oscuro"><svg class="i"><use id="thi" href="#i-moon"/></svg></button>
+   <button class="ib hide-m" id="bell" aria-label="Por reponer" data-tip="Por reponer"><svg class="i"><use href="#i-bell"/></svg><span class="pip" id="pip" hidden></span></button>
+   <button class="me" id="meBtn" aria-label="Mi cuenta" data-tip="Mi cuenta"><div class="av" id="avt">T</div><span id="mename">Mi taller</span></button>
   </div>
  </header>
  <main id="main"></main>
@@ -469,7 +471,7 @@ const GCATS=['Filamento','Recambios','Herramientas','Electricidad','Envíos','Em
 
 /* ======================= TEMA ======================= */
 const isDark=()=>document.documentElement.classList.contains('dark');
-function themeIcon(){$('#thi').setAttribute('href',isDark()?'#i-sun':'#i-moon')}
+function themeIcon(){$('#thi').setAttribute('href',isDark()?'#i-sun':'#i-moon');const b=$('#theme');if(b){const t=isDark()?'Cambiar a modo claro':'Cambiar a modo oscuro';b.dataset.tip=t;b.setAttribute('aria-label',t)}}
 function toggleTheme(){const m=isDark()?'light':'dark';window.__mode=m;try{localStorage.setItem('t3d-mode',m)}catch(e){}__applyMode();themeIcon();render()}
 
 /* ======================= DATOS ======================= */
@@ -2591,7 +2593,7 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.30';
+const WEB_VERSION='1.0.31';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/iaonlineapps/taller3dpanel',APK_URL='app/Taller3DPanel.apk';
 /* La APK viaja con la web (public/app/): version.json dice cuál es la última. Si abres la web desde una app
@@ -2604,6 +2606,7 @@ async function appUpdateCheck(){const mine=appVersion();if(!mine)return;let v=''
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.31',["**Al pasar el ratón por los botones de arriba te dice qué es cada uno:** la versión (pulsa para ver las novedades), recargar o buscar actualizaciones, el idioma, el modo oscuro o claro, la campanita y tu cuenta. En español y en inglés.","**La campanita es el aviso de «Por reponer».** El punto rojo sale cuando alguna pieza o producto activo está agotado o tiene el mínimo de stock o menos. Al pasar el ratón te dice cuántos hay, y al pulsarla los ves. Si alguno no lo vas a reponer, márcalo con «No la voy a reponer» o desactívalo y deja de contar."]],
  ['1.0.30',["**Ordenar todas las listas.** Clientes, piezas, productos, colaboradores, tickets, servicios, filamentos, gastos y movimientos tienen un selector **«Ordenar»**: de la A a la Z, de la Z a la A, por fecha (más recientes o más antiguas) y otros (más stock, precio, importe…). Se recuerda lo que eliges.","**Clientes en orden** de la A a la Z y con **buscador** propio.","**Una X para borrar la búsqueda** de un toque en todos los buscadores."]],
  ['1.0.29',["**Se ve qué es cada pieza.** En las fichas con foto sale arriba a la derecha su categoría (Llavero, Figura, Imán…), también en la lista y, más grande, al abrir la pieza o el producto."]],
  ['1.0.28',["**Códigos según la categoría.** Las piezas nuevas reciben solas un código de su categoría: **LLV-001** para Llaveros, **IMN-001** para Imanes, **FIG-001** para Figuras, **NAV-001** para Navidad, **PIL-001** para Pilas… Si dejas el código **vacío o pones 0**, se pone solo.","**Cambia el principio del código** de cada categoría en el botón **«Categorías»** (columna «Código»).","**Poner códigos a todo de una vez.** En **«Categorías»** pulsa **«Poner códigos…»**: ves la lista (código viejo → nuevo) y confirmas. El código viejo se guarda, así el lector y las ventas antiguas siguen encontrando la pieza."]],
@@ -2653,7 +2656,7 @@ const newer=(a,b)=>{const x=String(a).split('.').map(Number),y=String(b).split('
 /* Idioma: español (España) o inglés. Los textos se traducen en i18n.js; todo texto nuevo necesita su traducción allí. */
 const langTabs=()=>`<div class="tabs" translate="no" role="group" aria-label="Idioma / Language"><button type="button" data-lang="es" class="${T3D_LANG==='es'?'on':''}">🇪🇸 Español</button><button type="button" data-lang="en" class="${T3D_LANG==='en'?'on':''}">🇬🇧 English</button></div>`;
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-lang]');if(b){e.preventDefault();setLang(b.dataset.lang)}});
-{const lc=document.getElementById('langchip');if(lc){const o=T3D_LANG==='en'?'es':'en';lc.textContent=T3D_LANG==='en'?'EN':'ES';lc.dataset.lang=o;lc.title=T3D_LANG==='en'?'Cambiar a español':'Switch to English';lc.setAttribute('aria-label',lc.title)}}
+{const lc=document.getElementById('langchip');if(lc){const o=T3D_LANG==='en'?'es':'en';lc.textContent=T3D_LANG==='en'?'EN':'ES';lc.dataset.lang=o;lc.dataset.tip=T3D_LANG==='en'?'Language: English · Cambiar a español':'Idioma: español · Switch to English';lc.setAttribute('aria-label',T3D_LANG==='en'?'Cambiar a español':'Switch to English')}}
 const mdl=t=>esc(T(t)).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
 function showNews(since){const l=(since?NEWS.filter(([v])=>newer(v,since)):NEWS.slice()).sort((a,b)=>newer(a[0],b[0])?-1:newer(b[0],a[0])?1:0);if(!l.length)return;
  modal(`<div class="ch" style="margin:0"><h2>${since?'Taller3D Panel se ha actualizado a la '+esc(webVer()):'Novedades de Taller3D Panel'}</h2><button class="btn gh" data-close>Cerrar</button></div>
@@ -2816,7 +2819,7 @@ function doRender(){
  document.body.classList.toggle('kiosk',S.view==='taller');$('#main').innerHTML=S.view==='taller'?vTaller():backBtn()+V[S.view]()+footHTML();{const bb=$('#backb');if(bb)bb.onclick=()=>history.back()}{const fn=$('#footnews');if(fn)fn.onclick=()=>showNews()}$('#vchip').textContent='v'+webVer();if(ME&&!window.__newsChk){window.__newsChk=1;if(!DEMO)newsIfUpdated()}
  if(DEMO&&ME&&window.__cfgLoaded){if(!S.cfg.demoSeeded&&!S.farm.length)demoSeed();else if(S.farm.length&&!demoSeeding)demoInit()}
  document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
- const low=lowList().length,lc=$('#lowc');$('#navlow').hidden=!low;lc.textContent=low;$('#pip').hidden=!low;{const lw=(S.view==='piezas'||S.view==='productos')&&S.lowOnly;$('#navlow').classList.toggle('on',lw);if(lw){const pz=document.querySelector('.side [data-v="'+S.view+'"]');if(pz)pz.classList.remove('on')}}
+ const low=lowList().length,lc=$('#lowc');$('#navlow').hidden=!low;lc.textContent=low;$('#pip').hidden=!low;{const bl=$('#bell'),bt=low?'Por reponer: {} (agotadas o con poco stock) · pulsa para verlas'.replace('{}',num(low)):'Nada por reponer';if(bl.dataset.tip!==bt){bl.dataset.tip=bt;bl.setAttribute('aria-label',bt)}}{const lw=(S.view==='piezas'||S.view==='productos')&&S.lowOnly;$('#navlow').classList.toggle('on',lw);if(lw){const pz=document.querySelector('.side [data-v="'+S.view+'"]');if(pz)pz.classList.remove('on')}}
  $('#bname').innerHTML=esc(S.cfg.name);const who=ME?(ME.name||ME.username):(S.cfg.owner||'Yo');$('#mename').textContent=who;{const a=$('#avt');if(ME&&myAvatar(ME.id)){a.innerHTML=avatarHTML(ME,38);a.style.overflow='hidden'}else a.textContent=(who||'Y')[0].toUpperCase()}
  $('#lmark').innerHTML=logoMark(32);const oj=S.jobs.filter(j=>j.status==='pendiente'||j.status==='curso').length,jc=$('#jobc');jc.hidden=!oj;jc.textContent=oj;$('#sver').textContent=versionText().replace(' · ','\n');
  if(S.view==='admin'||S.view==='usuarios')setTimeout(paintUsers,0);
