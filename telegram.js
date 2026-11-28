@@ -150,7 +150,7 @@ function createTelegram({ getMeta, setMeta, allData, livePrinters, appName: appN
     });
     return t.printers + '\n' + rows.join('\n');
   }
-  const catalog = () => Object.values(allData().products || {}).filter(x => (x.estado || 'listo') === 'listo' && !x.archived);
+  const catalog = () => Object.values(allData().products || {}).filter(x => (x.estado || 'listo') === 'listo' && !x.archived && !x.off);
   const isLow = x => !x.noRestock && (+x.stock || 0) <= (+x.min || 0) && (+x.min > 0 || (+x.stock || 0) <= 0);
   const byName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'es', { sensitivity: 'base', numeric: true });
   const colorOf = x => Array.isArray(x.mats) && x.mats.length ? [...new Set(x.mats.map(m => m.color).filter(Boolean))].join(' + ') : (x.color || '');
@@ -290,7 +290,7 @@ function createTelegram({ getMeta, setMeta, allData, livePrinters, appName: appN
   function docChanged(col, prev, next) {
     if (!ready() || !next) return;
     const t = L();
-    if (col === 'products' && cfg.on.stock && (next.estado || 'listo') === 'listo' && !next.noRestock) {
+    if (col === 'products' && cfg.on.stock && (next.estado || 'listo') === 'listo' && !next.noRestock && !next.off) {
       const a = prev ? +prev.stock || 0 : null, b = +next.stock || 0, min = +next.min || 0;
       if (a == null || b >= a) return;
       if (b <= 0 && a > 0) notify(fill(t.stockOut, { name: esc(next.name) }));
