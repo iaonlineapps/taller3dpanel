@@ -40,7 +40,7 @@ const TXT = {
     noPrinters: 'No hay impresoras en la granja todavía.', printers: '🖨️ <b>Impresoras</b>',
     idle: 'libre', printing: 'imprimiendo', paused: 'en pausa', done: 'terminada', failed: 'fallida', prep: 'preparando', off: 'sin conexión',
     manual: { libre: 'libre', imprimiendo: 'imprimiendo', mantenimiento: 'en mantenimiento', averiada: 'averiada' },
-    noLow: '📦 Todas las piezas tienen stock de sobra.', low: '📦 <b>Por reponer</b>', out: 'agotada', all: '📦 <b>Tu stock</b>: {n} piezas · {u} unidades', none: '📦 Aún no tienes piezas en «Piezas y stock».', outT: '🚫 <b>Agotadas</b>', resT: '🔋 <b>Productos de reventa</b>: {n} · {u} ud', ud: 'ud', lowMark: 'reponer', more: '…y {n} más',
+    offT: '🙈 <b>Desactivadas que aún tienen stock</b>: {n} · {u} ud\n<i>No cuentan arriba. Para volver a usarlas: Piezas y stock → «Desactivadas» → «Activar».</i>', noLow: '📦 Todas las piezas tienen stock de sobra.', low: '📦 <b>Por reponer</b>', out: 'agotada', all: '📦 <b>Tu stock</b>: {n} piezas · {u} unidades', none: '📦 Aún no tienes piezas en «Piezas y stock».', outT: '🚫 <b>Agotadas</b>', resT: '🔋 <b>Productos de reventa</b>: {n} · {u} ud', ud: 'ud', lowMark: 'reponer', more: '…y {n} más',
     salesToday: '🛒 <b>Hoy</b>: {n} · {total}', salesMonth: '📅 <b>Este mes</b>: {n} · {total}', one: 'venta', many: 'ventas', salesPend: '💶 A deber: {total}', last: 'Última: {num} · {total} · {when}',
     test: '✅ ¡Funciona! A partir de ahora {app} te avisará aquí.', unknown: 'No entiendo esa orden. Escribe /ayuda.',
     cmds: [['estado', 'Cómo están las impresoras'], ['stock', 'Todo tu stock'], ['poco', 'Lo que hay que reponer'], ['ventas', 'Ventas de hoy y del mes'], ['resumen', 'Todo junto'], ['ayuda', 'Qué sé hacer']],
@@ -64,7 +64,7 @@ const TXT = {
     noPrinters: 'There are no printers in the farm yet.', printers: '🖨️ <b>Printers</b>',
     idle: 'idle', printing: 'printing', paused: 'paused', done: 'finished', failed: 'failed', prep: 'preparing', off: 'offline',
     manual: { libre: 'idle', imprimiendo: 'printing', mantenimiento: 'under maintenance', averiada: 'broken' },
-    noLow: '📦 Every part has plenty of stock.', low: '📦 <b>To restock</b>', out: 'out of stock', all: '📦 <b>Your stock</b>: {n} parts · {u} units', none: '📦 You have no parts in «Parts and stock» yet.', outT: '🚫 <b>Out of stock</b>', resT: '🔋 <b>Resale products</b>: {n} · {u} pcs', ud: 'pcs', lowMark: 'restock', more: '…and {n} more',
+    offT: '🙈 <b>Deactivated but still in stock</b>: {n} · {u} pcs\n<i>Not counted above. To use them again: Parts and stock → «Deactivated» → «Activate».</i>', noLow: '📦 Every part has plenty of stock.', low: '📦 <b>To restock</b>', out: 'out of stock', all: '📦 <b>Your stock</b>: {n} parts · {u} units', none: '📦 You have no parts in «Parts and stock» yet.', outT: '🚫 <b>Out of stock</b>', resT: '🔋 <b>Resale products</b>: {n} · {u} pcs', ud: 'pcs', lowMark: 'restock', more: '…and {n} more',
     salesToday: '🛒 <b>Today</b>: {n} · {total}', salesMonth: '📅 <b>This month</b>: {n} · {total}', one: 'sale', many: 'sales', salesPend: '💶 Unpaid: {total}', last: 'Last one: {num} · {total} · {when}',
     test: '✅ It works! From now on {app} will send its alerts here.', unknown: "I don't understand that command. Type /help.",
     cmds: [['status', 'How the printers are doing'], ['stock', 'All your stock'], ['low', 'What needs restocking'], ['sales', 'Sales today and this month'], ['summary', 'Everything at once'], ['help', 'What I can do']],
@@ -163,7 +163,8 @@ function createTelegram({ getMeta, setMeta, allData, livePrinters, appName: appN
   /** TODO el stock: cada pieza del catálogo con lo que queda (para /stock). */
   function stockText() {
     const t = L(), all = catalog().sort(byName), p = all.filter(x => x.kind !== 'reventa'), r = all.filter(x => x.kind === 'reventa');
-    if (!all.length) return t.none;
+    const off = Object.values(allData().products || {}).filter(x => (x.estado || 'listo') === 'listo' && !x.archived && x.off && (+x.stock || 0) > 0).sort(byName);
+    if (!all.length && !off.length) return t.none;
     const have = p.filter(x => (+x.stock || 0) > 0), out = p.filter(x => (+x.stock || 0) <= 0);
     const units = have.reduce((a, x) => a + (+x.stock || 0), 0);
     const hasV = x => Array.isArray(x.variants) && x.variants.length > 0;
@@ -179,6 +180,7 @@ function createTelegram({ getMeta, setMeta, allData, livePrinters, appName: appN
       const rh = r.filter(x => (+x.stock || 0) > 0), ru = rh.reduce((a, x) => a + (+x.stock || 0), 0);
       parts.push(fill(t.resT, { n: r.length, u: ru }) + '\n' + r.map(x => (+x.stock || 0) > 0 ? row(x) : `• ${esc(x.name)}: <b>${t.out}</b>`).join('\n'));
     }
+    if (off.length) parts.push(fill(t.offT, { n: off.length, u: off.reduce((a, x) => a + (+x.stock || 0), 0) }) + '\n' + off.map(row).join('\n'));
     return parts.join('\n\n');
   }
   function salesText() {
