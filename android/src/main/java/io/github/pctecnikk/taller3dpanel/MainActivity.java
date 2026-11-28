@@ -229,6 +229,7 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setUserAgentString(s.getUserAgentString() + " Taller3DPanelAndroid/" + version(this));
         web.addJavascriptInterface(new Lang.Bridge(this), "T3DApp");
+        web.addJavascriptInterface(new PrintBridge(base), "T3DPrint");
         CookieManager cm = CookieManager.getInstance();
         cm.setAcceptCookie(true);
         cm.setAcceptThirdPartyCookies(web, true);
@@ -338,8 +339,8 @@ public class MainActivity extends Activity {
         new AlertDialog.Builder(this)
                 .setTitle(Lang.t(this, "No se puede conectar", "Cannot connect"))
                 .setMessage(Lang.t(this, "No responde " + base + ".\n¿Está encendido el servidor? Si estás fuera de casa, usa tu dirección pública.", base + " is not responding.\nIs the server on? If you are away from home, use your public address."))
-                .setPositiveButton(Lang.t(this, "Reintentar", "Retry"), (d, w) -> { errorShown = false; if (web != null) web.loadUrl(base + "/"); })
-                .setNeutralButton(Lang.t(this, "Cambiar dirección", "Change address"), (d, w) -> askServer(base, null))
+                .setPositiveButton(Lang.t(this, "Reintentar", "Retry"), new android.content.DialogInterface.OnClickListener() { @Override public void onClick(android.content.DialogInterface d, int w) { errorShown = false; if (web != null) web.loadUrl(base + "/"); } })
+                .setNeutralButton(Lang.t(this, "Cambiar dirección", "Change address"), new android.content.DialogInterface.OnClickListener() { @Override public void onClick(android.content.DialogInterface d, int w) { askServer(base, null); } })
                 .setCancelable(false)
                 .show();
     }
@@ -377,12 +378,12 @@ public class MainActivity extends Activity {
         if (web != null) {
             new AlertDialog.Builder(this)
                     .setItems(Lang.en(this) ? new String[]{"Exit the app", "Change server", "What's new and version", "Idioma: español"}
-                                            : new String[]{"Salir de la app", "Cambiar servidor", "Novedades y versión", "Language: English"}, (d, w) -> {
+                                            : new String[]{"Salir de la app", "Cambiar servidor", "Novedades y versión", "Language: English"}, new android.content.DialogInterface.OnClickListener() { @Override public void onClick(android.content.DialogInterface d, int w) {
                         if (w == 0) finish();
                         else if (w == 1) askServer(prefs.getString(KEY_URL, null), null);
-                        else if (w == 2) Novedades.check(this, true, prefs.getString(KEY_URL, null));
-                        else { String nl = Lang.en(this) ? "es" : "en"; Lang.set(this, nl); if (web != null) web.evaluateJavascript("window.setLang&&setLang('" + nl + "')", null); }
-                    }).show();
+                        else if (w == 2) Novedades.check(MainActivity.this, true, prefs.getString(KEY_URL, null));
+                        else { String nl = Lang.en(MainActivity.this) ? "es" : "en"; Lang.set(MainActivity.this, nl); if (web != null) web.evaluateJavascript("window.setLang&&setLang('" + nl + "')", null); }
+                    } }).show();
             return;
         }
         super.onBackPressed();
@@ -398,5 +399,45 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         if (web != null) web.destroy();
         super.onDestroy();
+    }
+
+    /** Imprimir desde la web (etiquetas sueltas, hojas, tickets): window.T3DPrint.printHtml(html, título, ancho mm, alto mm).
+     *  Abre el diálogo de impresión de Android con el tamaño de etiqueta ya elegido. */
+    private WebView printView;
+    private final class PrintBridge {
+        private final String base;
+        PrintBridge(String base) { this.base = base; }
+        @android.webkit.JavascriptInterface
+        public void printHtml(final String html, final String title, final double wMm, final double hMm) {
+            main.post(new Runnable() { @Override public void run() { printNow(base, html, title, wMm, hMm); } });
+        }
+    }
+    private void printNow(String base, String html, final String title, final double wMm, final double hMm) {
+        final WebView w = new WebView(this);
+        printView = w; // que no se pierda mientras carga
+        w.getSettings().setJavaScriptEnabled(false);
+        w.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                try {
+                    android.print.PrintManager pm = (android.print.PrintManager) getSystemService(Context.PRINT_SERVICE);
+                    String name = (title == null || title.isEmpty()) ? "Taller3D Panel" : title;
+                    android.print.PrintAttributes.Builder b = new android.print.PrintAttributes.Builder()
+                            .setMinMargins(android.print.PrintAttributes.Margins.NO_MARGINS);
+                    if (wMm > 0 && hMm > 0) {
+                        int wm = (int) Math.round(wMm * 1000 / 25.4), hm = (int) Math.round(hMm * 1000 / 25.4);
+                        // Android quiere el tamaño en vertical; la etiqueta ancha (62 x 29) va en horizontal.
+                        android.print.PrintAttributes.MediaSize ms = new android.print.PrintAttributes.MediaSize(
+                                "t3d_" + Math.round(wMm) + "x" + Math.round(hMm), Math.round(wMm) + " x " + Math.round(hMm) + " mm",
+                                Math.min(wm, hm), Math.max(wm, hm));
+                        b.setMediaSize(wm > hm ? ms.asLandscape() : ms);
+                    }
+                    pm.print(name, view.createPrintDocumentAdapter(name), b.build());
+                } catch (Exception e) {
+                    toast(Lang.t(MainActivity.this, "No se pudo imprimir: ", "Could not print: ") + e.getMessage());
+                }
+            }
+        });
+        w.loadDataWithBaseURL(base + "/", html, "text/html", "UTF-8", null);
     }
 }

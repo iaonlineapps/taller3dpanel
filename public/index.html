@@ -774,7 +774,7 @@ function showProduct(id){
   ${p.notes?`<div class="note">${esc(p.notes)}</div>`:''}
   ${mv.length?`<div><h3 style="margin-bottom:4px">Últimos movimientos</h3>${mv.map(m=>`<div class="note" style="display:flex;justify-content:space-between;gap:8px"><span>${fdate(m.date)} · ${esc(MVT[m.type]||m.type)}</span><b class="${m.qty>=0?'up':'dn'}">${m.qty>0?'+':''}${m.qty}</b></div>`).join('')}</div>`:''}
  </div></div>
- <div class="acts"><button class="btn gh" data-edit="${esc(id)}">Editar</button><button class="btn gh" data-dup="${esc(id)}" style="margin-right:auto">Duplicar</button><button class="btn gh" data-adj="${esc(id)}">Ajustar stock</button><button class="btn gh" data-ig="${esc(id)}">${ico('ig')}Post Instagram</button><button class="btn sf" data-print="${esc(id)}">Registrar impresión</button><button class="btn" data-sell="${esc(id)}" ${(+p.stock||0)>0?'':'disabled'}>Vender</button></div>`,true);
+ <div class="acts"><button class="btn gh" data-edit="${esc(id)}">Editar</button><button class="btn gh" data-dup="${esc(id)}" style="margin-right:auto">Duplicar</button><button class="btn gh" data-lab1="p:${esc(id)}">${ico('qr')}Etiqueta</button><button class="btn gh" data-adj="${esc(id)}">Ajustar stock</button><button class="btn gh" data-ig="${esc(id)}">${ico('ig')}Post Instagram</button><button class="btn sf" data-print="${esc(id)}">Registrar impresión</button><button class="btn" data-sell="${esc(id)}" ${(+p.stock||0)>0?'':'disabled'}>Vender</button></div>`,true);
  paintBarcodes($('#dlg'));
 }
 /* Coste de una pieza: filamentos (uno o varios colores) + desperdicio + luz + desgaste + fallos, como la calculadora (sin tu mano de obra) */
@@ -904,7 +904,8 @@ function registerPrint(id){const p=S.products.find(x=>x.id===id);if(!p)return;co
 function labelsSheet(){const ps=catalog().sort((a,b)=>a.name.localeCompare(b.name));if(!ps.length){toast('No hay piezas');return}
  const el=document.createElement('div');el.innerHTML=ps.map(p=>`<div class="lab"><img src="${qrURL(p.code||p.id)}" alt=""><b>${esc(p.name)}</b><span>${esc(p.code)} · ${esc(money(p.price))}</span><svg class="bc" data-code="${esc(p.code||p.id)}"></svg></div>`).join('');paintBarcodes(el);
  modal(`<div class="ch" style="margin:0"><h2>Etiquetas QR y de barras</h2><button class="btn gh" data-close>Cerrar</button></div><p class="note" style="margin:0">Descarga la hoja, ábrela en el ordenador y pulsa «Imprimir». Tu lector leerá cualquiera de los dos códigos.</p>
- <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">${ps.map(p=>`<div class="card" style="padding:10px;text-align:center"><img src="${qrURL(p.code||p.id)}" alt="" style="width:110px;background:#fff;border-radius:8px;image-rendering:pixelated"><div style="font-weight:600;font-size:13px">${esc(p.name)}</div><div class="note">${esc(p.code)}</div></div>`).join('')}</div>
+ <p class="note" style="margin:0">¿Solo una? Pulsa «Imprimir esta» debajo de la etiqueta y sale sola, a su tamaño, en tu impresora de etiquetas (rollo de 62 mm).</p>
+ <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">${ps.map(p=>`<div class="card" style="padding:10px;text-align:center"><img src="${qrURL(p.code||p.id)}" alt="" style="width:110px;background:#fff;border-radius:8px;image-rendering:pixelated"><div style="font-weight:600;font-size:13px">${esc(p.name)}</div><div class="note">${esc(p.code)}</div><button class="btn gh" data-lab1="p:${esc(p.id)}" style="margin-top:6px;padding:6px 10px;font-size:12px">Imprimir esta</button></div>`).join('')}</div>
  <div class="acts"><button class="btn" id="dllab">${ico('down')}Descargar hoja para imprimir</button></div>`,true);
  $('#dllab').onclick=()=>saveFile('etiquetas-taller3d.html',`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Etiquetas</title><style>body{font-family:Arial,sans-serif;margin:10mm}.g{display:grid;grid-template-columns:repeat(4,1fr);gap:4mm}.lab{border:1px dashed #aaa;padding:3mm;text-align:center;font-size:10pt;break-inside:avoid}.lab img{width:30mm;image-rendering:pixelated}.lab b,.lab span{display:block}.lab svg{width:100%;height:14mm}button{padding:10px 18px;margin-bottom:8mm}@media print{button{display:none}}</style></head><body><button onclick="print()">Imprimir</button>${okImg(S.cfg.logo)?`<img src="${S.cfg.logo}" alt="" style="height:40px;margin-bottom:6mm">`:''}<div class="g">${el.innerHTML}</div></body></html>`,'text/html');
 }
@@ -1046,7 +1047,7 @@ function vGranja(){
 function farmDetail(id){const f=S.farm.find(x=>x.id===id);if(!f)return;S.fmOpen=id;
  const ps=catalog().slice().sort((a,b)=>a.name.localeCompare(b.name));
  modal(`<div class="det"><div style="display:flex;flex-direction:column;gap:12px;align-items:center"><div style="width:160px;height:160px;border-radius:18px;overflow:hidden;background:var(--soft)">${prPic(f)}</div>
-  <div class="codes" style="width:100%"><img src="${qrURL(farmQR(f))}" alt="QR de la impresora"><div style="flex:1"><b>${esc(farmCode(f))}</b><div class="note">Pega este QR en la impresora: al escanearlo se abre esta ficha.</div></div></div></div>
+  <div class="codes" style="width:100%"><img src="${qrURL(farmQR(f))}" alt="QR de la impresora"><div style="flex:1"><b>${esc(farmCode(f))}</b><div class="note">Pega este QR en la impresora: al escanearlo se abre esta ficha.</div><button class="btn gh" data-lab1="f:${esc(f.id)}" style="margin-top:6px">${ico('qr')}Imprimir etiqueta</button></div></div></div>
   <div style="display:flex;flex-direction:column;gap:12px"><div><span class="tag">${esc(f.model||'Impresora')}</span><h2 style="font-size:24px;margin-top:8px">${esc(f.name)}</h2>${f.lan?`<div class="note">LAN · ${esc(f.ip||'sin IP')} · nº serie ${esc(f.serial?f.serial.slice(0,4)+'…':'—')}</div>`:''}</div>
   <div id="fmlive"></div>
   <div id="fmams"></div>
@@ -1144,9 +1145,50 @@ function farmNotifBtn(){if(!window.Notification)return '';const p=Notification.p
 function farmLabels(){const l=S.farm.slice().sort((a,b)=>(a.n||0)-(b.n||0));if(!l.length){toast('Añade primero alguna impresora');return}
  const html=l.map(f=>`<div class="lab"><img src="${qrURL(farmQR(f))}" alt=""><b>${esc(f.name)}</b><span>${esc(farmCode(f))}${f.model?' · '+esc(f.model):''}</span></div>`).join('');
  modal(`<div class="ch" style="margin:0"><h2>QR de las impresoras</h2><button class="btn gh" data-close>Cerrar</button></div><p class="note" style="margin:0">Imprime la hoja y pega cada QR en su impresora. Al leerlo con tu lector o con la cámara del móvil se abre su ficha.</p>
- <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">${l.map(f=>`<div class="card" style="padding:10px;text-align:center"><img src="${qrURL(farmQR(f))}" alt="" style="width:110px;background:#fff;border-radius:8px;image-rendering:pixelated"><div style="font-weight:600;font-size:13px">${esc(f.name)}</div><div class="note">${esc(farmCode(f))}</div></div>`).join('')}</div>
+ <p class="note" style="margin:0">¿Solo una? Pulsa «Imprimir esta» debajo de la etiqueta y sale sola, a su tamaño, en tu impresora de etiquetas (rollo de 62 mm).</p>
+ <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">${l.map(f=>`<div class="card" style="padding:10px;text-align:center"><img src="${qrURL(farmQR(f))}" alt="" style="width:110px;background:#fff;border-radius:8px;image-rendering:pixelated"><div style="font-weight:600;font-size:13px">${esc(f.name)}</div><div class="note">${esc(farmCode(f))}</div><button class="btn gh" data-lab1="f:${esc(f.id)}" style="margin-top:6px;padding:6px 10px;font-size:12px">Imprimir esta</button></div>`).join('')}</div>
  <div class="acts"><button class="btn" id="dlfml">${ico('down')}Descargar hoja para imprimir</button></div>`,true);
  $('#dlfml').onclick=()=>saveFile('qr-impresoras.html',`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>QR impresoras</title><style>body{font-family:Arial,sans-serif;margin:10mm}.g{display:grid;grid-template-columns:repeat(3,1fr);gap:5mm}.lab{border:1px dashed #aaa;padding:4mm;text-align:center;font-size:11pt;break-inside:avoid}.lab img{width:40mm;image-rendering:pixelated}.lab b,.lab span{display:block}button{padding:10px 18px;margin-bottom:8mm}@media print{button{display:none}}</style></head><body><button onclick="print()">Imprimir</button><div class="g">${html}</div></body></html>`,'text/html')}
+/* ---- Etiqueta suelta para impresoras de etiquetas (Brother QL, rollo de 62 mm) ----
+   Una etiqueta por pegatina, con su tamaño exacto. Se imprime con el diálogo del navegador
+   (o, en la app Android 1.0.5+, con el de Android). La impresora se instala en la Raspberry con etiquetas.sh. */
+const LABSZ={s:[62,29,'Pequeña · 62 × 29 mm'],l:[62,100,'Grande · 62 × 100 mm']};
+const labSz=()=>{try{const v=localStorage.getItem('t3d-labsz');if(LABSZ[v])return v}catch(e){}return 's'};
+const LAB_CMD=()=>'curl -fsSL '+REPO_URL.replace('https://github.com/','https://raw.githubusercontent.com/')+'/main/etiquetas.sh | bash';
+function labelData(kind,id){
+ if(kind==='f'){const f=S.farm.find(x=>x.id===id);if(!f)return null;return {qr:farmQR(f),title:f.name,line:farmCode(f)+(f.model?' · '+f.model:''),bc:'',file:'etiqueta-'+farmCode(f)}}
+ const p=S.products.find(x=>x.id===id);if(!p)return null;const c=p.code||p.id;
+ return {qr:c,title:p.name,line:(p.code?p.code+' · ':'')+money(p.price),bc:c,file:'etiqueta-'+(p.code||'pieza')}}
+function labelHTML(k,o){const [w,h]=LABSZ[k],big=k==='l';
+ const el=document.createElement('div');el.innerHTML=o.bc?`<svg class="bc" data-code="${esc(o.bc)}"></svg>`:'';if(o.bc)paintBarcodes(el);
+ const css=big
+  ?`.L{height:${h-1}mm;padding:4mm 3mm;flex-direction:column;justify-content:center;text-align:center;gap:2mm}.L img{width:46mm;height:46mm}.t b{font-size:15pt;max-height:3.6em}.t span{font-size:11pt}.t svg{height:16mm}`
+  :`.L{height:${h-1}mm;padding:1.5mm 2mm;gap:2mm}.L img{width:${h-4}mm;height:${h-4}mm}.t b{font-size:9.5pt;max-height:2.3em}.t span{font-size:7.5pt}.t svg{height:${o.bc?9:0}mm}`;
+ return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>${esc(o.title)}</title><style>@page{size:${w}mm ${h}mm;margin:0}html,body{margin:0;padding:0;background:#fff;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}.L{width:${w}mm;box-sizing:border-box;display:flex;align-items:center;overflow:hidden;font-family:Arial,Helvetica,sans-serif}.L img{image-rendering:pixelated;flex:none}.t{flex:1;min-width:0;display:flex;flex-direction:column;gap:.6mm}.t b{display:block;line-height:1.15;overflow:hidden;word-break:break-word}.t span{display:block}.t svg{width:100%;display:block}${css}</style></head><body><div class="L"><img src="${qrURL(o.qr)}" alt=""><div class="t"><b>${esc(o.title)}</b><span>${esc(o.line)}</span>${el.innerHTML}</div></div></body></html>`}
+/* Imprime un documento HTML: en la app Android con su diálogo de impresión, en el navegador con print(). */
+function printDoc(html,title,file,w,h){
+ if(window.T3DPrint&&T3DPrint.printHtml){try{T3DPrint.printHtml(html,title||'Taller3D Panel',w||0,h||0);return}catch(e){}}
+ if(appVersion()){saveFile((file||'imprimir')+'.html',html,'text/html');toast('Actualiza la app para imprimir directamente');return}
+ const f=document.createElement('iframe');f.setAttribute('aria-hidden','true');f.style.cssText='position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0';document.body.appendChild(f);
+ const d=f.contentWindow.document;d.open();d.write(html);d.close();
+ setTimeout(()=>{try{f.contentWindow.focus();f.contentWindow.print()}catch(e){toast('No se pudo imprimir')}setTimeout(()=>f.remove(),60000)},400)}
+function labelModal(kind,id){const o=labelData(kind,id);if(!o)return;let k=labSz();
+ modal(`<h2>Imprimir etiqueta</h2><div class="sub">${esc(o.title)}</div>
+ <div style="display:grid;gap:12px;justify-items:center"><div class="tabs" id="lbsz">${Object.entries(LABSZ).map(([x,[,,t]])=>`<button type="button" data-lsz="${x}" class="${x===k?'on':''}">${t}</button>`).join('')}</div>
+ <iframe id="lbprev" title="Vista previa" style="border:1px solid var(--line,#ccc);border-radius:6px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.12)"></iframe></div>
+ <p class="note" style="margin:0">Para impresoras de etiquetas con rollo de 62 mm (Brother QL-700 y parecidas). En la ventana de imprimir elige la impresora «Etiquetas», el mismo tamaño de etiqueta y márgenes «Ninguno».</p>
+ <details><summary style="cursor:pointer;font-weight:600">¿Primera vez? Instalar la impresora en la Raspberry</summary><div style="display:grid;gap:8px;margin-top:8px">
+ <p class="note" style="margin:0">1. Enchufa la impresora por USB a la Raspberry y enciéndela. Si tiene encendida la luz verde «Editor Lite», mantén pulsado ese botón hasta que se apague.</p>
+ <p class="note" style="margin:0">2. Entra por SSH en la Raspberry y pega esta línea:</p>
+ <code translate="no" style="display:block;padding:8px 10px;background:var(--soft);border-radius:8px;font-size:12px;word-break:break-all">${esc(LAB_CMD())}</code>
+ <div><button type="button" class="btn gh" id="lbcp">Copiar la línea</button></div>
+ <p class="note" style="margin:0">3. Sale una etiqueta de prueba. Desde ese momento la impresora «Etiquetas» aparece en el ordenador y en el móvil de casa al pulsar «Imprimir». Si el ordenador no la ve, añádela a mano con la dirección que te da el instalador.</p></div></details>
+ <div class="acts"><button class="btn gh" data-close>Cerrar</button><button class="btn" id="lbgo">${ico('qr')}Imprimir</button></div>`);
+ const draw=()=>{const [w,h]=LABSZ[k],fr=$('#lbprev');fr.style.width=w+'mm';fr.style.height=h+'mm';fr.srcdoc=labelHTML(k,o)};draw();
+ $('#lbsz').onclick=e=>{const b=e.target.closest('[data-lsz]');if(!b)return;k=b.dataset.lsz;try{localStorage.setItem('t3d-labsz',k)}catch(_){}
+  $('#lbsz').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));draw()};
+ $('#lbcp').onclick=()=>navigator.clipboard.writeText(LAB_CMD()).then(()=>toast('Línea copiada'),()=>toast('No se pudo copiar'));
+ $('#lbgo').onclick=()=>{const [w,h]=LABSZ[k];printDoc(labelHTML(k,o),o.title,o.file,w,h)}}
 /* ---- Nube de Bambu (solo ver) ---- */
 function cloudModal(step){const c=S.farmCloud,adm=!ME||ME.role==='admin';
  if(IN_ARTIFACT){modal(`<h2>Nube Bambu (solo ver)</h2><p style="margin:0">Aquí se pone el <b>email y la contraseña de tu cuenta Bambu Lab</b> para ver tus impresoras en directo aunque estén por Wi-Fi normal.</p>
@@ -2108,7 +2150,7 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.18';
+const WEB_VERSION='1.0.19';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/iaonlineapps/taller3dpanel',APK_URL='app/Taller3DPanel.apk';
 /* La APK viaja con la web (public/app/): version.json dice cuál es la última. Si abres la web desde una app
@@ -2121,6 +2163,7 @@ async function appUpdateCheck(){const mine=appVersion();if(!mine)return;let v=''
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.19',['**Imprimir una etiqueta suelta** en una impresora de etiquetas (Brother QL-700 y parecidas, rollo de 62 mm). En la ficha de una pieza pulsa «Etiqueta», y en la de una impresora de la granja, «Imprimir etiqueta». También con «Imprimir esta» en la hoja de etiquetas.','Elige el tamaño (pequeña de 62 × 29 mm o grande de 62 × 100 mm), mira cómo queda y pulsa «Imprimir». La hoja A4 de siempre sigue igual.','**Instalar la impresora en la Raspberry:** en esa misma ventana, en «¿Primera vez?», está la línea para pegar por SSH. Instala todo, la comparte en casa y saca una etiqueta de prueba.']],
  ['1.0.18',['**Pie de página nuevo:** abajo del todo sale ahora «Proyecto sin ánimo de lucro, gratis y sin anuncios · App creada con ayuda de inteligencia artificial (IA) · © 2026 IA Online Apps · Uso personal no comercial».']],
  ['1.0.17',['**¿Has olvidado tu usuario o tu contraseña?** Ahora cada cuenta tiene un **código de recuperación**. Te lo enseñamos una vez al crear la cuenta (si tu cuenta ya existía, la próxima vez que entres). Puedes copiarlo, mandártelo por WhatsApp, Telegram o correo, o bajarlo como archivo.','Si olvidas el usuario o la contraseña, en la pantalla de entrada toca «¿Has olvidado tu usuario o contraseña?», pon el código y una contraseña nueva, y verás también tu usuario.','Si lo pierdes, en **Ajustes → Mi cuenta → Código de recuperación** puedes sacar uno nuevo. El administrador sigue pudiendo poner una contraseña nueva a cualquiera.']],
  ['1.0.16',['En el **Panel**, en «Colaboradores», cada colaborador enseña ahora **lo que ha ganado** con su margen en ese periodo, en vez de lo gastado. Debajo ves lo que ha vendido, lo que ha gastado y si te debe algo.']],
@@ -2342,7 +2385,7 @@ document.addEventListener('click',async e=>{
  else if(d.anul)anular(d.anul);else if(d.edtk)editTicket(d.edtk);
  else if(d.ec)editCustomer(d.ec);else if(d.eb)editCollab(d.eb);else if(d.eg)editExpense(d.eg);
  else if(d.th){if(d.th!==(isDark()?'dark':'light'))toggleTheme()}
- else if(d.payt)payTicket(d.payt);else if(d.tkf){S.tkf=d.tkf;render()}else if(d.ig)igPost(d.ig);
+ else if(d.payt)payTicket(d.payt);else if(d.tkf){S.tkf=d.tkf;render()}else if(d.ig)igPost(d.ig);else if(d.lab1){const [a,b]=d.lab1.split(':');labelModal(a,b.slice(0))}
  else if(d.pr)editPrinter(d.pr);else if(d.prcalc){S.calc={...(S.calc||calcDefaults()),printer:d.prcalc};go('presupuestos')}else if(d.ej){closeModal();editJob(d.ej)}else if(d.jr)jobReceiptModal(d.jr);else if(d.jobf){S.jobf=d.jobf;render()}else if(d.jcat){S.jcat=d.jcat;render()}
  else if(d.qtab){S.qtab=d.qtab;render()}else if(d.vq)viewQuote(d.vq);else if(d.garea){S.garea=d.garea;render()}
  else if(d.farmon!=null){saveCfg({farmOn:d.farmon==='1'}).then(()=>toast(d.farmon==='1'?'Granja activada: la tienes en el menú «Taller»':'Granja desactivada')).catch(()=>{})}
