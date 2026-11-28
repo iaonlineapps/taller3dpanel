@@ -30,11 +30,17 @@ una base de datos SQLite propia, dentro de tu instalación.
   escanear, cantidad, efectivo con cálculo del cambio, tarjeta, Bizum, transferencia o **a deber**
   (pendiente de cobro). Pieza rápida con foto y cliente nuevo sin salir de la venta.
 - **Tickets** numerados con código de barras, logo y datos de tu empresa (NIF, dirección, IVA
-  desglosado). Se descargan para imprimir, se copian o se envían por WhatsApp. Se pueden anular y el
-  stock vuelve solo.
+  desglosado). Botón **«Imprimir»**: sale directamente en la impresora de tickets o etiquetas de la
+  Raspberry (por ejemplo una Brother QL-700 con rollo continuo de 62 mm, instalada con `etiquetas.sh`),
+  adaptado al ancho del papel, o en **A4** en una impresora normal; si no está, se abre la ventana de
+  imprimir. También se descargan, se copian o se envían por WhatsApp. Se pueden anular y el stock vuelve solo.
 - **Piezas y stock:** galería con fotos o lista, categorías (Llaveros 3D, Navidad, Diseño 3D…), código
   QR y de barras de cada pieza, **hoja de etiquetas para imprimir**, registro de impresiones (suma stock
   y descuenta filamento), ajustes de stock con motivo y **post para Instagram** de cada pieza.
+- **Productos de reventa** (pilas, cables, cargadores…): lo que compras hecho en packs y vendes suelto.
+  Pones el precio del pack y las unidades y sale el **coste por unidad**; con su precio de venta ves lo
+  que **ganas** por unidad, su **stock**, el aviso de reponer y «+ Compré otro pack». Se venden desde
+  «Vender» y salen aparte en el Panel y en el `/stock` del bot.
 - **Diseños 3D:** ideas por diseñar, modelos en marcha y piezas terminadas.
 - **Filamentos:** catálogo de Bambu Lab, Prusament, Smart Materials 3D, Winkle, Polymaker, eSun, Sunlu,
   Elegoo, Creality, SainSmart, Fiberlogy y genéricos. Lo que queda de cada bobina y **alta leyendo el
@@ -193,7 +199,7 @@ añadir la impresora, elige su tipo en «Conexión» y pon su IP.
 
 Tu propio bot de Telegram te **avisa en el móvil** cuando una impresora empieza, va por el 25, 50 y
 75 %, se pausa, termina o falla, cuando una pieza se agota y cuando entra una venta. Y te **contesta**
-si le preguntas: `/estado`, `/stock`, `/ventas`, `/resumen`. Solo te habla a ti.
+si le preguntas: `/estado`, `/stock` (todo tu stock), `/poco`, `/ventas`, `/resumen`. Solo te habla a ti.
 
 Se crea en 2 minutos con **@BotFather** y se pone en **Administración → Bot de Telegram** (pegas el
 token, «Buscar mi chat», «Probar» y «Guardar»). Va dentro del mismo servidor: no hay que instalar nada

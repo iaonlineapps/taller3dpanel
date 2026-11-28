@@ -35,15 +35,15 @@ const TXT = {
     file: '📄 {file}', left: '⏱️ Quedan {t}', took: '⏱️ Ha tardado {t}', layer: 'capa {a} de {b}', at: 'al {pct} %',
     stockOut: '📦 <b>{name}</b> se ha agotado', stockLow: '📦 Queda poco de <b>{name}</b>: {n} (aviso en {min})',
     sale: '🛒 Venta nueva <b>{num}</b>: <b>{total}</b>', saleBy: 'vendida por {who}', salePend: 'a deber',
-    help: '👋 Soy el bot de <b>{app}</b>. Te aviso cuando una impresora empieza, va por la mitad, termina o falla, cuando se acaba el stock de una pieza y cuando entra una venta.\n\nPuedes preguntarme:\n/estado · cómo están las impresoras\n/stock · piezas con poco stock\n/ventas · ventas de hoy y del mes\n/resumen · todo junto\n/ayuda · este mensaje',
+    help: '👋 Soy el bot de <b>{app}</b>. Te aviso cuando una impresora empieza, va por la mitad, termina o falla, cuando se acaba el stock de una pieza y cuando entra una venta.\n\nPuedes preguntarme:\n/estado · cómo están las impresoras\n/stock · todo tu stock (lo que queda de cada pieza)\n/poco · solo lo que hay que reponer\n/ventas · ventas de hoy y del mes\n/resumen · todo junto\n/ayuda · este mensaje',
     who: 'Hola. Tu número de chat es <code>{id}</code>.\nPara que te avise, pon este número en Taller3D Panel → Ajustes → Bot de Telegram (o pulsa «Buscar mi chat» allí).',
     noPrinters: 'No hay impresoras en la granja todavía.', printers: '🖨️ <b>Impresoras</b>',
     idle: 'libre', printing: 'imprimiendo', paused: 'en pausa', done: 'terminada', failed: 'fallida', prep: 'preparando', off: 'sin conexión',
     manual: { libre: 'libre', imprimiendo: 'imprimiendo', mantenimiento: 'en mantenimiento', averiada: 'averiada' },
-    noLow: '📦 Todas las piezas tienen stock de sobra.', low: '📦 <b>Poco stock</b>', out: 'agotada',
+    noLow: '📦 Todas las piezas tienen stock de sobra.', low: '📦 <b>Por reponer</b>', out: 'agotada', all: '📦 <b>Tu stock</b>: {n} piezas · {u} unidades', none: '📦 Aún no tienes piezas en «Piezas y stock».', outT: '🚫 <b>Agotadas</b>', resT: '🔋 <b>Productos de reventa</b>: {n} · {u} ud', ud: 'ud', lowMark: 'reponer', more: '…y {n} más',
     salesToday: '🛒 <b>Hoy</b>: {n} · {total}', salesMonth: '📅 <b>Este mes</b>: {n} · {total}', one: 'venta', many: 'ventas', salesPend: '💶 A deber: {total}', last: 'Última: {num} · {total} · {when}',
     test: '✅ ¡Funciona! A partir de ahora {app} te avisará aquí.', unknown: 'No entiendo esa orden. Escribe /ayuda.',
-    cmds: [['estado', 'Cómo están las impresoras'], ['stock', 'Piezas con poco stock'], ['ventas', 'Ventas de hoy y del mes'], ['resumen', 'Todo junto'], ['ayuda', 'Qué sé hacer']],
+    cmds: [['estado', 'Cómo están las impresoras'], ['stock', 'Todo tu stock'], ['poco', 'Lo que hay que reponer'], ['ventas', 'Ventas de hoy y del mes'], ['resumen', 'Todo junto'], ['ayuda', 'Qué sé hacer']],
   },
   en: {
     start: '🖨️ <b>{name}</b> has started printing',
@@ -59,18 +59,18 @@ const TXT = {
     file: '📄 {file}', left: '⏱️ {t} left', took: '⏱️ It took {t}', layer: 'layer {a} of {b}', at: 'at {pct} %',
     stockOut: '📦 <b>{name}</b> is out of stock', stockLow: '📦 <b>{name}</b> is running low: {n} (warning at {min})',
     sale: '🛒 New sale <b>{num}</b>: <b>{total}</b>', saleBy: 'sold by {who}', salePend: 'unpaid',
-    help: '👋 I am the <b>{app}</b> bot. I let you know when a printer starts, reaches the halfway mark, finishes or fails, when a part runs out of stock and when a sale comes in.\n\nYou can ask me:\n/status · how the printers are doing\n/stock · parts running low\n/sales · sales today and this month\n/summary · everything at once\n/help · this message',
+    help: '👋 I am the <b>{app}</b> bot. I let you know when a printer starts, reaches the halfway mark, finishes or fails, when a part runs out of stock and when a sale comes in.\n\nYou can ask me:\n/status · how the printers are doing\n/stock · all your stock (what is left of each part)\n/low · only what needs restocking\n/sales · sales today and this month\n/summary · everything at once\n/help · this message',
     who: 'Hi. Your chat number is <code>{id}</code>.\nTo get alerts, put this number in Taller3D Panel → Settings → Telegram bot (or press «Find my chat» there).',
     noPrinters: 'There are no printers in the farm yet.', printers: '🖨️ <b>Printers</b>',
     idle: 'idle', printing: 'printing', paused: 'paused', done: 'finished', failed: 'failed', prep: 'preparing', off: 'offline',
     manual: { libre: 'idle', imprimiendo: 'printing', mantenimiento: 'under maintenance', averiada: 'broken' },
-    noLow: '📦 Every part has plenty of stock.', low: '📦 <b>Low stock</b>', out: 'out of stock',
+    noLow: '📦 Every part has plenty of stock.', low: '📦 <b>To restock</b>', out: 'out of stock', all: '📦 <b>Your stock</b>: {n} parts · {u} units', none: '📦 You have no parts in «Parts and stock» yet.', outT: '🚫 <b>Out of stock</b>', resT: '🔋 <b>Resale products</b>: {n} · {u} pcs', ud: 'pcs', lowMark: 'restock', more: '…and {n} more',
     salesToday: '🛒 <b>Today</b>: {n} · {total}', salesMonth: '📅 <b>This month</b>: {n} · {total}', one: 'sale', many: 'sales', salesPend: '💶 Unpaid: {total}', last: 'Last one: {num} · {total} · {when}',
     test: '✅ It works! From now on {app} will send its alerts here.', unknown: "I don't understand that command. Type /help.",
-    cmds: [['status', 'How the printers are doing'], ['stock', 'Parts running low'], ['sales', 'Sales today and this month'], ['summary', 'Everything at once'], ['help', 'What I can do']],
+    cmds: [['status', 'How the printers are doing'], ['stock', 'All your stock'], ['low', 'What needs restocking'], ['sales', 'Sales today and this month'], ['summary', 'Everything at once'], ['help', 'What I can do']],
   },
 };
-const ALIAS = { estado: 'status', impresoras: 'status', granja: 'status', status: 'status', printers: 'status', stock: 'stock', ventas: 'sales', sales: 'sales', resumen: 'summary', summary: 'summary', ayuda: 'help', help: 'help', start: 'help', id: 'id', chat: 'id' };
+const ALIAS = { estado: 'status', impresoras: 'status', granja: 'status', status: 'status', printers: 'status', stock: 'stock', inventario: 'stock', inventory: 'stock', poco: 'low', low: 'low', reponer: 'low', ventas: 'sales', sales: 'sales', resumen: 'summary', summary: 'summary', ayuda: 'help', help: 'help', start: 'help', id: 'id', chat: 'id' };
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
 const fill = (t, o) => t.replace(/\{(\w+)\}/g, (_, k) => o[k] == null ? '' : o[k]);
@@ -112,7 +112,17 @@ function createTelegram({ getMeta, setMeta, allData, livePrinters, appName: appN
     }
     return j;
   }
-  const sendTo = (token, chat, text) => call(token, 'sendMessage', { chat_id: chat, text, parse_mode: 'HTML', disable_web_page_preview: true });
+  /** Telegram admite unos 4096 caracteres por mensaje: si el texto es más largo (mucho stock), se manda en varios trozos por líneas. */
+  function chunks(text, max = 3800) {
+    const out = []; let cur = '';
+    for (const line of String(text).split('\n')) {
+      const l = line.length > max ? line.slice(0, max) : line;
+      if (cur && cur.length + 1 + l.length > max) { out.push(cur); cur = l; } else cur = cur ? cur + '\n' + l : l;
+    }
+    if (cur) out.push(cur);
+    return out.length ? out : [''];
+  }
+  async function sendTo(token, chat, text) { let r; for (const c of chunks(text)) r = await call(token, 'sendMessage', { chat_id: chat, text: c, parse_mode: 'HTML', disable_web_page_preview: true }); return r; }
   /** Manda un aviso a tu chat. Si Telegram falla, no pasa nada: el aviso sigue en la web. */
   function notify(text) { if (!ready()) return; sendTo(cfg.token, cfg.chat, text).catch(e => console.error('Telegram:', e.message)); }
 
@@ -140,11 +150,36 @@ function createTelegram({ getMeta, setMeta, allData, livePrinters, appName: appN
     });
     return t.printers + '\n' + rows.join('\n');
   }
-  function stockText() {
-    const t = L(), p = Object.values(allData().products || {}).filter(x => (x.estado || 'listo') === 'listo' && !x.archived);
-    const low = p.filter(x => (+x.stock || 0) <= (+x.min || 0) && (+x.min > 0 || (+x.stock || 0) <= 0)).sort((a, b) => (+a.stock || 0) - (+b.stock || 0));
+  const catalog = () => Object.values(allData().products || {}).filter(x => (x.estado || 'listo') === 'listo' && !x.archived);
+  const isLow = x => !x.noRestock && (+x.stock || 0) <= (+x.min || 0) && (+x.min > 0 || (+x.stock || 0) <= 0);
+  const byName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'es', { sensitivity: 'base', numeric: true });
+  const colorOf = x => Array.isArray(x.mats) && x.mats.length ? [...new Set(x.mats.map(m => m.color).filter(Boolean))].join(' + ') : (x.color || '');
+  /** Solo lo que hay que reponer (para /poco y /resumen). */
+  function lowText() {
+    const t = L(), low = catalog().filter(isLow).sort((a, b) => (+a.stock || 0) - (+b.stock || 0) || byName(a, b));
     if (!low.length) return t.noLow;
-    return t.low + '\n' + low.slice(0, 30).map(x => `• ${esc(x.name)}: ${(+x.stock || 0) <= 0 ? '<b>' + t.out + '</b>' : '<b>' + (+x.stock) + '</b> / ' + (+x.min)}`).join('\n') + (low.length > 30 ? '\n…' : '');
+    return t.low + '\n' + low.slice(0, 40).map(x => `• ${esc(x.name)}: ${(+x.stock || 0) <= 0 ? '<b>' + t.out + '</b>' : '<b>' + (+x.stock) + '</b> / ' + (+x.min)}`).join('\n') + (low.length > 40 ? '\n' + fill(t.more, { n: low.length - 40 }) : '');
+  }
+  /** TODO el stock: cada pieza del catálogo con lo que queda (para /stock). */
+  function stockText() {
+    const t = L(), all = catalog().sort(byName), p = all.filter(x => x.kind !== 'reventa'), r = all.filter(x => x.kind === 'reventa');
+    if (!all.length) return t.none;
+    const have = p.filter(x => (+x.stock || 0) > 0), out = p.filter(x => (+x.stock || 0) <= 0);
+    const units = have.reduce((a, x) => a + (+x.stock || 0), 0);
+    const hasV = x => Array.isArray(x.variants) && x.variants.length > 0;
+    const row = x => {
+      if (hasV(x)) return `• ${esc(x.name)}: <b>${+x.stock || 0}</b> ${t.ud}${isLow(x) ? ' ⚠️ ' + t.lowMark : ''}\n    ` + x.variants.map(v => `${esc(v.color)} <b>${+v.stock || 0}</b>`).join(' · ');
+      const c = colorOf(x); return `• ${esc(x.name)}${c ? ' <i>(' + esc(c) + ')</i>' : ''}: <b>${+x.stock || 0}</b> ${t.ud}${isLow(x) ? ' ⚠️ ' + t.lowMark : ''}`;
+    };
+    const parts = [];
+    if (p.length) parts.push(fill(t.all, { n: have.length, u: units }));
+    if (have.length) parts.push(have.map(row).join('\n'));
+    if (out.length) parts.push(t.outT + '\n' + out.map(x => `• ${esc(x.name)}`).join('\n'));
+    if (r.length) {
+      const rh = r.filter(x => (+x.stock || 0) > 0), ru = rh.reduce((a, x) => a + (+x.stock || 0), 0);
+      parts.push(fill(t.resT, { n: r.length, u: ru }) + '\n' + r.map(x => (+x.stock || 0) > 0 ? row(x) : `• ${esc(x.name)}: <b>${t.out}</b>`).join('\n'));
+    }
+    return parts.join('\n\n');
   }
   function salesText() {
     const t = L(), s = Object.values(allData().sales || {}).filter(x => x.status !== 'anulado');
@@ -163,8 +198,9 @@ function createTelegram({ getMeta, setMeta, allData, livePrinters, appName: appN
     switch (cmd) {
       case 'status': return statusText();
       case 'stock': return stockText();
+      case 'low': return lowText();
       case 'sales': return salesText();
-      case 'summary': return [statusText(), salesText(), stockText()].join('\n\n');
+      case 'summary': return [statusText(), salesText(), lowText()].join('\n\n');
       case 'help': return fill(t.help, { app: N() });
       default: return t.unknown;
     }
@@ -254,13 +290,13 @@ function createTelegram({ getMeta, setMeta, allData, livePrinters, appName: appN
   function docChanged(col, prev, next) {
     if (!ready() || !next) return;
     const t = L();
-    if (col === 'products' && cfg.on.stock && (next.estado || 'listo') === 'listo') {
+    if (col === 'products' && cfg.on.stock && (next.estado || 'listo') === 'listo' && !next.noRestock) {
       const a = prev ? +prev.stock || 0 : null, b = +next.stock || 0, min = +next.min || 0;
       if (a == null || b >= a) return;
       if (b <= 0 && a > 0) notify(fill(t.stockOut, { name: esc(next.name) }));
       else if (min > 0 && b <= min && a > min) notify(fill(t.stockLow, { name: esc(next.name), n: b, min }));
     }
-    if (col === 'sales' && cfg.on.sale && !prev && next.status !== 'anulado') {
+    if (col === 'sales' && cfg.on.sale && !prev && next.status !== 'anulado' && !(Date.now() - (+next.date || Date.now()) > 864e5)) { // las ventas antiguas que se pasan a mano no avisan
       const items = (next.items || []).slice(0, 8).map(i => `• ${i.qty}× ${esc(i.name)}`).join('\n');
       const extra = [next.customerName ? '👤 ' + esc(next.customerName) : '', next.sellerName && next.sellerId ? fill(t.saleBy, { who: esc(next.sellerName) }) : '', next.method ? esc(next.method) : '', next.status === 'pendiente' ? t.salePend : ''].filter(Boolean).join(' · ');
       notify([fill(t.sale, { num: tnum(next.num), total: money(next.total) }), extra, items].filter(Boolean).join('\n'));
@@ -317,7 +353,7 @@ function createTelegram({ getMeta, setMeta, allData, livePrinters, appName: appN
   }
 
   restart();
-  return { printerEvent, printerLive, docChanged, view, update, test, chats, ready };
+  return { printerEvent, printerLive, docChanged, view, update, test, chats, ready, answer };
 }
 
 module.exports = { createTelegram };

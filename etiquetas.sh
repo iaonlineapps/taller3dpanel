@@ -7,6 +7,8 @@
 #   curl -fsSL https://raw.githubusercontent.com/iaonlineapps/taller3dpanel/main/etiquetas.sh | bash
 #
 # Se puede repetir sin problema: si la impresora ya está, la vuelve a configurar.
+# También deja que la Raspberry encuentre sola las impresoras normales de la red (AirPrint / IPP),
+# para que Taller3D Panel pueda imprimir los tickets en A4 directamente.
 # Install a Brother QL label printer (USB) on the Raspberry Pi and share it at home as «Etiquetas».
 set -euo pipefail
 QUEUE="${QUEUE:-Etiquetas}"
@@ -19,10 +21,10 @@ main() {
 echo "== Taller3D Panel · impresora de etiquetas =="
 echo "1/5 Instalando CUPS y el driver de Brother QL (tarda un par de minutos)..."
 $SUDO apt-get update -qq
-$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq cups printer-driver-ptouch avahi-daemon >/dev/null
+$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq cups cups-browsed printer-driver-ptouch avahi-daemon >/dev/null
 
 echo "2/5 Activando CUPS y compartiendo impresoras en la red de casa..."
-$SUDO systemctl enable --now cups avahi-daemon >/dev/null 2>&1 || true
+$SUDO systemctl enable --now cups cups-browsed avahi-daemon >/dev/null 2>&1 || true
 [ "$(id -u)" -ne 0 ] && $SUDO usermod -aG lpadmin "$USER" || true
 $SUDO cupsctl --share-printers --remote-any
 sleep 2
@@ -39,7 +41,8 @@ if [ -z "$URI" ]; then
   echo " - Comprueba que está enchufada a la Raspberry y encendida."
   echo " - Si tiene encendida la luz verde «Editor Lite», mantén pulsado ese botón hasta que se apague."
   echo "Luego vuelve a pegar la misma línea."
-  exit 1
+  echo "(Las impresoras normales de tu red sí quedan disponibles para imprimir tickets en A4.)"
+  exit 0
 fi
 MODEL=$(echo "$URI" | sed -e 's#usb://Brother/##' -e 's#?.*##' -e 's#%20# #g')
 echo "    Encontrada: Brother $MODEL"
@@ -50,7 +53,7 @@ PPD=$($SUDO lpinfo -m 2>/dev/null | awk '{print $1}' | grep -i "Brother-${MODEL/
 if [ -z "$PPD" ]; then echo "No encuentro el driver para la $MODEL. Avisa a Claude con este mensaje."; exit 1; fi
 $SUDO lpadmin -x "$QUEUE" 2>/dev/null || true
 $SUDO lpadmin -p "$QUEUE" -E -v "$URI" -m "$PPD" -D "Brother $MODEL (etiquetas 62 mm)" -L "Taller" \
-  -o printer-is-shared=true -o PageSize="$SIZE" -o media="$SIZE"
+  -o printer-is-shared=true -o printer-error-policy=abort-job -o PageSize="$SIZE" -o media="$SIZE"
 $SUDO cupsenable "$QUEUE"; $SUDO cupsaccept "$QUEUE"
 
 echo "5/5 Imprimiendo una etiqueta de prueba..."
@@ -64,5 +67,6 @@ echo " - En el móvil y el ordenador sale sola al pulsar «Imprimir» (puede tar
 echo " - Si el ordenador no la ve, añádela a mano con esta dirección:"
 echo "     http://${IP:-IP-de-la-Raspberry}:631/printers/$QUEUE"
 echo " - Panel de la impresora (cola, cancelar trabajos): http://${IP:-IP-de-la-Raspberry}:631"
+echo " - En Taller3D Panel: Tickets → abre un ticket → «Imprimir». Sale directamente en «$QUEUE»."
 }
 main "$@" </dev/null

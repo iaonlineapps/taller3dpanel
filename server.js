@@ -26,6 +26,7 @@ const { DatabaseSync } = require('node:sqlite');
 const { BambuLink, BambuCloud, BambuCloudLink, CloudView } = require('./bambu');
 const { NetLink, KINDS } = require('./printers');
 const { createTelegram } = require('./telegram');
+const ipp = require('./ipp');
 
 const ROOT = __dirname;
 const PUB = path.join(ROOT, 'public');
@@ -508,6 +509,20 @@ const server = http.createServer(async (req, res) => {
       if (['stop'].includes(b.cmd) && me.role === 'lector') return send(res, 403, { error: 'No permitido' });
       l.link.command(b.cmd, b.value); setTimeout(() => l.link.command('refresh'), 800);
       return send(res, 200, { ok: true });
+    }
+    // ----- imprimir tickets directamente en una impresora de la Raspberry (CUPS) -----
+    if (p.startsWith('/api/print/')) {
+      const hostPref = String(url.searchParams.get('host') || '').slice(0, 80);
+      try {
+        if (p === '/api/print/printers' && M === 'GET') return send(res, 200, await ipp.list(hostPref));
+        if (p === '/api/print/status' && M === 'GET') return send(res, 200, await ipp.status(url.searchParams.get('queue'), hostPref));
+        if (p === '/api/print/pdf' && M === 'POST') {
+          const b = await readBody(req); const pdf = Buffer.from(String(b.pdf || ''), 'base64');
+          if (pdf.length < 100 || pdf.subarray(0, 5).toString() !== '%PDF-') return send(res, 400, { error: 'Documento no válido' });
+          const media = /^[\w.-]{1,60}$/.test(String(b.media || '')) ? String(b.media) : '';
+          return send(res, 200, await ipp.print({ queue: b.queue, host: String(b.host || '').slice(0, 80), pdf, media, kind: ['roll', 'label', 'a4'].includes(b.kind) ? b.kind : '', title: b.title, user: me.username, copies: b.copies }));
+        }
+      } catch (e) { if (typeof e.code === 'number') throw e; return send(res, 200, { ok: false, error: e.message || 'No se pudo imprimir', nocups: !!e.nocups, noqueue: !!e.noqueue, offline: !!e.offline }); }
     }
     // ----- bot de Telegram (solo administrador; el token nunca sale del servidor) -----
     if (p.startsWith('/api/telegram')) {

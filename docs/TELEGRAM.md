@@ -7,7 +7,7 @@ Taller3D Panel puede tener **su propio bot de Telegram**. Es opcional y gratis. 
 - **Te avisa solo** en el móvil cuando una impresora **empieza**, va por el **25, 50 y 75 %**, se
   **pausa**, **termina**, **falla** o tiene un **aviso**; cuando una pieza **se agota** o le queda poco
   stock, y cuando **entra una venta**.
-- **Te responde** si le preguntas: `/estado`, `/stock`, `/ventas`, `/resumen` y `/ayuda`.
+- **Te responde** si le preguntas: `/estado`, `/stock`, `/poco`, `/ventas`, `/resumen` y `/ayuda`.
 - **Solo te habla a ti.** Contesta únicamente al chat que guardas en la app. Si otra persona encuentra
   tu bot y le escribe, no le cuenta nada.
 
@@ -77,7 +77,8 @@ a mano (estado «libre», «imprimiendo»… que marcas tú) salen en `/estado` 
 | Orden | Qué responde |
 |---|---|
 | `/estado` | Todas las impresoras: imprimiendo (con % y tiempo que queda), libre, en pausa, sin conexión… |
-| `/stock` | Las piezas agotadas o por debajo de su mínimo |
+| `/stock` | Todo tu stock: cada pieza que te queda con sus unidades (y aparte las agotadas) |
+| `/poco` | Solo las piezas agotadas o por debajo de su mínimo (sin las marcadas «No la voy a reponer») |
 | `/ventas` | Ventas de hoy y del mes, lo que te deben y la última venta |
 | `/resumen` | Todo lo anterior junto |
 | `/ayuda` | Lo que sabe hacer |
@@ -127,7 +128,7 @@ Taller3D Panel can have **its own Telegram bot**. It is optional and free. Once 
 - **It alerts you** on your phone when a printer **starts**, reaches **25, 50 and 75 %**, **pauses**,
   **finishes**, **fails** or shows a **warning**; when a part **runs out** or runs low; and when **a
   sale comes in**.
-- **It answers** when you ask: `/status`, `/stock`, `/sales`, `/summary` and `/help` (the Spanish
+- **It answers** when you ask: `/status`, `/stock`, `/low`, `/sales`, `/summary` and `/help` (the Spanish
   commands work too).
 - **It only talks to you.** It only answers the chat saved in the app.
 
@@ -173,7 +174,8 @@ number (starting with `-`) appears.
 | Command | Answer |
 |---|---|
 | `/status` | Every printer: printing (with % and time left), idle, paused, offline… |
-| `/stock` | Parts out of stock or below their minimum |
+| `/stock` | All your stock: every part you have left with its units (and the out-of-stock ones apart) |
+| `/low` | Only parts out of stock or below their minimum (except those marked «I won't restock it») |
 | `/sales` | Sales today and this month, unpaid amount and the last sale |
 | `/summary` | All of the above |
 
