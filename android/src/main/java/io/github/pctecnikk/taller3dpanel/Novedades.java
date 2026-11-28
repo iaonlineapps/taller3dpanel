@@ -91,11 +91,11 @@ final class Novedades {
                             .setTitle(Lang.t(a, "Hay una actualización: ", "Update available: ") + fLatest)
                             .setMessage(Lang.t(a, "Tienes la " + mine + ". Pulsa «Actualizar»: se descarga la nueva y se abre el instalador. Se instala encima y no se pierde nada.",
                                     "You have " + mine + ". Tap «Update»: the new one is downloaded and the installer opens. It installs on top and nothing is lost."))
-                            .setPositiveButton(Lang.t(a, "Actualizar", "Update"), (d, w) -> {
+                            .setPositiveButton(Lang.t(a, "Actualizar", "Update"), new android.content.DialogInterface.OnClickListener() { @Override public void onClick(android.content.DialogInterface d, int w) {
                                 if (fApk != null) install(a, fApk, fLatest);
                                 else a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(RELEASES_PAGE + "/tag/android-v" + fLatest)));
-                            })
-                            .setNegativeButton(Lang.t(a, "Ahora no", "Not now"), (d, w) -> p.edit().putString(KEY_SKIP, fLatest).putLong(KEY_SKIP_AT, System.currentTimeMillis()).apply())
+                            } })
+                            .setNegativeButton(Lang.t(a, "Ahora no", "Not now"), new android.content.DialogInterface.OnClickListener() { @Override public void onClick(android.content.DialogInterface d, int w) { p.edit().putString(KEY_SKIP, fLatest).putLong(KEY_SKIP_AT, System.currentTimeMillis()).apply(); } })
                             .show();
                 } else if (manual) {
                     new AlertDialog.Builder(a).setTitle(Lang.t(a, "Taller3D Panel · App Android ", "Taller3D Panel · Android app ") + mine)

@@ -1,5 +1,8 @@
 # Novedades de la app Android
 
+## 1.0.5
+- **Imprimir desde la app**: las etiquetas sueltas (y las hojas de etiquetas) se imprimen directamente con el diálogo de impresión del móvil, ya con su tamaño (62 × 29 mm o 62 × 100 mm). Elige la impresora «Etiquetas» de la Raspberry.
+
 ## 1.0.4
 - **Avisa sola cuando hay una versión nueva**: al abrirla mira en tu servidor y, si hay una más nueva, sale «Hay una actualización». Pulsas «Actualizar», se descarga y se abre el instalador.
 
