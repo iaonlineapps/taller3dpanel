@@ -308,10 +308,17 @@ function serveStatic(req, res, p) {
   fs.stat(f, (err, st) => {
     if (err || !st.isFile()) return send(res, 404, 'No encontrado', 'text/plain');
     const ext = path.extname(f).toLowerCase();
+    // Si el navegador ya tiene este archivo y no ha cambiado, contesta 304 (vacío): las recargas van rápidas
+    const lm = new Date(Math.floor(st.mtimeMs / 1000) * 1000).toUTCString(), ims = Date.parse(req.headers['if-modified-since'] || '');
     // El lector de STEP (OpenCascade en WebAssembly) va en un worker aparte y necesita eval/wasm;
     // el permiso es solo para ese worker, la app sigue con la política estricta.
     const csp = /[\\/]vendor[\\/]occt[\\/]/.test(f) ? { 'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self'" } : {};
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': ext === '.html' || /[\\/]app[\\/]/.test(f) ? 'no-cache' : 'public, max-age=86400', ...SEC, ...csp });
+    // La página, i18n.js, el manifiesto y la APK se comprueban siempre (no-cache) para que una versión nueva se vea al momento;
+    // las librerías de vendor/ y las imágenes se guardan un día.
+    const fresh = ext === '.html' || ext === '.webmanifest' || (ext === '.js' && path.dirname(f) === PUB) || /[\\/]app[\\/]/.test(f);
+    const hdr = { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': fresh ? 'no-cache' : 'public, max-age=86400', 'Last-Modified': lm, ...SEC, ...csp };
+    if (!isNaN(ims) && ims >= Date.parse(lm)) { res.writeHead(304, hdr); return res.end(); }
+    res.writeHead(200, hdr);
     fs.createReadStream(f).pipe(res);
   });
 }
@@ -336,6 +343,8 @@ const server = http.createServer(async (req, res) => {
       const o = req.headers.origin; const host = req.headers['x-forwarded-host'] || req.headers.host;
       if (o && host && new URL(o).host !== String(host).split(',')[0].trim()) return send(res, 403, { error: 'Origen no permitido' });
     }
+    // Versión que está sirviendo el servidor: la web la mira para avisar de que hay una nueva (sin sesión)
+    if (p === '/api/version' && M === 'GET') return send(res, 200, { version: VERSION });
     const me = auth(req);
     if (p === '/api/me' && M === 'GET') return send(res, 200, { user: pubUser(me), needSetup: q.countUsers.get().n === 0, allowRegister: ALLOW_REGISTER, requireEmail: REQUIRE_EMAIL, version: VERSION });
     if (p === '/api/setup' && M === 'POST') {

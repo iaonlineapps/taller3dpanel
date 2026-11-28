@@ -9,7 +9,7 @@
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<script src="i18n.js?v=1.0.13"></script>
+<script src="i18n.js?v=1.0.25"></script>
 <script>window.T=window.T||(s=>s);window.TL=window.TL||(s=>s);window.T3D_LANG=window.T3D_LANG||'es';window.T3D_LOCALE=window.T3D_LOCALE||T3D_LOCALE;window.setLang=window.setLang||(()=>{})</script>
 <script src="vendor/qrcode.js"></script>
 <script src="vendor/JsBarcode.all.min.js"></script>
@@ -229,6 +229,9 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
 .wbox{display:grid;gap:10px;padding:12px;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--pri) 6%,transparent)}.wh{display:flex;gap:8px;align-items:center;color:var(--pri)}.wh .i{width:18px;height:18px}.wres{display:grid;gap:4px}.wbig{font-size:15px;font-weight:700;color:var(--pri)}
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.f3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.upbar{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);z-index:95;display:flex;align-items:center;gap:12px;background:var(--pri);color:#fff;padding:10px 10px 10px 16px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:calc(100vw - 24px);width:max-content;animation:upin .3s ease}
+.upbar .upt{display:grid;gap:2px;font-size:14px;line-height:1.3}.upbar .upt span{opacity:.9;font-size:13px}.upbar .btn{background:#fff;color:var(--pri);border-color:#fff;flex:none}.upbar .ib{color:#fff;background:transparent;border-color:rgba(255,255,255,.4);flex:none}
+@keyframes upin{from{opacity:0;transform:translate(-50%,-12px)}to{opacity:1;transform:translateX(-50%)}}
 .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,160px);background:var(--ink);color:var(--card);padding:12px 20px;border-radius:12px;font-weight:600;transition:transform .25s;z-index:70;max-width:90vw}
 .toast:not(.show){visibility:hidden}.toast.show{transform:translate(-50%,0)!important}
 .bnav,.more{display:none}
@@ -302,6 +305,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
  <symbol id="i-ig" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></symbol>
  <symbol id="i-bat" viewBox="0 0 24 24"><rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2M6 10v4M10 10v4"/></symbol>
+ <symbol id="i-reload" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5"/></symbol>
  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></symbol>
 </svg>
 <div class="app">
@@ -341,6 +345,7 @@ tr.ck{cursor:pointer}tr.ck:hover td{background:var(--soft)}
   <div class="tb">
    <button class="ib" id="qscan" aria-label="Escanear"><svg class="i"><use href="#i-qr"/></svg></button>
    <button class="vchip" id="vchip" title="Versión y novedades"></button>
+   <button class="ib" id="reloadb" data-reload title="Recargar o buscar actualizaciones" aria-label="Recargar o buscar actualizaciones"><svg class="i"><use href="#i-reload"/></svg></button>
    <button class="ib" id="langchip" translate="no" style="font-size:13px;font-weight:700;width:auto;padding:0 10px"></button>
    <button class="ib" id="theme" aria-label="Cambiar tema"><svg class="i"><use id="thi" href="#i-moon"/></svg></button>
    <button class="ib hide-m" id="bell" aria-label="Avisos"><svg class="i"><use href="#i-bell"/></svg><span class="pip" id="pip" hidden></span></button>
@@ -2501,7 +2506,7 @@ function editUser(u){const isNew=!u;u=u||{name:'',username:'',role:'editor',acti
  const d=$('#delu');if(d)d.onclick=()=>confirmBox('¿Borrar el usuario @'+u.username+'?',async()=>{if(IN_ARTIFACT){if(u.role==='admin'&&S.appusers.filter(x=>x.role==='admin').length<=1){toast('Tiene que quedar al menos un administrador');return}await del('appusers',u.id);return}await api('DELETE','api/users/'+encodeURIComponent(u.id))})}
 
 /* ======================= AJUSTES ======================= */
-const WEB_VERSION='1.0.24';
+const WEB_VERSION='1.0.25';
 const appVersion=()=>(navigator.userAgent.match(/Taller3DPanelAndroid\/([\d.]+)/)||[])[1];
 const REPO_URL='https://github.com/iaonlineapps/taller3dpanel',APK_URL='app/Taller3DPanel.apk';
 /* La APK viaja con la web (public/app/): version.json dice cuál es la última. Si abres la web desde una app
@@ -2514,6 +2519,7 @@ async function appUpdateCheck(){const mine=appVersion();if(!mine)return;let v=''
 const webVer=()=>SRV.version||WEB_VERSION;
 /* Novedades de la web (las de la app Android van en android/NOVEDADES.md) */
 const NEWS=[
+ ['1.0.25',["**Aviso de versión nueva.** Si tienes la web instalada como app (acceso directo en el escritorio o en el móvil), ya no se queda en la versión vieja: cuando actualizas la Raspberry sale arriba **«Hay una versión nueva»** y con **«Actualizar»** se recarga con la nueva. Lo mira al abrirla, cada 5 minutos y al volver a la ventana.","**Botón para recargar:** arriba, junto a la versión, está el botón **↻** (y en **Ajustes**, **«Recargar o buscar actualizaciones»**). Recarga la página y te dice si ya tienes la última versión.","Arreglado: las traducciones al inglés de una versión nueva podían tardar hasta un día en verse."]],
  ['1.0.24',['**Varias marcas en un mismo producto de reventa.** En «Editar producto» marca **«Tengo varias marcas»** y pon cada marca con **su pack** (precio y unidades) y su stock: por ejemplo pilas AA de Duracell (pack de 20) y de Varta (pack de 40). Cada marca tiene **su coste por unidad** y lo que **ganas** con ella.','El stock del producto es la **suma de todas las marcas**. Al vender **eliges la marca**, se descuenta de esa marca y la ganancia se calcula con su coste. La marca sale en el ticket.','En la ficha del producto ves una tabla **«Por marca»** con el pack, el coste, lo que ganas, lo vendido y el stock de cada marca. En **«+ Compré otro pack»** eliges la marca (o escribes una nueva).']],
  ['1.0.23',['**Desactivar una pieza o un producto** que por ahora no vas a hacer más: pulsa **«Desactivar»** en su foto (o en la lista, en su ficha o con el botón derecho). Desaparece de Vender, de «Por reponer», de los avisos y del bot de Telegram, pero no se borra nada.','Para verlas, pulsa **«Desactivadas»** en Piezas y stock (o **«Desactivados»** en Productos de reventa). Con **«Activar»** vuelven a estar como antes.']],
  ['1.0.22',['**Nueva sección «Productos»** (en el menú, en «Servicios»): para lo que **compras hecho y vendes suelto**, como las **pilas**. Pones el **precio del pack** y **cuántas trae**, y el **coste por unidad sale solo** (pack ÷ unidades).','Cada producto tiene su **precio de venta**, lo que **ganas por unidad** (y el %), su **stock**, el **aviso de reponer** y la opción **«No lo voy a reponer»**. Con **«+ Compré otro pack»** sumas las unidades al stock y, si quieres, se apunta en Gastos.','Se venden desde **Vender** como cualquier pieza (también escaneando su código) y **se descuentan del stock**. En el **Panel** salen aparte como **«Productos de reventa»**, con sus ventas y sus compras, y el **/stock del bot de Telegram** también los incluye.','**Piezas en varios colores, cada color con su stock:** en «Editar pieza» marca **«La vendo en varios colores»** y pon cuántas tienes de cada color (por ejemplo llaveros: 5 rojos, 3 azules, 2 blancos).','Al vender esa pieza (en Vender, con el escáner o desde su ficha) **eliges el color** y se descuenta de ese color. El color sale en el ticket.','En la ficha de la pieza ves el **stock de cada color** y **«Vendidas por color»**: cuántas has vendido de cada uno y cuánto dinero. El bot de Telegram también te dice el stock por color con /stock.','**Ventas con su fecha.** Al vender, en el ticket hay un campo nuevo **«Fecha de la venta»** (por defecto, ahora). Pon una fecha pasada para **pasar ventas antiguas** de otra app: cuentan en el panel, los informes y las ganancias **en el día que pones**, no hoy.','Con fecha pasada eliges si **se restan las piezas del stock** o no. Sin marcar (lo normal al pasar ventas antiguas), tu stock no cambia y puedes añadir piezas aunque estén agotadas. La fecha se queda puesta para pasar varias seguidas; con «Hoy» vuelves a ahora.','Al **editar un ticket** también puedes cambiar su fecha.','**Imprimir el ticket con un botón.** En **Tickets**, abre un ticket y pulsa **«Imprimir»**. Con la impresora de etiquetas **Brother QL-700** enchufada a la Raspberry sale **directamente**, sin ventanas, en el rollo continuo de 62 mm y tan largo como el ticket.','**Se adapta al papel:** la primera vez eliges la impresora y el papel (rollo continuo de 29 a 102 mm, etiqueta de largo fijo o **A4 en un folio**). La app reconoce las impresoras que tiene la Raspberry y pone sola el papel que les va: rollo en las de etiquetas o tickets, A4 en las normales. Con la rueda ⚙ lo cambias cuando quieras.','Si la impresora no está (apagada o desenchufada), se abre la **ventana normal de imprimir** del ordenador o del móvil, donde puedes elegir cualquier impresora de casa u oficina.','**etiquetas.sh** ahora también añade solas a la Raspberry las impresoras normales de tu red (las que tienen AirPrint o IPP), para imprimir en A4 directamente.','**El bot de Telegram ya te dice todo tu stock:** escribe **/stock** y te contesta con **todas las piezas que te quedan** y cuántas unidades hay de cada una (con su color), y aparte las agotadas. Las que están por debajo del mínimo salen marcadas con ⚠️.','Para ver solo lo que hay que reponer, escribe **/poco**. /resumen también lo incluye.','El número rojo ya no está fijo en «Piezas y stock»: ahora hay una entrada aparte en el menú, **«Por reponer»**, que solo sale cuando hay algo que reponer.','**Piezas que no vas a reponer:** en «Editar pieza» marca **«No la voy a reponer»** y deja de contar en «Por reponer» y de avisarte (tampoco el bot).','En **Piezas y stock**, cuando ves solo lo que hay que reponer, sale arriba un aviso con el botón **«Ver todas»**, y al cambiar de sección vuelves a ver todas las piezas.']],
@@ -2567,6 +2573,28 @@ function showNews(since){const l=(since?NEWS.filter(([v])=>newer(v,since)):NEWS.
  const d=$('#dlg'),up=$('#newsup'),top=()=>{d.scrollTop=0};top();requestAnimationFrame(top);setTimeout(top,80);
  const chk=()=>{if(!up.isConnected){d.removeEventListener('scroll',chk);return}up.classList.toggle('on',d.scrollTop>250)};d.addEventListener('scroll',chk,{passive:true});
  up.onclick=()=>{try{d.scrollTo({top:0,behavior:'smooth'})}catch(e){top()}}}
+/* Versión nueva en el servidor. La web instalada como app (acceso directo de Chrome/Edge o del móvil) se abre en una
+   ventana sin barra ni botón de recargar, y si se queda abierta sigue con la versión vieja. Por eso se pregunta a
+   api/version al abrir, cada 5 minutos y al volver a la ventana; si el servidor tiene otra más nueva, sale un aviso
+   con «Actualizar», que borra lo guardado (cachés y service workers, si los hubiera) y recarga. */
+let upSkip='',upLast=0;
+async function srvVersion(){const r=await fetch('api/version?t='+Date.now(),{cache:'no-store',credentials:'same-origin'});if(!r.ok)throw 0;return String((await r.json()).version||'')}
+function hardReload(){const go=()=>{const u=new URL(location.href);u.searchParams.set('r',Date.now().toString(36));location.replace(u.toString())},w=[];
+ try{if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations)w.push(navigator.serviceWorker.getRegistrations().then(l=>Promise.all(l.map(x=>x.unregister()))))}catch(e){}
+ try{if(window.caches&&caches.keys)w.push(caches.keys().then(k=>Promise.all(k.map(n=>caches.delete(n)))))}catch(e){}
+ Promise.race([Promise.all(w),new Promise(ok=>setTimeout(ok,1500))]).catch(()=>{}).then(go)}
+function upBar(v){let b=document.getElementById('upbar');if(!b){b=document.createElement('div');b.id='upbar';b.className='upbar';b.setAttribute('role','status');document.body.appendChild(b)}
+ b.innerHTML=`<span class="upt"><b>Hay una versión nueva</b><span>Tienes la ${esc(WEB_VERSION)} y ya está la ${esc(v)}.</span></span><button type="button" class="btn" id="upgo">Actualizar</button><button type="button" class="ib" id="upno" title="Ahora no" aria-label="Ahora no">✕</button>`;
+ b.querySelector('#upgo').onclick=()=>{b.querySelector('#upgo').classList.add('busy');try{sessionStorage.setItem('t3d-recarga','1')}catch(e){}hardReload()};
+ b.querySelector('#upno').onclick=()=>{upSkip=v;b.remove()}}
+async function checkUp(force){if(IN_ARTIFACT||DEMO)return;const now=Date.now();if(!force&&now-upLast<60000)return;upLast=now;
+ let v='';try{v=await srvVersion()}catch(e){return}if(v&&newer(v,WEB_VERSION)&&v!==upSkip)upBar(v)}
+function reloadNow(){toast('Recargando…');try{sessionStorage.setItem('t3d-recarga','1')}catch(e){}setTimeout(hardReload,300)}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-reload]');if(b){e.preventDefault();reloadNow()}});
+if(!IN_ARTIFACT&&!DEMO){setTimeout(()=>checkUp(true),4000);setInterval(()=>checkUp(true),5*60000);
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkUp()});window.addEventListener('focus',()=>checkUp());window.addEventListener('online',()=>checkUp(true));
+ try{if(sessionStorage.getItem('t3d-recarga')){sessionStorage.removeItem('t3d-recarga');const u=new URL(location.href);if(u.searchParams.has('r')){u.searchParams.delete('r');history.replaceState(history.state,'',u.toString())}
+  setTimeout(async()=>{let v='';try{v=await srvVersion()}catch(e){}if(v&&newer(v,WEB_VERSION))upBar(v);else toast(`Tienes la última versión: ${WEB_VERSION}`)},1200)}}catch(e){}}
 function newsIfUpdated(){setTimeout(appUpdateCheck,1500);let seen='';try{seen=localStorage.getItem('t3d-visto')||'';localStorage.setItem('t3d-visto',webVer())}catch(e){}if(seen&&newer(webVer(),seen))setTimeout(()=>showNews(seen),600)}
 const footHTML=()=>`<footer class="pfoot">Taller3D Panel · Web ${esc(webVer())} · ${appVersion()?'App Android '+esc(appVersion()):`<a href="${APK_URL}" target="_blank" rel="noopener">App Android</a>`} · <button type="button" id="footnews">Novedades</button><span class="madeby">💛 <span>Proyecto sin ánimo de lucro, gratis y sin anuncios</span> · 🤖 <span>App creada con ayuda de inteligencia artificial (IA)</span> · © 2026 <a href="https://github.com/iaonlineapps/taller3dpanel" target="_blank" rel="noopener" translate="no">IA Online Apps</a> · <span>Uso personal no comercial</span></span></footer>`;
 const versionText=()=>`Taller3D Panel ${SRV.version||WEB_VERSION}`+(appVersion()?` · App Android ${appVersion()}`:'');
@@ -2576,7 +2604,7 @@ const sec=(t,body,extra='')=>`<div class="card" style="display:grid;gap:14px;ali
 function vAjustes(){const c=S.cfg,ej=['products','customers','sales','prints','spools','expenses','collabs','moves','jobs','quotes'].reduce((t,k)=>t+S[k].filter(x=>/^ej/.test(x.id)).length,0);
  const user=IN_ARTIFACT&&!ME?sec('Mi usuario',`<form id="fme" style="display:grid;gap:12px"><div class="f2"><label>Tu nombre<input name="owner" value="${esc(c.owner)}"></label><label>Tu email<input name="email" type="email" value="${esc(c.email)}"></label></div><div class="acts"><button class="btn">Guardar</button></div></form><p class="note" style="margin:0">En esta versión personal entras con tu cuenta de Claude. En la versión instalable (Docker o Android) cada persona entra con su usuario y contraseña.</p>`)
   :sec('Mi cuenta',`<div style="display:flex;gap:12px;align-items:center"><span class="av" style="overflow:hidden">${avatarHTML(ME,38)}</span><div><b>${esc(ME?ME.name||ME.username:'')}</b><div class="note">@${esc(ME?ME.username:'')} · ${esc({admin:'Administrador',editor:'Puede editar',lector:'Solo ver'}[ME&&ME.role]||'')}</div></div></div><div class="btns"><button class="btn gh" id="chpw">Cambiar contraseña</button>${IN_ARTIFACT?'':'<button class="btn gh" id="recnew">Código de recuperación</button>'}<button class="btn rd" id="logout">${ico('out')}Salir</button></div>`);
- return `<div class="ph"><div><h1>Ajustes</h1><div class="sub">Tu empresa, tus impresoras, tus costes y tu cuenta</div></div><span class="tag">${esc(versionText())}</span></div>
+ return `<div class="ph"><div><h1>Ajustes</h1><div class="sub">Tu empresa, tus impresoras, tus costes y tu cuenta</div></div><div class="btns" style="align-items:center"><span class="tag">${esc(versionText())}</span>${IN_ARTIFACT||DEMO?'':'<button type="button" class="btn gh" data-reload><svg class="i"><use href="#i-reload"/></svg>Recargar o buscar actualizaciones</button>'}</div></div>
  <div class="g2" style="align-items:start"><div style="display:grid;gap:16px">
  ${sec('Datos de la empresa',`<div style="display:flex;gap:14px;align-items:center"><div style="width:84px;height:84px;border-radius:16px;background:var(--soft);display:grid;place-items:center;overflow:hidden;flex:none">${okImg(c.logo)?`<img src="${c.logo}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain">`:DEF_MARK}</div><div style="display:grid;gap:8px"><div class="btns"><span class="btn sf filebtn">${c.logo?'Cambiar logo':'Subir logo'}<input type="file" accept="image/*" id="logof"></span>${c.logo?'<button type="button" class="btn rd" id="nologo">Quitar</button>':''}</div><span class="note">Sale en el menú, los tickets, los presupuestos y las etiquetas. Mejor PNG con fondo transparente.</span></div></div>
  <form id="fcfg" style="display:grid;gap:12px"><div class="f2"><label>Nombre comercial<input name="name" value="${esc(c.name)}" required></label><label>Razón social<input name="legal" value="${esc(c.legal)}" placeholder="Opcional"></label></div>

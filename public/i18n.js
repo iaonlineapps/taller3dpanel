@@ -17,6 +17,14 @@ window.setLang=function(l){if(l!=='es'&&l!=='en')return;try{localStorage.setItem
  try{window.T3DApp&&T3DApp.setLang&&T3DApp.setLang(l)}catch(e){}
  if(l!==LANG){var u=location.href.replace(/([?&])lang=(es|en)&?/,'$1').replace(/[?&]$/,'');location.replace(u)}};
 var EN={
+"**Aviso de versión nueva.** Si tienes la web instalada como app (acceso directo en el escritorio o en el móvil), ya no se queda en la versión vieja: cuando actualizas la Raspberry sale arriba **«Hay una versión nueva»** y con **«Actualizar»** se recarga con la nueva. Lo mira al abrirla, cada 5 minutos y al volver a la ventana.":"**New version notice.** If you installed the web as an app (desktop or phone shortcut), it no longer stays on the old version: when you update the Raspberry, **«A new version is available»** shows at the top and **«Update»** reloads it with the new one. It checks when you open it, every 5 minutes and when you come back to the window.",
+"**Botón para recargar:** arriba, junto a la versión, está el botón **↻** (y en **Ajustes**, **«Recargar o buscar actualizaciones»**). Recarga la página y te dice si ya tienes la última versión.":"**Reload button:** at the top, next to the version, there's the **↻** button (and in **Settings**, **«Reload or check for updates»**). It reloads the page and tells you if you already have the latest version.",
+"Arreglado: las traducciones al inglés de una versión nueva podían tardar hasta un día en verse.":"Fixed: the English translations of a new version could take up to a day to show.",
+"Hay una versión nueva":"A new version is available",
+"Tienes la {} y ya está la {}.":"You have {} and {} is out.",
+"Recargar o buscar actualizaciones":"Reload or check for updates",
+"Recargando…":"Reloading…",
+"Tienes la última versión: {}":"You have the latest version: {}",
 "Precio del pack":"Pack price",
 "**Varias marcas en un mismo producto de reventa.** En «Editar producto» marca **«Tengo varias marcas»** y pon cada marca con **su pack** (precio y unidades) y su stock: por ejemplo pilas AA de Duracell (pack de 20) y de Varta (pack de 40). Cada marca tiene **su coste por unidad** y lo que **ganas** con ella.":"**Several brands in the same resale product.** In «Edit product» tick **«I have several brands»** and enter each brand with **its pack** (price and units) and its stock: for example AA batteries from Duracell (pack of 20) and Varta (pack of 40). Each brand has **its own cost per unit** and what you **earn** with it.",
 "El stock del producto es la **suma de todas las marcas**. Al vender **eliges la marca**, se descuenta de esa marca y la ganancia se calcula con su coste. La marca sale en el ticket.":"The product's stock is the **sum of all brands**. When you sell **you choose the brand**, it is taken from that brand and the profit uses its cost. The brand shows on the ticket.",
