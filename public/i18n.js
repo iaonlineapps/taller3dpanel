@@ -17,6 +17,10 @@ window.setLang=function(l){if(l!=='es'&&l!=='en')return;try{localStorage.setItem
  try{window.T3DApp&&T3DApp.setLang&&T3DApp.setLang(l)}catch(e){}
  if(l!==LANG){var u=location.href.replace(/([?&])lang=(es|en)&?/,'$1').replace(/[?&]$/,'');location.replace(u)}};
 var EN={
+"En **Novedades** hay un botón **«↑ Volver arriba»**: aparece al bajar por la lista y te sube arriba del todo de un toque.":"In **What's new** there is a **“↑ Back to top”** button: it appears as you scroll down the list and takes you to the very top with one tap.",
+"Al abrir **Novedades** sale siempre **la versión más reciente arriba del todo**.":"When you open **What's new**, **the latest version is always at the very top**.",
+"↑ Volver arriba":"↑ Back to top",
+"Volver arriba del todo":"Back to the very top",
 "**Imprimir una etiqueta suelta** en una impresora de etiquetas (Brother QL-700 y parecidas, rollo de 62 mm). En la ficha de una pieza pulsa «Etiqueta», y en la de una impresora de la granja, «Imprimir etiqueta». También con «Imprimir esta» en la hoja de etiquetas.":"**Print a single label** on a label printer (Brother QL-700 and similar, 62 mm roll). On a part's card tap «Label», and on a farm printer's card, «Print label». You can also use «Print this one» on the label sheet.",
 "Elige el tamaño (pequeña de 62 × 29 mm o grande de 62 × 100 mm), mira cómo queda y pulsa «Imprimir». La hoja A4 de siempre sigue igual.":"Choose the size (small 62 × 29 mm or large 62 × 100 mm), check the preview and press «Print». The usual A4 sheet stays the same.",
 "**Instalar la impresora en la Raspberry:** en esa misma ventana, en «¿Primera vez?», está la línea para pegar por SSH. Instala todo, la comparte en casa y saca una etiqueta de prueba.":"**Install the printer on the Raspberry Pi:** in that same window, under «First time?», you'll find the line to paste over SSH. It installs everything, shares the printer at home and prints a test label.",
